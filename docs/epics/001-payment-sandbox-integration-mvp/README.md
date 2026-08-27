@@ -28,6 +28,17 @@ depending on Stripe or Mercado Pago in development.
 - [ ] 6 deterministic scenarios for success, decline, pending, retries, and partial refund.
 - [ ] Docker Compose for local execution.
 
+## Stories
+
+- [ ] [01-sandbox-api-base](./stories/01-sandbox-api-base.md)
+- [ ] [02-scenario-engine](./stories/02-scenario-engine.md)
+- [ ] [03-webhook-delivery](./stories/03-webhook-delivery.md)
+- [ ] [04-ledger-reporting](./stories/04-ledger-reporting.md)
+- [ ] [05-rails-adapter](./stories/05-rails-adapter.md)
+- [ ] [06-local-dev-setup](./stories/06-local-dev-setup.md)
+
+Each story includes its own system design diagram followed by a numbered explanation.
+
 ### Out of Scope
 
 - [ ] Crypto rails.
@@ -98,7 +109,7 @@ sequenceDiagram
 
 | Area                                                | Impact   | Description                                                |
 | --------------------------------------------------- | -------- | ---------------------------------------------------------- |
-| `docs/epics/001-payment-sandbox-integration-mvp.md` | New      | Epic proposal and scope definition.                        |
+| `docs/epics/001-payment-sandbox-integration-mvp/README.md` | New      | Epic proposal and scope definition.                        |
 | `Go sandbox service`                                | New      | Payment processor simulator, scenarios, webhooks, reports. |
 | `Rails payment adapter`                             | Modified | Client wrapper and local payment tracking.                 |
 | `Rails webhook handling`                            | Modified | Inbox/idempotency for sandbox events.                      |
