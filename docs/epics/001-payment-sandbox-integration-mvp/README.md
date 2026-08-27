@@ -30,12 +30,12 @@ depending on Stripe or Mercado Pago in development.
 
 ## Stories
 
-- [ ] [01-sandbox-api-base](./stories/01-sandbox-api-base.md)
-- [ ] [02-scenario-engine](./stories/02-scenario-engine.md)
-- [ ] [03-webhook-delivery](./stories/03-webhook-delivery.md)
-- [ ] [04-ledger-reporting](./stories/04-ledger-reporting.md)
-- [ ] [05-rails-adapter](./stories/05-rails-adapter.md)
-- [ ] [06-local-dev-setup](./stories/06-local-dev-setup.md)
+- [ ] [01-sandbox-api-base](./stories/01-sandbox-api-base/README.md)
+- [ ] [02-scenario-engine](./stories/02-scenario-engine/README.md)
+- [ ] [03-webhook-delivery](./stories/03-webhook-delivery/README.md)
+- [ ] [04-ledger-reporting](./stories/04-ledger-reporting/README.md)
+- [ ] [05-rails-adapter](./stories/05-rails-adapter/README.md)
+- [ ] [06-local-dev-setup](./stories/06-local-dev-setup/README.md)
 
 Each story includes its own system design diagram followed by a numbered explanation.
 

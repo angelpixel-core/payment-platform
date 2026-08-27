@@ -24,8 +24,8 @@ Describe the problem this epic solves and the outcome we want.
 
 ## Stories
 
-- [ ] [story-01-title](./stories/story-01-title.md)
-- [ ] [story-02-title](./stories/story-02-title.md)
+- [ ] [story-01-title](./stories/story-01-title/README.md)
+- [ ] [story-02-title](./stories/story-02-title/README.md)
 
 ## Approach
 
