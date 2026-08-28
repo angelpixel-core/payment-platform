@@ -6,6 +6,7 @@ tags:
   - sandbox
   - api
 epic: 001-payment-sandbox-integration-mvp
+status: implemented
 ---
 
 # Story: Sandbox API Base
@@ -18,13 +19,13 @@ Implement the core payment API that Rails uses to create, confirm, capture, and 
 
 ### In Scope
 
-- [ ] `POST /v1/payment_intents`
-- [ ] `POST /v1/payment_intents/:id/confirm`
-- [ ] `POST /v1/payment_intents/:id/capture`
-- [ ] `POST /v1/refunds`
-- [ ] Domain models for `PaymentIntent`, `PaymentAttempt`, `Charge`, and `Refund`
-- [ ] Validations for amount, currency, state transitions, and required references
-- [ ] Basic idempotency for create, confirm, and refund requests
+- [x] `POST /v1/payment_intents`
+- [x] `POST /v1/payment_intents/:id/confirm`
+- [x] `POST /v1/payment_intents/:id/capture`
+- [x] `POST /v1/refunds`
+- [x] Domain models for `PaymentIntent`, `PaymentAttempt`, `Charge`, and `Refund`
+- [x] Validations for amount, currency, state transitions, and required references
+- [x] Basic idempotency for create, confirm, and refund requests
 
 ### Out of Scope
 
@@ -63,11 +64,23 @@ flowchart LR
 
 ## Acceptance Criteria
 
-- [ ] Rails can create and progress a payment intent.
-- [ ] Refunds are registered and linked to the original charge.
-- [ ] Invalid transitions are rejected.
-- [ ] Duplicate create/confirm/refund requests do not create duplicate financial effects.
-- [ ] The API returns predictable error payloads for invalid state transitions.
+- [x] Rails can create and progress a payment intent.
+- [x] Refunds are registered and linked to the original charge.
+- [x] Invalid transitions are rejected.
+- [x] Duplicate create/confirm/refund requests do not create duplicate financial effects.
+- [x] The API returns predictable error payloads for invalid state transitions.
+
+## Implementation Note
+
+- The sandbox base is implemented as a self-contained Go service with an in-memory store and a storage abstraction boundary, so the PostgreSQL-backed version can be added later without changing the HTTP contract.
+
+## Outcomes
+
+- [Demo README](./outcomes/README.md)
+- [01-create-payment-intent.http](./outcomes/01-create-payment-intent.http)
+- [02-confirm-payment-intent.http](./outcomes/02-confirm-payment-intent.http)
+- [03-capture-payment-intent.http](./outcomes/03-capture-payment-intent.http)
+- [04-refund-payment-intent.http](./outcomes/04-refund-payment-intent.http)
 
 ## Dependencies
 

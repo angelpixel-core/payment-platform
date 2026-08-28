@@ -21,6 +21,7 @@ depending on Stripe or Mercado Pago in development.
 ### In Scope
 
 - [ ] Card-only payment sandbox service in Go.
+- [x] Card-only payment sandbox service in Go.
 - [ ] 5 core endpoints for create, confirm, capture, refund, and reporting.
 - [ ] Webhook simulation with retries and duplicate delivery.
 - [ ] Local ledger-style reporting for reconciliation.
@@ -30,7 +31,10 @@ depending on Stripe or Mercado Pago in development.
 
 ## Stories
 
-- [ ] [01-sandbox-api-base](./stories/01-sandbox-api-base/README.md)
+- [x] [01-sandbox-api-base](./stories/01-sandbox-api-base/README.md)
+  - [x] proposal
+  - [x] designed
+  - [x] implemented
 - [ ] [02-scenario-engine](./stories/02-scenario-engine/README.md)
 - [ ] [03-webhook-delivery](./stories/03-webhook-delivery/README.md)
 - [ ] [04-ledger-reporting](./stories/04-ledger-reporting/README.md)
