@@ -22,11 +22,15 @@ Add a simple ledger and reporting layer so Rails can reconcile local records aga
 - [ ] Transaction report endpoint
 - [ ] Balance projection
 - [ ] Reconciliation snapshot export
+- [ ] Immutable financial movements
+- [ ] Reportable fees and refunds
 
 ### Out of Scope
 
 - [ ] Bank settlement files
 - [ ] Full accounting back office
+- [ ] External accounting integrations
+- [ ] Tax or invoice generation
 
 ## System Design
 
@@ -46,12 +50,23 @@ flowchart LR
 3. The report endpoint exposes payment and balance state for reconciliation.
 4. Rails compares the report with its own local projections.
 5. Balances are derived from the ledger, not updated directly.
+6. Fees, refunds, and reversals must remain traceable to their originating transaction.
+
+## Contract Notes
+
+- Ledger entries must be append-only.
+- A balance is a projection of entries, not a primary source of truth.
+- The transaction report must include enough data for reconciliation.
+- Every report line must be traceable back to one or more ledger entries.
+- Reconciliation snapshots should be exportable and comparable from Rails.
 
 ## Acceptance Criteria
 
 - [ ] Every financial movement is reflected in the ledger.
 - [ ] The report can be consumed by Rails for reconciliation.
 - [ ] Balances can be derived from entries.
+- [ ] Ledger entries remain immutable.
+- [ ] Fees and refunds are represented in the report.
 
 ## Dependencies
 
