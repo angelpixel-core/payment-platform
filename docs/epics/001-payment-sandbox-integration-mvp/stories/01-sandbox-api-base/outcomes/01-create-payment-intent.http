@@ -1,0 +1,12 @@
+@baseUrl = http://localhost:8080
+@idempotencyKey = create-payment-intent-01
+
+POST {{baseUrl}}/v1/payment_intents
+Content-Type: application/json
+Idempotency-Key: {{idempotencyKey}}
+
+{
+  "amount": 100,
+  "currency": "usd",
+  "capture_method": "manual"
+}

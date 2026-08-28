@@ -1,0 +1,11 @@
+@baseUrl = http://localhost:8080
+@paymentIntentId = REPLACE_WITH_PAYMENT_INTENT_ID
+@idempotencyKey = confirm-payment-intent-01
+
+POST {{baseUrl}}/v1/payment_intents/{{paymentIntentId}}/confirm
+Content-Type: application/json
+Idempotency-Key: {{idempotencyKey}}
+
+{
+  "payment_method_token": "pm_card_visa"
+}
