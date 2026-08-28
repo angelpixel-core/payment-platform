@@ -6,6 +6,8 @@ tags:
   - sandbox
   - rails
   - go
+status: in_progress
+reason:
 ---
 
 # Epic: Payment Sandbox Integration MVP
@@ -21,7 +23,6 @@ depending on Stripe or Mercado Pago in development.
 ### In Scope
 
 - [ ] Card-only payment sandbox service in Go.
-- [x] Card-only payment sandbox service in Go.
 - [ ] 5 core endpoints for create, confirm, capture, refund, and reporting.
 - [ ] Webhook simulation with retries and duplicate delivery.
 - [ ] Local ledger-style reporting for reconciliation.
@@ -31,15 +32,12 @@ depending on Stripe or Mercado Pago in development.
 
 ## Stories
 
-- [x] [01-sandbox-api-base](./stories/01-sandbox-api-base/README.md)
-  - [x] proposal
-  - [x] designed
-  - [x] implemented
-- [ ] [02-scenario-engine](./stories/02-scenario-engine/README.md)
-- [ ] [03-webhook-delivery](./stories/03-webhook-delivery/README.md)
-- [ ] [04-ledger-reporting](./stories/04-ledger-reporting/README.md)
-- [ ] [05-rails-adapter](./stories/05-rails-adapter/README.md)
-- [ ] [06-local-dev-setup](./stories/06-local-dev-setup/README.md)
+- [x] [01-sandbox-api-base](./stories/01-sandbox-api-base/README.md) `done`
+- [ ] [02-scenario-engine](./stories/02-scenario-engine/README.md) `pending`
+- [ ] [03-webhook-delivery](./stories/03-webhook-delivery/README.md) `pending`
+- [ ] [04-ledger-reporting](./stories/04-ledger-reporting/README.md) `pending`
+- [ ] [05-rails-adapter](./stories/05-rails-adapter/README.md) `pending`
+- [ ] [06-local-dev-setup](./stories/06-local-dev-setup/README.md) `pending`
 
 Each story includes its own system design diagram followed by a numbered explanation.
 
