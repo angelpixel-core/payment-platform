@@ -2,6 +2,8 @@
 id: epic-id
 aliases: []
 tags: []
+status: pending
+reason:
 ---
 
 # Epic: Epic Title
@@ -24,8 +26,8 @@ Describe the problem this epic solves and the outcome we want.
 
 ## Stories
 
-- [ ] [story-01-title](./stories/story-01-title/README.md)
-- [ ] [story-02-title](./stories/story-02-title/README.md)
+- [ ] [story-01-title](./stories/story-01-title/README.md) `pending`
+- [ ] [story-02-title](./stories/story-02-title/README.md) `pending`
 
 ## Approach
 

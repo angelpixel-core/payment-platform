@@ -3,6 +3,8 @@ id: story-id
 aliases: []
 tags: []
 epic: epic-id
+status: pending
+reason:
 ---
 
 # Story: Story Title
