@@ -22,11 +22,15 @@ Make the sandbox and Rails app runnable locally with Docker Compose.
 - [ ] Local PostgreSQL
 - [ ] Local scenario seeds
 - [ ] Smoke test scripts
+- [ ] One-command startup for the full stack
+- [ ] Local env config for Rails and Go
 
 ### Out of Scope
 
 - [ ] Cloud deployment
 - [ ] Production observability stack
+- [ ] Kubernetes or staging infrastructure
+- [ ] CI/CD pipeline automation
 
 ## System Design
 
@@ -46,15 +50,27 @@ flowchart LR
 3. Seed data provides deterministic test scenarios.
 4. Smoke tests verify the basic payment flow before feature work begins.
 5. This setup keeps the MVP reproducible for development and demos.
+6. Local config should make it easy to switch between fake and sandbox providers.
+
+## Contract Notes
+
+- The full stack should start with a single local command.
+- Rails and Go must use predictable local hostnames and ports.
+- Seed data should include at least one happy-path and one failure-path scenario.
+- Smoke tests should prove the basic payment loop end to end.
+- The setup should be simple enough to reset from scratch.
 
 ## Acceptance Criteria
 
 - [ ] The full stack runs with one local command.
 - [ ] Seeded scenarios are available.
 - [ ] Smoke tests validate the happy path.
+- [ ] Local config is documented and reproducible.
+- [ ] The developer can reset the environment without manual cleanup.
 
 ## Dependencies
 
 - [ ] Sandbox API base
 - [ ] Rails adapter
 - [ ] Scenario engine
+- [ ] Ledger and reporting
