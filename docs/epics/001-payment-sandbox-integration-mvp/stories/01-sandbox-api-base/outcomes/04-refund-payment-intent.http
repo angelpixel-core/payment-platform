@@ -1,0 +1,11 @@
+@baseUrl = http://localhost:8080
+@chargeId = REPLACE_WITH_CHARGE_ID
+@idempotencyKey = refund-payment-intent-01
+
+POST {{baseUrl}}/v1/refunds
+Content-Type: application/json
+Idempotency-Key: {{idempotencyKey}}
+
+{
+  "charge_id": "{{chargeId}}"
+}

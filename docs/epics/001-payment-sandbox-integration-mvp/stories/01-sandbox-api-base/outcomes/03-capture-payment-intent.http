@@ -1,0 +1,7 @@
+@baseUrl = http://localhost:8080
+@paymentIntentId = REPLACE_WITH_PAYMENT_INTENT_ID
+
+POST {{baseUrl}}/v1/payment_intents/{{paymentIntentId}}/capture
+Content-Type: application/json
+
+{}
