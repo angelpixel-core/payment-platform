@@ -25,11 +25,15 @@ Create the Rails-side adapter, local persistence, and reconciliation job that ta
 - [ ] `fetch_status`
 - [ ] Local payment intents and attempts
 - [ ] Reconciliation job
+- [ ] Adapter error mapping
+- [ ] Local idempotency key tracking
 
 ### Out of Scope
 
 - [ ] Provider-specific SDKs
 - [ ] UI changes beyond the existing payment button flow
+- [ ] Provider-specific payment logic
+- [ ] Webhook dispatcher implementation in the sandbox
 
 ## System Design
 
@@ -51,11 +55,22 @@ flowchart LR
 4. A reconciliation job compares Rails data with sandbox reports.
 5. The adapter boundary makes it easy to later swap in Stripe or Mercado Pago.
 
+## Contract Notes
+
+- The adapter should expose a small, explicit interface for payment operations.
+- Rails must persist a local idempotency key per request to avoid duplicate effects.
+- Adapter errors should be normalized to a small set of domain-level failures.
+- Payment attempts and webhook inbox entries should remain queryable for debugging.
+- The reconciliation job must compare sandbox truth with Rails projections, not with UI state.
+
 ## Acceptance Criteria
 
 - [ ] Rails can drive the sandbox through a gateway interface.
 - [ ] Local payment state is persisted consistently.
 - [ ] Reconciliation can detect mismatches.
+- [ ] Duplicate requests do not duplicate payment side effects.
+- [ ] Adapter errors are mapped into stable Rails domain errors.
+- [ ] Payment attempts and reconciliation snapshots can be inspected locally.
 
 ## Dependencies
 
