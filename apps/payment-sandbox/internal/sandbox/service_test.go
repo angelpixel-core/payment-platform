@@ -31,21 +31,21 @@ func TestFinalizeProcessingPaymentIntent(t *testing.T) {
 }
 
 func TestScenarioResolution(t *testing.T) {
-	config := DefaultScenarioConfig()
+	engine := NewScenarioEngine()
 
-	if scenario, err := config.Resolve("declined_insufficient_funds", "pm_card_visa"); err != nil {
+	if scenario, err := engine.Resolve("declined_insufficient_funds", "pm_card_visa"); err != nil {
 		t.Fatalf("resolve failed: %v", err)
 	} else if scenario != ScenarioDeclinedInsufficientFunds {
 		t.Fatalf("expected header priority, got %s", scenario)
 	}
 
-	if scenario, err := config.Resolve("", "pm_card_insufficient_funds"); err != nil {
+	if scenario, err := engine.Resolve("", "pm_card_insufficient_funds"); err != nil {
 		t.Fatalf("resolve failed: %v", err)
 	} else if scenario != ScenarioDeclinedInsufficientFunds {
 		t.Fatalf("expected token fallback, got %s", scenario)
 	}
 
-	if _, err := config.Resolve("unknown_scenario", "pm_card_visa"); err == nil {
+	if _, err := engine.Resolve("unknown_scenario", "pm_card_visa"); err == nil {
 		t.Fatal("expected invalid scenario error")
 	}
 }

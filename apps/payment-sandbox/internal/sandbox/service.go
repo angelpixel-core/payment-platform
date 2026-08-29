@@ -10,15 +10,15 @@ import (
 )
 
 type Service struct {
-	mu          sync.Mutex
-	now         func() time.Time
-	seq         int64
-	scenarios   ScenarioConfig
-	intents     map[string]*PaymentIntent
-	attempts    map[string]*PaymentAttempt
-	charges     map[string]*Charge
-	refunds     map[string]*Refund
-	idempotency map[string]idempotencyRecord
+	mu             sync.Mutex
+	now            func() time.Time
+	seq            int64
+	scenarioEngine *ScenarioEngine
+	intents        map[string]*PaymentIntent
+	attempts       map[string]*PaymentAttempt
+	charges        map[string]*Charge
+	refunds        map[string]*Refund
+	idempotency    map[string]idempotencyRecord
 }
 
 type idempotencyRecord struct {
@@ -28,13 +28,13 @@ type idempotencyRecord struct {
 
 func NewService() *Service {
 	return &Service{
-		now:         time.Now,
-		scenarios:   DefaultScenarioConfig(),
-		intents:     make(map[string]*PaymentIntent),
-		attempts:    make(map[string]*PaymentAttempt),
-		charges:     make(map[string]*Charge),
-		refunds:     make(map[string]*Refund),
-		idempotency: make(map[string]idempotencyRecord),
+		now:            time.Now,
+		scenarioEngine: NewScenarioEngine(),
+		intents:        make(map[string]*PaymentIntent),
+		attempts:       make(map[string]*PaymentAttempt),
+		charges:        make(map[string]*Charge),
+		refunds:        make(map[string]*Refund),
+		idempotency:    make(map[string]idempotencyRecord),
 	}
 }
 
@@ -89,11 +89,11 @@ func (s *Service) ConfirmPaymentIntent(intentID string, req ConfirmPaymentIntent
 			return nil, newError(409, "invalid_intent_state", "payment intent cannot be confirmed in its current state")
 		}
 
-		scenarioName, err := s.scenarios.Resolve(scenarioHeader, req.PaymentMethodToken)
+		scenarioName, err := s.scenarioEngine.Resolve(scenarioHeader, req.PaymentMethodToken)
 		if err != nil {
 			return nil, err
 		}
-		outcome, err := s.scenarios.Outcome(scenarioName)
+		outcome, err := s.scenarioEngine.Outcome(scenarioName)
 		if err != nil {
 			return nil, err
 		}
