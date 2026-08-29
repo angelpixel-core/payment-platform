@@ -3,22 +3,14 @@ package sandbox
 import (
 	"crypto/sha256"
 	"encoding/hex"
-	"fmt"
 	"strings"
-	"sync"
 	"time"
 )
 
 type Service struct {
-	mu             sync.Mutex
 	now            func() time.Time
-	seq            int64
 	scenarioEngine *ScenarioEngine
-	intents        map[string]*PaymentIntent
-	attempts       map[string]*PaymentAttempt
-	charges        map[string]*Charge
-	refunds        map[string]*Refund
-	idempotency    map[string]idempotencyRecord
+	store          Store
 }
 
 type idempotencyRecord struct {
@@ -30,11 +22,7 @@ func NewService() *Service {
 	return &Service{
 		now:            time.Now,
 		scenarioEngine: NewScenarioEngine(),
-		intents:        make(map[string]*PaymentIntent),
-		attempts:       make(map[string]*PaymentAttempt),
-		charges:        make(map[string]*Charge),
-		refunds:        make(map[string]*Refund),
-		idempotency:    make(map[string]idempotencyRecord),
+		store:          NewMemoryStore(),
 	}
 }
 
@@ -52,7 +40,7 @@ func (s *Service) CreatePaymentIntent(req CreatePaymentIntentRequest, idempotenc
 	key := "create_payment_intent:" + idempotencyKey
 	result, err := s.withIdempotency(key, fingerprint, func() (any, error) {
 		now := s.now()
-		intent := &PaymentIntent{
+		intent := PaymentIntent{
 			ID:             s.nextID("pi"),
 			MerchantID:     req.MerchantID,
 			CustomerID:     req.CustomerID,
@@ -64,10 +52,8 @@ func (s *Service) CreatePaymentIntent(req CreatePaymentIntentRequest, idempotenc
 			CreatedAt:      now,
 			UpdatedAt:      now,
 		}
-		s.mu.Lock()
-		s.intents[intent.ID] = intent
-		s.mu.Unlock()
-		return *clonePaymentIntent(intent), nil
+		s.store.SavePaymentIntent(intent)
+		return intent, nil
 	})
 	if err != nil {
 		return PaymentIntent{}, err
@@ -99,7 +85,7 @@ func (s *Service) ConfirmPaymentIntent(intentID string, req ConfirmPaymentIntent
 		}
 
 		now := s.now()
-		attempt := &PaymentAttempt{
+		attempt := PaymentAttempt{
 			ID:                 s.nextID("pa"),
 			PaymentIntentID:    intent.ID,
 			PaymentMethodToken: req.PaymentMethodToken,
@@ -108,9 +94,7 @@ func (s *Service) ConfirmPaymentIntent(intentID string, req ConfirmPaymentIntent
 			RequestedAt:        now,
 			RespondedAt:        now,
 		}
-		s.mu.Lock()
-		s.attempts[attempt.ID] = attempt
-		s.mu.Unlock()
+		s.store.SavePaymentAttempt(attempt)
 
 		intent.Scenario = string(outcome.Scenario)
 		intent.LatestAttemptID = attempt.ID
@@ -118,14 +102,15 @@ func (s *Service) ConfirmPaymentIntent(intentID string, req ConfirmPaymentIntent
 
 		if outcome.FinalizesLater {
 			intent.Status = outcome.IntentStatus
+			s.store.SavePaymentIntent(*intent)
 			return ConfirmPaymentIntentResponse{
-				PaymentIntent:  *clonePaymentIntent(intent),
-				PaymentAttempt: *clonePaymentAttempt(attempt),
+				PaymentIntent:  *intent,
+				PaymentAttempt: attempt,
 				Charge:         nil,
 			}, nil
 		}
 
-		charge := &Charge{
+		charge := Charge{
 			ID:               s.nextID("ch"),
 			PaymentIntentID:  intent.ID,
 			PaymentAttemptID: attempt.ID,
@@ -147,25 +132,27 @@ func (s *Service) ConfirmPaymentIntent(intentID string, req ConfirmPaymentIntent
 		case ScenarioDeclinedInsufficientFunds:
 			intent.Status = outcome.IntentStatus
 			attempt.DeclineCode = outcome.DeclineCode
-			charge = nil
+			charge = Charge{}
 		case ScenarioRequiresAction3DS:
 			intent.Status = outcome.IntentStatus
-			charge = nil
+			charge = Charge{}
 		default:
 			return nil, newError(422, "invalid_scenario", "scenario not supported")
 		}
 
-		if charge != nil {
+		var confirmedCharge *Charge
+		if charge.ID != "" {
 			intent.ChargeID = charge.ID
 			charge.UpdatedAt = now
-			s.mu.Lock()
-			s.charges[charge.ID] = charge
-			s.mu.Unlock()
+			s.store.SaveCharge(charge)
+			confirmedCharge = &charge
 		}
+		s.store.SavePaymentIntent(*intent)
+		s.store.SavePaymentAttempt(attempt)
 		return ConfirmPaymentIntentResponse{
-			PaymentIntent:  *clonePaymentIntent(intent),
-			PaymentAttempt: *clonePaymentAttempt(attempt),
-			Charge:         cloneCharge(charge),
+			PaymentIntent:  *intent,
+			PaymentAttempt: attempt,
+			Charge:         confirmedCharge,
 		}, nil
 	})
 	if err != nil {
@@ -195,7 +182,7 @@ func (s *Service) FinalizeProcessingPaymentIntent(intentID string) (PaymentInten
 	}
 
 	now := s.now()
-	charge := &Charge{
+	charge := Charge{
 		ID:               s.nextID("ch"),
 		PaymentIntentID:  intent.ID,
 		PaymentAttemptID: attempt.ID,
@@ -217,11 +204,11 @@ func (s *Service) FinalizeProcessingPaymentIntent(intentID string) (PaymentInten
 	attempt.RespondedAt = now
 	charge.UpdatedAt = now
 
-	s.mu.Lock()
-	s.charges[charge.ID] = charge
-	s.mu.Unlock()
+	s.store.SaveCharge(charge)
+	s.store.SavePaymentAttempt(*attempt)
+	s.store.SavePaymentIntent(*intent)
 
-	return *clonePaymentIntent(intent), nil
+	return *intent, nil
 }
 
 func (s *Service) CapturePaymentIntent(intentID string, req CapturePaymentIntentRequest) (CapturePaymentIntentResponse, error) {
@@ -257,10 +244,12 @@ func (s *Service) CapturePaymentIntent(intentID string, req CapturePaymentIntent
 	charge.UpdatedAt = now
 	intent.Status = PaymentIntentSucceeded
 	intent.UpdatedAt = now
+	s.store.SaveCharge(*charge)
+	s.store.SavePaymentIntent(*intent)
 
 	return CapturePaymentIntentResponse{
-		PaymentIntent: *clonePaymentIntent(intent),
-		Charge:        *cloneCharge(charge),
+		PaymentIntent: *intent,
+		Charge:        *charge,
 	}, nil
 }
 
@@ -295,7 +284,7 @@ func (s *Service) CreateRefund(req RefundRequest, idempotencyKey, fingerprint st
 		}
 
 		now := s.now()
-		refund := &Refund{
+		refund := Refund{
 			ID:              s.nextID("re"),
 			ChargeID:        charge.ID,
 			PaymentIntentID: charge.PaymentIntentID,
@@ -311,12 +300,11 @@ func (s *Service) CreateRefund(req RefundRequest, idempotencyKey, fingerprint st
 			charge.Status = ChargePartiallyRefunded
 		}
 		charge.UpdatedAt = now
-		s.mu.Lock()
-		s.refunds[refund.ID] = refund
-		s.mu.Unlock()
+		s.store.SaveRefund(refund)
+		s.store.SaveCharge(*charge)
 		return RefundResponse{
-			Refund: *cloneRefund(refund),
-			Charge: *cloneCharge(charge),
+			Refund: refund,
+			Charge: *charge,
 		}, nil
 	})
 	if err != nil {
@@ -326,65 +314,39 @@ func (s *Service) CreateRefund(req RefundRequest, idempotencyKey, fingerprint st
 }
 
 func (s *Service) withIdempotency(key, fingerprint string, fn func() (any, error)) (any, error) {
-	s.mu.Lock()
-
-	if existing, ok := s.idempotency[key]; ok {
-		s.mu.Unlock()
-		if existing.fingerprint != fingerprint {
-			return nil, newError(409, "idempotency_conflict", "idempotency key was already used with a different request")
-		}
-		return existing.value, nil
-	}
-	s.mu.Unlock()
-
-	value, err := fn()
-	if err != nil {
-		return nil, err
-	}
-	s.mu.Lock()
-	defer s.mu.Unlock()
-	s.idempotency[key] = idempotencyRecord{fingerprint: fingerprint, value: value}
-	return value, nil
+	return s.store.WithIdempotency(key, fingerprint, fn)
 }
 
 func (s *Service) intent(id string) (*PaymentIntent, error) {
-	s.mu.Lock()
-	defer s.mu.Unlock()
-	intent, ok := s.intents[id]
-	if !ok {
-		return nil, newError(404, "payment_intent_not_found", "payment intent not found")
+	intent, err := s.store.GetPaymentIntent(id)
+	if err != nil {
+		return nil, err
 	}
-	return intent, nil
+	return &intent, nil
 }
 
 func (s *Service) charge(id string) (*Charge, error) {
-	s.mu.Lock()
-	defer s.mu.Unlock()
-	charge, ok := s.charges[id]
-	if !ok {
-		return nil, newError(404, "charge_not_found", "charge not found")
+	charge, err := s.store.GetCharge(id)
+	if err != nil {
+		return nil, err
 	}
-	return charge, nil
+	return &charge, nil
 }
 
 func (s *Service) paymentAttempt(id string) (*PaymentAttempt, error) {
-	s.mu.Lock()
-	defer s.mu.Unlock()
-	attempt, ok := s.attempts[id]
-	if !ok {
-		return nil, newError(404, "payment_attempt_not_found", "payment attempt not found")
+	attempt, err := s.store.GetPaymentAttempt(id)
+	if err != nil {
+		return nil, err
 	}
-	return attempt, nil
+	return &attempt, nil
 }
 
 func (s *Service) nextID(prefix string) string {
-	s.seq++
-	return fmt.Sprintf("%s_%06d", prefix, s.seq)
+	return s.store.NextID(prefix)
 }
 
 func (s *Service) nextReference(prefix string) string {
-	s.seq++
-	return fmt.Sprintf("%s_%06d", prefix, s.seq)
+	return s.store.NextReference(prefix)
 }
 
 func normalizeCaptureMethod(value string) string {
