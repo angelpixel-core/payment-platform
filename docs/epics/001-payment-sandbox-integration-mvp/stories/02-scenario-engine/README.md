@@ -6,6 +6,8 @@ tags:
   - sandbox
   - scenarios
 epic: 001-payment-sandbox-integration-mvp
+status: done
+reason:
 ---
 
 # Story: Scenario Engine
@@ -18,12 +20,24 @@ Make the sandbox deterministic by driving payment outcomes from named scenarios.
 
 ### In Scope
 
-- [ ] `approved_immediate`
-- [ ] `declined_insufficient_funds`
-- [ ] `requires_action_3ds`
-- [ ] `processing_then_succeeded`
-- [ ] Scenario selection via header or payment method token
-- [ ] Deterministic mapping from scenario input to outcome
+- [x] `approved_immediate`
+- [x] `declined_insufficient_funds`
+- [x] `requires_action_3ds`
+- [x] `processing_then_succeeded`
+- [x] Scenario selection via header or payment method token
+- [x] Deterministic mapping from scenario input to outcome
+
+## Implementation Checklist
+
+- [x] Create `internal/sandbox/scenarios.go` for scenario resolution.
+- [x] Create `internal/sandbox/scenario_config.go` for allowed scenarios and token mapping.
+- [x] Extend `internal/server/server.go` to read `X-Sandbox-Scenario`.
+- [x] Integrate the scenario engine into `ConfirmPaymentIntent`.
+- [x] Ensure header selection has priority over `payment_method_token`.
+- [x] Return a stable error when no scenario can be resolved.
+- [x] Add tests for header priority, token fallback, and invalid scenarios.
+- [x] Add tests for each outcome: approved, declined, processing, requires action.
+- [x] Update documentation status when the story is complete.
 
 ### Out of Scope
 
@@ -63,11 +77,11 @@ flowchart LR
 
 ## Acceptance Criteria
 
-- [ ] The sandbox returns the expected status for each named scenario.
-- [ ] Scenario selection is deterministic and reproducible.
-- [ ] Pending flows can transition to a final state later.
-- [ ] Unknown scenario names are rejected clearly.
-- [ ] Scenario config can be changed without modifying the API contract.
+- [x] The sandbox returns the expected status for each named scenario.
+- [x] Scenario selection is deterministic and reproducible.
+- [x] Pending flows can transition to a final state later.
+- [x] Unknown scenario names are rejected clearly.
+- [x] Scenario config can be changed without modifying the API contract.
 
 ## Dependencies
 

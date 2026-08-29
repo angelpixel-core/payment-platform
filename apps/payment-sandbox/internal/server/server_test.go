@@ -38,10 +38,10 @@ func TestPaymentLifecycle(t *testing.T) {
 		"amount":         100,
 		"currency":       "usd",
 		"capture_method": "manual",
-	}, "create-1")
+	}, "create-1", nil)
 	intentID := created.PaymentIntent.ID
 
-	_, confirmed := doPost[confirmEnvelope](t, client.URL+"/v1/payment_intents/"+intentID+"/confirm", map[string]any{}, "confirm-1")
+	_, confirmed := doPost[confirmEnvelope](t, client.URL+"/v1/payment_intents/"+intentID+"/confirm", map[string]any{}, "confirm-1", nil)
 	if confirmed.PaymentIntent.Status != "requires_capture" {
 		t.Fatalf("expected requires_capture, got %s", confirmed.PaymentIntent.Status)
 	}
@@ -50,12 +50,12 @@ func TestPaymentLifecycle(t *testing.T) {
 	}
 	chargeID := confirmed.Charge.ID
 
-	_, captured := doPost[captureEnvelope](t, client.URL+"/v1/payment_intents/"+intentID+"/capture", map[string]any{}, "")
+	_, captured := doPost[captureEnvelope](t, client.URL+"/v1/payment_intents/"+intentID+"/capture", map[string]any{}, "", nil)
 	if captured.PaymentIntent.Status != "succeeded" {
 		t.Fatalf("expected succeeded, got %s", captured.PaymentIntent.Status)
 	}
 
-	_, refunded := doPost[refundEnvelope](t, client.URL+"/v1/refunds", map[string]any{"charge_id": chargeID}, "refund-1")
+	_, refunded := doPost[refundEnvelope](t, client.URL+"/v1/refunds", map[string]any{"charge_id": chargeID}, "refund-1", nil)
 	if refunded.Refund.Amount != 100 {
 		t.Fatalf("expected full refund, got %d", refunded.Refund.Amount)
 	}
@@ -71,18 +71,18 @@ func TestIdempotency(t *testing.T) {
 	_, first := doPost[createEnvelope](t, client.URL+"/v1/payment_intents", map[string]any{
 		"amount":   100,
 		"currency": "usd",
-	}, "idem-create")
+	}, "idem-create", nil)
 	_, second := doPost[createEnvelope](t, client.URL+"/v1/payment_intents", map[string]any{
 		"amount":   100,
 		"currency": "usd",
-	}, "idem-create")
+	}, "idem-create", nil)
 	if first.PaymentIntent.ID != second.PaymentIntent.ID {
 		t.Fatalf("expected same id on idempotent create")
 	}
 
 	intentID := first.PaymentIntent.ID
-	_, confirm1 := doPost[confirmEnvelope](t, client.URL+"/v1/payment_intents/"+intentID+"/confirm", map[string]any{}, "idem-confirm")
-	_, confirm2 := doPost[confirmEnvelope](t, client.URL+"/v1/payment_intents/"+intentID+"/confirm", map[string]any{}, "idem-confirm")
+	_, confirm1 := doPost[confirmEnvelope](t, client.URL+"/v1/payment_intents/"+intentID+"/confirm", map[string]any{}, "idem-confirm", nil)
+	_, confirm2 := doPost[confirmEnvelope](t, client.URL+"/v1/payment_intents/"+intentID+"/confirm", map[string]any{}, "idem-confirm", nil)
 	if confirm1.PaymentAttempt.ID != confirm2.PaymentAttempt.ID {
 		t.Fatalf("expected same attempt on idempotent confirm")
 	}
@@ -95,7 +95,7 @@ func TestInvalidTransition(t *testing.T) {
 	_, created := doPost[createEnvelope](t, client.URL+"/v1/payment_intents", map[string]any{
 		"amount":   100,
 		"currency": "usd",
-	}, "create-invalid")
+	}, "create-invalid", nil)
 
 	resp, body := doRawPost(t, client.URL+"/v1/payment_intents/"+created.PaymentIntent.ID+"/capture", map[string]any{})
 	if resp.StatusCode != http.StatusConflict {
@@ -103,6 +103,71 @@ func TestInvalidTransition(t *testing.T) {
 	}
 	if !bytes.Contains(body, []byte("invalid_intent_state")) {
 		t.Fatalf("expected invalid_intent_state error, got %s", string(body))
+	}
+}
+
+func TestScenarioHeaderPriority(t *testing.T) {
+	client := httptest.NewServer(New(sandbox.NewService()))
+	defer client.Close()
+
+	_, created := doPost[createEnvelope](t, client.URL+"/v1/payment_intents", map[string]any{
+		"amount":   100,
+		"currency": "usd",
+	}, "scenario-priority-create", nil)
+
+	_, confirmed := doPost[confirmEnvelope](t, client.URL+"/v1/payment_intents/"+created.PaymentIntent.ID+"/confirm", map[string]any{
+		"payment_method_token": "pm_card_visa",
+	}, "scenario-priority-confirm", map[string]string{"X-Sandbox-Scenario": "declined_insufficient_funds"})
+
+	if confirmed.PaymentIntent.Status != "failed" {
+		t.Fatalf("expected failed from header scenario, got %s", confirmed.PaymentIntent.Status)
+	}
+	if confirmed.Charge != nil {
+		t.Fatalf("expected no charge for declined scenario")
+	}
+	if confirmed.PaymentAttempt.Status != "declined" {
+		t.Fatalf("expected declined attempt, got %s", confirmed.PaymentAttempt.Status)
+	}
+}
+
+func TestScenarioTokenFallback(t *testing.T) {
+	client := httptest.NewServer(New(sandbox.NewService()))
+	defer client.Close()
+
+	_, created := doPost[createEnvelope](t, client.URL+"/v1/payment_intents", map[string]any{
+		"amount":   100,
+		"currency": "usd",
+	}, "scenario-fallback-create", nil)
+
+	_, confirmed := doPost[confirmEnvelope](t, client.URL+"/v1/payment_intents/"+created.PaymentIntent.ID+"/confirm", map[string]any{
+		"payment_method_token": "pm_card_insufficient_funds",
+	}, "scenario-fallback-confirm", nil)
+
+	if confirmed.PaymentIntent.Status != "failed" {
+		t.Fatalf("expected failed from token fallback, got %s", confirmed.PaymentIntent.Status)
+	}
+	if confirmed.Charge != nil {
+		t.Fatalf("expected no charge for declined token scenario")
+	}
+}
+
+func TestScenarioInvalid(t *testing.T) {
+	client := httptest.NewServer(New(sandbox.NewService()))
+	defer client.Close()
+
+	_, created := doPost[createEnvelope](t, client.URL+"/v1/payment_intents", map[string]any{
+		"amount":   100,
+		"currency": "usd",
+	}, "scenario-invalid-create", nil)
+
+	resp, body := doPostRawWithHeaders(t, client.URL+"/v1/payment_intents/"+created.PaymentIntent.ID+"/confirm", map[string]any{
+		"payment_method_token": "pm_card_visa",
+	}, "scenario-invalid-confirm", map[string]string{"X-Sandbox-Scenario": "unknown_scenario"})
+	if resp.StatusCode != http.StatusUnprocessableEntity {
+		t.Fatalf("expected 422, got %d", resp.StatusCode)
+	}
+	if !bytes.Contains(body, []byte("invalid_scenario")) {
+		t.Fatalf("expected invalid_scenario error, got %s", string(body))
 	}
 }
 
@@ -120,13 +185,16 @@ func TestHealth(t *testing.T) {
 	}
 }
 
-func doPost[T any](t *testing.T, url string, payload any, idem string) (int, T) {
+func doPost[T any](t *testing.T, url string, payload any, idem string, headers map[string]string) (int, T) {
 	t.Helper()
 	body, _ := json.Marshal(payload)
 	req, _ := http.NewRequest(http.MethodPost, url, bytes.NewReader(body))
 	req.Header.Set("Content-Type", "application/json")
 	if idem != "" {
 		req.Header.Set("Idempotency-Key", idem)
+	}
+	for key, value := range headers {
+		req.Header.Set(key, value)
 	}
 	resp, err := http.DefaultClient.Do(req)
 	if err != nil {
@@ -141,10 +209,20 @@ func doPost[T any](t *testing.T, url string, payload any, idem string) (int, T) 
 }
 
 func doRawPost(t *testing.T, url string, payload any) (*http.Response, []byte) {
+	return doPostRawWithHeaders(t, url, payload, "", nil)
+}
+
+func doPostRawWithHeaders(t *testing.T, url string, payload any, idem string, headers map[string]string) (*http.Response, []byte) {
 	t.Helper()
 	body, _ := json.Marshal(payload)
 	req, _ := http.NewRequest(http.MethodPost, url, bytes.NewReader(body))
 	req.Header.Set("Content-Type", "application/json")
+	if idem != "" {
+		req.Header.Set("Idempotency-Key", idem)
+	}
+	for key, value := range headers {
+		req.Header.Set(key, value)
+	}
 	resp, err := http.DefaultClient.Do(req)
 	if err != nil {
 		t.Fatalf("request failed: %v", err)

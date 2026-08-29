@@ -33,7 +33,7 @@ depending on Stripe or Mercado Pago in development.
 ## Stories
 
 - [x] [01-sandbox-api-base](./stories/01-sandbox-api-base/README.md) `done`
-- [ ] [02-scenario-engine](./stories/02-scenario-engine/README.md) `pending`
+- [x] [02-scenario-engine](./stories/02-scenario-engine/README.md) `done`
 - [ ] [03-webhook-delivery](./stories/03-webhook-delivery/README.md) `pending`
 - [ ] [04-ledger-reporting](./stories/04-ledger-reporting/README.md) `pending`
 - [ ] [05-rails-adapter](./stories/05-rails-adapter/README.md) `pending`

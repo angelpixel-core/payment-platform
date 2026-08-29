@@ -13,6 +13,7 @@ type Service struct {
 	mu          sync.Mutex
 	now         func() time.Time
 	seq         int64
+	scenarios   ScenarioConfig
 	intents     map[string]*PaymentIntent
 	attempts    map[string]*PaymentAttempt
 	charges     map[string]*Charge
@@ -28,6 +29,7 @@ type idempotencyRecord struct {
 func NewService() *Service {
 	return &Service{
 		now:         time.Now,
+		scenarios:   DefaultScenarioConfig(),
 		intents:     make(map[string]*PaymentIntent),
 		attempts:    make(map[string]*PaymentAttempt),
 		charges:     make(map[string]*Charge),
@@ -73,7 +75,7 @@ func (s *Service) CreatePaymentIntent(req CreatePaymentIntentRequest, idempotenc
 	return result.(PaymentIntent), nil
 }
 
-func (s *Service) ConfirmPaymentIntent(intentID string, req ConfirmPaymentIntentRequest, idempotencyKey, fingerprint string) (ConfirmPaymentIntentResponse, error) {
+func (s *Service) ConfirmPaymentIntent(intentID string, req ConfirmPaymentIntentRequest, scenarioHeader, idempotencyKey, fingerprint string) (ConfirmPaymentIntentResponse, error) {
 	if strings.TrimSpace(idempotencyKey) == "" {
 		return ConfirmPaymentIntentResponse{}, newError(400, "missing_idempotency_key", "idempotency key is required")
 	}
@@ -87,12 +89,21 @@ func (s *Service) ConfirmPaymentIntent(intentID string, req ConfirmPaymentIntent
 			return nil, newError(409, "invalid_intent_state", "payment intent cannot be confirmed in its current state")
 		}
 
+		scenarioName, err := s.scenarios.Resolve(scenarioHeader, req.PaymentMethodToken)
+		if err != nil {
+			return nil, err
+		}
+		outcome, err := s.scenarios.Outcome(scenarioName)
+		if err != nil {
+			return nil, err
+		}
+
 		now := s.now()
 		attempt := &PaymentAttempt{
 			ID:                 s.nextID("pa"),
 			PaymentIntentID:    intent.ID,
 			PaymentMethodToken: req.PaymentMethodToken,
-			Status:             PaymentAttemptAuthorized,
+			Status:             outcome.AttemptStatus,
 			ProcessorReference: s.nextReference("pr"),
 			RequestedAt:        now,
 			RespondedAt:        now,
@@ -100,6 +111,19 @@ func (s *Service) ConfirmPaymentIntent(intentID string, req ConfirmPaymentIntent
 		s.mu.Lock()
 		s.attempts[attempt.ID] = attempt
 		s.mu.Unlock()
+
+		intent.Scenario = string(outcome.Scenario)
+		intent.LatestAttemptID = attempt.ID
+		intent.UpdatedAt = now
+
+		if outcome.FinalizesLater {
+			intent.Status = outcome.IntentStatus
+			return ConfirmPaymentIntentResponse{
+				PaymentIntent:  *clonePaymentIntent(intent),
+				PaymentAttempt: *clonePaymentAttempt(attempt),
+				Charge:         nil,
+			}, nil
+		}
 
 		charge := &Charge{
 			ID:               s.nextID("ch"),
@@ -110,22 +134,34 @@ func (s *Service) ConfirmPaymentIntent(intentID string, req ConfirmPaymentIntent
 			UpdatedAt:        now,
 		}
 
-		if intent.CaptureMethod == "automatic" {
-			charge.CapturedAmount = intent.Amount
-			charge.Status = ChargeCaptured
-			intent.Status = PaymentIntentSucceeded
-		} else {
-			charge.Status = ChargeAuthorized
-			intent.Status = PaymentIntentRequiresCapture
+		switch outcome.Scenario {
+		case ScenarioApprovedImmediate:
+			charge.Status = outcome.ChargeStatus
+			if intent.CaptureMethod == "automatic" {
+				charge.CapturedAmount = intent.Amount
+				charge.Status = ChargeCaptured
+				intent.Status = PaymentIntentSucceeded
+			} else {
+				intent.Status = PaymentIntentRequiresCapture
+			}
+		case ScenarioDeclinedInsufficientFunds:
+			intent.Status = outcome.IntentStatus
+			attempt.DeclineCode = outcome.DeclineCode
+			charge = nil
+		case ScenarioRequiresAction3DS:
+			intent.Status = outcome.IntentStatus
+			charge = nil
+		default:
+			return nil, newError(422, "invalid_scenario", "scenario not supported")
 		}
 
-		intent.LatestAttemptID = attempt.ID
-		intent.ChargeID = charge.ID
-		intent.UpdatedAt = now
-		charge.UpdatedAt = now
-		s.mu.Lock()
-		s.charges[charge.ID] = charge
-		s.mu.Unlock()
+		if charge != nil {
+			intent.ChargeID = charge.ID
+			charge.UpdatedAt = now
+			s.mu.Lock()
+			s.charges[charge.ID] = charge
+			s.mu.Unlock()
+		}
 		return ConfirmPaymentIntentResponse{
 			PaymentIntent:  *clonePaymentIntent(intent),
 			PaymentAttempt: *clonePaymentAttempt(attempt),
@@ -136,6 +172,56 @@ func (s *Service) ConfirmPaymentIntent(intentID string, req ConfirmPaymentIntent
 		return ConfirmPaymentIntentResponse{}, err
 	}
 	return result.(ConfirmPaymentIntentResponse), nil
+}
+
+func (s *Service) FinalizeProcessingPaymentIntent(intentID string) (PaymentIntent, error) {
+	intent, err := s.intent(intentID)
+	if err != nil {
+		return PaymentIntent{}, err
+	}
+	if intent.Status != PaymentIntentProcessing {
+		return PaymentIntent{}, newError(409, "invalid_intent_state", "payment intent cannot be finalized in its current state")
+	}
+	if normalizeScenarioName(intent.Scenario) != ScenarioProcessingThenSucceeded {
+		return PaymentIntent{}, newError(409, "invalid_scenario", "payment intent is not in the processing scenario")
+	}
+
+	attempt, err := s.paymentAttempt(intent.LatestAttemptID)
+	if err != nil {
+		return PaymentIntent{}, err
+	}
+	if attempt.Status != PaymentAttemptSubmitted {
+		return PaymentIntent{}, newError(409, "invalid_attempt_state", "processing payment intent cannot be finalized in its current attempt state")
+	}
+
+	now := s.now()
+	charge := &Charge{
+		ID:               s.nextID("ch"),
+		PaymentIntentID:  intent.ID,
+		PaymentAttemptID: attempt.ID,
+		Amount:           intent.Amount,
+		CreatedAt:        now,
+		UpdatedAt:        now,
+	}
+	if intent.CaptureMethod == "automatic" {
+		charge.CapturedAmount = intent.Amount
+		charge.Status = ChargeCaptured
+		intent.Status = PaymentIntentSucceeded
+	} else {
+		charge.Status = ChargeAuthorized
+		intent.Status = PaymentIntentRequiresCapture
+	}
+	intent.ChargeID = charge.ID
+	intent.UpdatedAt = now
+	attempt.Status = PaymentAttemptAuthorized
+	attempt.RespondedAt = now
+	charge.UpdatedAt = now
+
+	s.mu.Lock()
+	s.charges[charge.ID] = charge
+	s.mu.Unlock()
+
+	return *clonePaymentIntent(intent), nil
 }
 
 func (s *Service) CapturePaymentIntent(intentID string, req CapturePaymentIntentRequest) (CapturePaymentIntentResponse, error) {
@@ -281,6 +367,16 @@ func (s *Service) charge(id string) (*Charge, error) {
 	return charge, nil
 }
 
+func (s *Service) paymentAttempt(id string) (*PaymentAttempt, error) {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	attempt, ok := s.attempts[id]
+	if !ok {
+		return nil, newError(404, "payment_attempt_not_found", "payment attempt not found")
+	}
+	return attempt, nil
+}
+
 func (s *Service) nextID(prefix string) string {
 	s.seq++
 	return fmt.Sprintf("%s_%06d", prefix, s.seq)
@@ -337,4 +433,8 @@ func cloneRefund(src *Refund) *Refund {
 func Fingerprint(payload []byte) string {
 	sum := sha256.Sum256(payload)
 	return hex.EncodeToString(sum[:])
+}
+
+func FingerprintString(value string) string {
+	return Fingerprint([]byte(value))
 }
