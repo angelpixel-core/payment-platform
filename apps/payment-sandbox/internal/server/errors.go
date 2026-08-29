@@ -13,5 +13,5 @@ func writeError(w http.ResponseWriter, err error) {
 		writeJSON(w, se.StatusCode, map[string]any{"error": se})
 		return
 	}
-	writeJSON(w, http.StatusInternalServerError, map[string]any{"error": map[string]string{"code": "internal_error", "message": err.Error()}})
+	writeJSON(w, http.StatusInternalServerError, map[string]any{"error": sandbox.NewError(http.StatusInternalServerError, "internal_error", err.Error())})
 }

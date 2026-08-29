@@ -30,6 +30,10 @@ type refundEnvelope struct {
 	Charge sandbox.Charge `json:"charge"`
 }
 
+type errorEnvelope struct {
+	Error sandbox.Error `json:"error"`
+}
+
 func TestPaymentLifecycle(t *testing.T) {
 	client := httptest.NewServer(New(sandbox.NewService()))
 	defer client.Close()
@@ -101,8 +105,8 @@ func TestInvalidTransition(t *testing.T) {
 	if resp.StatusCode != http.StatusConflict {
 		t.Fatalf("expected 409, got %d", resp.StatusCode)
 	}
-	if !bytes.Contains(body, []byte("invalid_intent_state")) {
-		t.Fatalf("expected invalid_intent_state error, got %s", string(body))
+	if got := decodeError(t, body); got.Error.Code != "invalid_intent_state" || got.Error.Message != "payment intent cannot be captured in its current state" {
+		t.Fatalf("unexpected error: %+v", got)
 	}
 }
 
@@ -166,8 +170,8 @@ func TestScenarioInvalid(t *testing.T) {
 	if resp.StatusCode != http.StatusUnprocessableEntity {
 		t.Fatalf("expected 422, got %d", resp.StatusCode)
 	}
-	if !bytes.Contains(body, []byte("invalid_scenario")) {
-		t.Fatalf("expected invalid_scenario error, got %s", string(body))
+	if got := decodeError(t, body); got.Error.Code != "invalid_scenario" || got.Error.Message != "unknown sandbox scenario \"unknown_scenario\"" {
+		t.Fatalf("unexpected error: %+v", got)
 	}
 }
 
@@ -203,6 +207,25 @@ func TestMalformedJSONReturnsInternalError(t *testing.T) {
 
 	if resp.StatusCode != http.StatusInternalServerError {
 		t.Fatalf("expected 500, got %d", resp.StatusCode)
+	}
+	if got := decodeError(t, mustReadAll(t, resp)); got.Error.Code != "internal_error" || got.Error.Message != "unexpected end of JSON input" {
+		t.Fatalf("unexpected error: %+v", got)
+	}
+}
+
+func TestInvalidAmountReturnsTypedError(t *testing.T) {
+	client := httptest.NewServer(New(sandbox.NewService()))
+	defer client.Close()
+
+	resp, body := doPostRawWithHeaders(t, client.URL+"/v1/payment_intents", map[string]any{
+		"amount":   0,
+		"currency": "usd",
+	}, "invalid-amount", nil)
+	if resp.StatusCode != http.StatusBadRequest {
+		t.Fatalf("expected 400, got %d", resp.StatusCode)
+	}
+	if got := decodeError(t, body); got.Error.Code != "invalid_amount" || got.Error.Message != "amount must be greater than zero" {
+		t.Fatalf("unexpected error: %+v", got)
 	}
 }
 
@@ -252,4 +275,20 @@ func doPostRawWithHeaders(t *testing.T, url string, payload any, idem string, he
 	var buf bytes.Buffer
 	_, _ = buf.ReadFrom(resp.Body)
 	return resp, buf.Bytes()
+}
+
+func decodeError(t *testing.T, body []byte) errorEnvelope {
+	t.Helper()
+	var out errorEnvelope
+	if err := json.Unmarshal(body, &out); err != nil {
+		t.Fatalf("decode error body failed: %v", err)
+	}
+	return out
+}
+
+func mustReadAll(t *testing.T, resp *http.Response) []byte {
+	t.Helper()
+	var buf bytes.Buffer
+	_, _ = buf.ReadFrom(resp.Body)
+	return buf.Bytes()
 }
