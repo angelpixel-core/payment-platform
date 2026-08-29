@@ -14,11 +14,11 @@ Dividir la implementación del sandbox en unidades más pequeñas sin cambiar el
 
 ## Fase 2: Extraer la Interfaz de Store
 
-- [ ] Definir una interfaz `Store` para payment intents, attempts, charges y refunds.
-- [ ] Sacar los mapas en memoria y el locking fuera de `Service`.
-- [ ] Implementar `MemoryStore` como primer backend de store.
-- [ ] Dejar `Service` responsable solo de la orquestación.
-- [ ] Agregar tests que demuestren que el comportamiento HTTP no cambió.
+- [x] Definir una interfaz `Store` para payment intents, attempts, charges y refunds.
+- [x] Sacar los mapas en memoria y el locking fuera de `Service`.
+- [x] Implementar `MemoryStore` como primer backend de store.
+- [x] Dejar `Service` responsable solo de la orquestación.
+- [x] Agregar tests que demuestren que el comportamiento HTTP no cambió.
 
 ## Fase 3: Simplificar el Servidor HTTP
 
