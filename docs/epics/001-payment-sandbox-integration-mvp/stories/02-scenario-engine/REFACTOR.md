@@ -9,8 +9,8 @@ Dividir la implementación del sandbox en unidades más pequeñas sin cambiar el
 - [x] Crear `internal/sandbox/scenario_engine.go`.
 - [x] Mover la resolución de escenarios a un tipo dedicado `ScenarioEngine`.
 - [x] Mantener `X-Sandbox-Scenario` con mayor prioridad que `payment_method_token`.
-- [ ] Mantener el mapeo de token a escenario dentro del motor o su configuración.
-- [ ] Agregar tests para prioridad del header, fallback por token y errores de escenario desconocido.
+- [x] Mantener el mapeo de token a escenario dentro del motor o su configuración.
+- [x] Agregar tests para prioridad del header, fallback por token y errores de escenario desconocido.
 
 ## Fase 2: Extraer la Interfaz de Store
 
