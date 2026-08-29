@@ -7,8 +7,8 @@ Dividir la implementación del sandbox en unidades más pequeñas sin cambiar el
 ## Fase 1: Extraer el Motor de Escenarios
 
 - [x] Crear `internal/sandbox/scenario_engine.go`.
-- [ ] Mover la resolución de escenarios a un tipo dedicado `ScenarioEngine`.
-- [ ] Mantener `X-Sandbox-Scenario` con mayor prioridad que `payment_method_token`.
+- [x] Mover la resolución de escenarios a un tipo dedicado `ScenarioEngine`.
+- [x] Mantener `X-Sandbox-Scenario` con mayor prioridad que `payment_method_token`.
 - [ ] Mantener el mapeo de token a escenario dentro del motor o su configuración.
 - [ ] Agregar tests para prioridad del header, fallback por token y errores de escenario desconocido.
 
