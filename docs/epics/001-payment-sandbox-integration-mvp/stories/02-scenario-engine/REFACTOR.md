@@ -22,10 +22,10 @@ Dividir la implementación del sandbox en unidades más pequeñas sin cambiar el
 
 ## Fase 3: Simplificar el Servidor HTTP
 
-- [ ] Extraer helpers compartidos de parseo JSON en `internal/server`.
-- [ ] Extraer helpers compartidos de mapeo de errores en `internal/server`.
-- [ ] Mantener los handlers delgados y de propósito único.
-- [ ] Preservar las formas existentes de request/response.
+- [x] Extraer helpers compartidos de parseo JSON en `internal/server`.
+- [x] Extraer helpers compartidos de mapeo de errores en `internal/server`.
+- [x] Mantener los handlers delgados y de propósito único.
+- [x] Preservar las formas existentes de request/response.
 
 ## Fase 4: Normalizar Errores
 

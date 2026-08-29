@@ -1,9 +1,6 @@
 package server
 
 import (
-	"encoding/json"
-	"errors"
-	"io"
 	"net/http"
 	"strings"
 
@@ -97,46 +94,4 @@ func (s *Server) handleCreateRefund(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	writeJSON(w, http.StatusCreated, result)
-}
-
-func requestIdempotencyKey(r *http.Request, fallback string) string {
-	if key := strings.TrimSpace(r.Header.Get("Idempotency-Key")); key != "" {
-		return key
-	}
-	return strings.TrimSpace(fallback)
-}
-
-func readJSON(r *http.Request, dst any) ([]byte, error) {
-	defer r.Body.Close()
-	body, err := io.ReadAll(io.LimitReader(r.Body, 1<<20))
-	if err != nil {
-		return nil, err
-	}
-	if len(body) == 0 {
-		body = []byte("{}")
-	}
-	if err := json.Unmarshal(body, dst); err != nil {
-		return nil, err
-	}
-	return body, nil
-}
-
-func readJSONBody(r *http.Request, dst any) error {
-	_, err := readJSON(r, dst)
-	return err
-}
-
-func writeJSON(w http.ResponseWriter, status int, v any) {
-	w.Header().Set("Content-Type", "application/json")
-	w.WriteHeader(status)
-	_ = json.NewEncoder(w).Encode(v)
-}
-
-func writeError(w http.ResponseWriter, err error) {
-	var se *sandbox.Error
-	if errors.As(err, &se) {
-		writeJSON(w, se.StatusCode, map[string]any{"error": se})
-		return
-	}
-	writeJSON(w, http.StatusInternalServerError, map[string]any{"error": map[string]string{"code": "internal_error", "message": err.Error()}})
 }

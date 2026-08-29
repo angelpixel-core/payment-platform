@@ -185,6 +185,27 @@ func TestHealth(t *testing.T) {
 	}
 }
 
+func TestMalformedJSONReturnsInternalError(t *testing.T) {
+	client := httptest.NewServer(New(sandbox.NewService()))
+	defer client.Close()
+
+	req, err := http.NewRequest(http.MethodPost, client.URL+"/v1/payment_intents", bytes.NewBufferString("{"))
+	if err != nil {
+		t.Fatalf("request creation failed: %v", err)
+	}
+	req.Header.Set("Content-Type", "application/json")
+
+	resp, err := http.DefaultClient.Do(req)
+	if err != nil {
+		t.Fatalf("request failed: %v", err)
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode != http.StatusInternalServerError {
+		t.Fatalf("expected 500, got %d", resp.StatusCode)
+	}
+}
+
 func doPost[T any](t *testing.T, url string, payload any, idem string, headers map[string]string) (int, T) {
 	t.Helper()
 	body, _ := json.Marshal(payload)
