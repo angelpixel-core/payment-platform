@@ -57,8 +57,10 @@ func (s *Server) handleConfirmPaymentIntent(w http.ResponseWriter, r *http.Reque
 		return
 	}
 	intentID := r.PathValue("id")
+	scenarioHeader := strings.TrimSpace(r.Header.Get("X-Sandbox-Scenario"))
 	idem := requestIdempotencyKey(r, req.IdempotencyKey)
-	result, err := s.svc.ConfirmPaymentIntent(intentID, req, idem, sandbox.Fingerprint(payload))
+	fingerprint := sandbox.FingerprintString(string(payload) + "|scenario=" + scenarioHeader + "|token=" + req.PaymentMethodToken)
+	result, err := s.svc.ConfirmPaymentIntent(intentID, req, scenarioHeader, idem, fingerprint)
 	if err != nil {
 		writeError(w, err)
 		return

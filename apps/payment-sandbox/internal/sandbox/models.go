@@ -7,6 +7,7 @@ type PaymentIntentStatus string
 const (
 	PaymentIntentRequiresPaymentMethod PaymentIntentStatus = "requires_payment_method"
 	PaymentIntentRequiresConfirmation  PaymentIntentStatus = "requires_confirmation"
+	PaymentIntentRequiresAction        PaymentIntentStatus = "requires_action"
 	PaymentIntentProcessing            PaymentIntentStatus = "processing"
 	PaymentIntentRequiresCapture       PaymentIntentStatus = "requires_capture"
 	PaymentIntentSucceeded             PaymentIntentStatus = "succeeded"
@@ -17,12 +18,13 @@ const (
 type PaymentAttemptStatus string
 
 const (
-	PaymentAttemptCreated    PaymentAttemptStatus = "created"
-	PaymentAttemptSubmitted  PaymentAttemptStatus = "submitted"
-	PaymentAttemptAuthorized PaymentAttemptStatus = "authorized"
-	PaymentAttemptDeclined   PaymentAttemptStatus = "declined"
-	PaymentAttemptTimedOut   PaymentAttemptStatus = "timed_out"
-	PaymentAttemptErrored    PaymentAttemptStatus = "errored"
+	PaymentAttemptCreated        PaymentAttemptStatus = "created"
+	PaymentAttemptSubmitted      PaymentAttemptStatus = "submitted"
+	PaymentAttemptRequiresAction PaymentAttemptStatus = "requires_action"
+	PaymentAttemptAuthorized     PaymentAttemptStatus = "authorized"
+	PaymentAttemptDeclined       PaymentAttemptStatus = "declined"
+	PaymentAttemptTimedOut       PaymentAttemptStatus = "timed_out"
+	PaymentAttemptErrored        PaymentAttemptStatus = "errored"
 )
 
 type ChargeStatus string
@@ -51,6 +53,7 @@ type PaymentIntent struct {
 	Currency        string              `json:"currency"`
 	CaptureMethod   string              `json:"capture_method"`
 	Status          PaymentIntentStatus `json:"status"`
+	Scenario        string              `json:"scenario,omitempty"`
 	IdempotencyKey  string              `json:"idempotency_key,omitempty"`
 	LatestAttemptID string              `json:"latest_attempt_id,omitempty"`
 	ChargeID        string              `json:"charge_id,omitempty"`
