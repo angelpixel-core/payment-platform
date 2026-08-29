@@ -29,10 +29,10 @@ Dividir la implementación del sandbox en unidades más pequeñas sin cambiar el
 
 ## Fase 4: Normalizar Errores
 
-- [ ] Consolidar todos los errores de API en una sola forma tipada.
-- [ ] Mantener estables `code`, `message` y `status`.
-- [ ] Asegurar que la serialización de errores siga siendo idéntica para los clientes.
-- [ ] Agregar tests para errores de validación y de escenarios.
+- [x] Consolidar todos los errores de API en una sola forma tipada.
+- [x] Mantener estables `code`, `message` y `status`.
+- [x] Asegurar que la serialización de errores siga siendo idéntica para los clientes.
+- [x] Agregar tests para errores de validación y de escenarios.
 
 ## Fase 5: Convertir Escenarios y Workflows en Table-Driven Tests
 

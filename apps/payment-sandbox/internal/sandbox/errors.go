@@ -12,6 +12,10 @@ func (e *Error) Error() string {
 	return fmt.Sprintf("%s: %s", e.Code, e.Message)
 }
 
-func newError(statusCode int, code, message string) error {
+func NewError(statusCode int, code, message string) *Error {
 	return &Error{StatusCode: statusCode, Code: code, Message: message}
+}
+
+func newError(statusCode int, code, message string) error {
+	return NewError(statusCode, code, message)
 }
