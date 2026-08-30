@@ -1,13 +1,16 @@
 package sandbox
 
-import "payment-sandbox/internal/application"
+import (
+	"payment-sandbox/internal/adapters/eventing/inprocess"
+	"payment-sandbox/internal/application"
+)
 
 type Service struct {
 	app *application.PaymentService
 }
 
 func NewService() *Service {
-	return &Service{app: application.NewPaymentService(NewMemoryStore(), NewScenarioEngine())}
+	return &Service{app: application.NewPaymentService(NewMemoryStore(), NewScenarioEngine(), inprocess.NewPublisher())}
 }
 
 func (s *Service) CreatePaymentIntent(req CreatePaymentIntentRequest, idempotencyKey, fingerprint string) (PaymentIntent, error) {
