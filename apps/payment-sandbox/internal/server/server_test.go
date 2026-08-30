@@ -235,6 +235,62 @@ func TestErrorResponses(t *testing.T) {
 	}
 }
 
+func TestHTTPContractShapes(t *testing.T) {
+	client := httptest.NewServer(New(sandbox.NewService()))
+	defer client.Close()
+
+	createResp, createBody := doPostRawWithHeaders(t, client.URL+"/v1/payment_intents", map[string]any{
+		"amount":         100,
+		"currency":       "usd",
+		"capture_method": "manual",
+	}, "shape-create", nil)
+	if createResp.StatusCode != http.StatusCreated {
+		t.Fatalf("expected 201, got %d", createResp.StatusCode)
+	}
+	assertJSONHasKeys(t, createBody, "payment_intent")
+	assertNestedJSONHasKeys(t, createBody, "payment_intent", "id", "amount", "currency", "capture_method", "status")
+
+	var created createEnvelope
+	if err := json.Unmarshal(createBody, &created); err != nil {
+		t.Fatalf("decode create failed: %v", err)
+	}
+
+	confirmResp, confirmBody := doPostRawWithHeaders(t, client.URL+"/v1/payment_intents/"+created.PaymentIntent.ID+"/confirm", map[string]any{}, "shape-confirm", nil)
+	if confirmResp.StatusCode != http.StatusOK {
+		t.Fatalf("expected 200, got %d", confirmResp.StatusCode)
+	}
+	assertJSONHasKeys(t, confirmBody, "payment_intent", "payment_attempt", "charge")
+	assertNestedJSONHasKeys(t, confirmBody, "payment_intent", "id", "status", "latest_attempt_id")
+	assertNestedJSONHasKeys(t, confirmBody, "payment_attempt", "id", "payment_intent_id", "status")
+	assertNestedJSONHasKeys(t, confirmBody, "charge", "id", "payment_intent_id", "status")
+
+	var confirmed confirmEnvelope
+	if err := json.Unmarshal(confirmBody, &confirmed); err != nil {
+		t.Fatalf("decode confirm failed: %v", err)
+	}
+
+	captureResp, captureBody := doPostRawWithHeaders(t, client.URL+"/v1/payment_intents/"+created.PaymentIntent.ID+"/capture", map[string]any{}, "shape-capture", nil)
+	if captureResp.StatusCode != http.StatusOK {
+		t.Fatalf("expected 200, got %d", captureResp.StatusCode)
+	}
+	assertJSONHasKeys(t, captureBody, "payment_intent", "charge")
+	assertNestedJSONHasKeys(t, captureBody, "payment_intent", "id", "status", "charge_id")
+	assertNestedJSONHasKeys(t, captureBody, "charge", "id", "status", "captured_amount")
+
+	var captured captureEnvelope
+	if err := json.Unmarshal(captureBody, &captured); err != nil {
+		t.Fatalf("decode capture failed: %v", err)
+	}
+
+	refundResp, refundBody := doPostRawWithHeaders(t, client.URL+"/v1/refunds", map[string]any{"charge_id": captured.Charge.ID}, "shape-refund", nil)
+	if refundResp.StatusCode != http.StatusCreated {
+		t.Fatalf("expected 201, got %d", refundResp.StatusCode)
+	}
+	assertJSONHasKeys(t, refundBody, "refund", "charge")
+	assertNestedJSONHasKeys(t, refundBody, "refund", "id", "charge_id", "status")
+	assertNestedJSONHasKeys(t, refundBody, "charge", "id", "status", "refunded_amount")
+}
+
 func TestHealth(t *testing.T) {
 	client := httptest.NewServer(New(sandbox.NewService()))
 	defer client.Close()
@@ -311,4 +367,38 @@ func mustReadAll(t *testing.T, resp *http.Response) []byte {
 	var buf bytes.Buffer
 	_, _ = buf.ReadFrom(resp.Body)
 	return buf.Bytes()
+}
+
+func assertJSONHasKeys(t *testing.T, body []byte, keys ...string) {
+	t.Helper()
+	var payload map[string]json.RawMessage
+	if err := json.Unmarshal(body, &payload); err != nil {
+		t.Fatalf("decode json failed: %v", err)
+	}
+	for _, key := range keys {
+		if _, ok := payload[key]; !ok {
+			t.Fatalf("expected key %q in payload %s", key, string(body))
+		}
+	}
+}
+
+func assertNestedJSONHasKeys(t *testing.T, body []byte, key string, nestedKeys ...string) {
+	t.Helper()
+	var payload map[string]json.RawMessage
+	if err := json.Unmarshal(body, &payload); err != nil {
+		t.Fatalf("decode json failed: %v", err)
+	}
+	raw, ok := payload[key]
+	if !ok {
+		t.Fatalf("expected key %q in payload %s", key, string(body))
+	}
+	var nested map[string]json.RawMessage
+	if err := json.Unmarshal(raw, &nested); err != nil {
+		t.Fatalf("decode nested json for %q failed: %v", key, err)
+	}
+	for _, nestedKey := range nestedKeys {
+		if _, ok := nested[nestedKey]; !ok {
+			t.Fatalf("expected nested key %q in %q payload %s", nestedKey, key, string(body))
+		}
+	}
 }
