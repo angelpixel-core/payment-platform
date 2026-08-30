@@ -18,7 +18,7 @@ Ejecutar el Nivel 1 sobre `payment-sandbox` con cambios pequenos, verificables y
 
 ## 2. Casos de Uso
 
-- [ ] `refactor(payment-sandbox): extract payment use cases into application package`
+- [x] `refactor(payment-sandbox): extract payment use cases into application package`
 - [ ] `refactor(payment-sandbox): keep service orchestration thin`
 - [ ] `test(payment-sandbox): preserve create confirm capture refund flows`
 

@@ -1,26 +1,17 @@
 package sandbox
 
-import "strings"
+import "payment-sandbox/internal/domain"
 
-type ScenarioName string
+type ScenarioName = domain.ScenarioName
+type ScenarioOutcome = domain.ScenarioOutcome
 
 const (
-	ScenarioApprovedImmediate         ScenarioName = "approved_immediate"
-	ScenarioDeclinedInsufficientFunds ScenarioName = "declined_insufficient_funds"
-	ScenarioRequiresAction3DS         ScenarioName = "requires_action_3ds"
-	ScenarioProcessingThenSucceeded   ScenarioName = "processing_then_succeeded"
+	ScenarioApprovedImmediate         ScenarioName = domain.ScenarioApprovedImmediate
+	ScenarioDeclinedInsufficientFunds ScenarioName = domain.ScenarioDeclinedInsufficientFunds
+	ScenarioRequiresAction3DS         ScenarioName = domain.ScenarioRequiresAction3DS
+	ScenarioProcessingThenSucceeded   ScenarioName = domain.ScenarioProcessingThenSucceeded
 )
 
-type ScenarioOutcome struct {
-	Scenario       ScenarioName
-	IntentStatus   PaymentIntentStatus
-	AttemptStatus  PaymentAttemptStatus
-	ChargeStatus   ChargeStatus
-	DeclineCode    string
-	CreatesCharge  bool
-	FinalizesLater bool
-}
-
 func normalizeScenarioName(value string) ScenarioName {
-	return ScenarioName(strings.ToLower(strings.TrimSpace(value)))
+	return domain.NormalizeScenarioName(value)
 }
