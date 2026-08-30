@@ -26,7 +26,7 @@ Ejecutar el Nivel 1 sobre `payment-sandbox` con cambios pequenos, verificables y
 
 - [x] `refactor(payment-sandbox): define repository and clock ports`
 - [x] `refactor(payment-sandbox): move memory store behind infrastructure adapter`
-- [ ] `refactor(payment-sandbox): keep HTTP as thin input adapter`
+- [x] `refactor(payment-sandbox): keep HTTP as thin input adapter`
 
 ## 4. Base Event-Driven
 
