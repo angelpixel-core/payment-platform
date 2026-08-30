@@ -35,6 +35,13 @@ func NewPaymentService(store ports.Store, scenarioEngine ScenarioResolver, event
 	}
 }
 
+func (s *PaymentService) publish(event domain.Event) {
+	if s.events == nil || event == nil {
+		return
+	}
+	_ = s.events.Publish(event)
+}
+
 func (s *PaymentService) CreatePaymentIntent(req domain.CreatePaymentIntentRequest, idempotencyKey, fingerprint string) (domain.PaymentIntent, error) {
 	if strings.TrimSpace(idempotencyKey) == "" {
 		return domain.PaymentIntent{}, domain.NewError(400, "missing_idempotency_key", "idempotency key is required")
@@ -62,6 +69,7 @@ func (s *PaymentService) CreatePaymentIntent(req domain.CreatePaymentIntentReque
 			UpdatedAt:      now,
 		}
 		s.store.SavePaymentIntent(intent)
+		s.publish(domain.PaymentIntentCreatedEvent{PaymentIntent: intent})
 		return intent, nil
 	})
 	if err != nil {
@@ -112,6 +120,7 @@ func (s *PaymentService) ConfirmPaymentIntent(intentID string, req domain.Confir
 		if outcome.FinalizesLater {
 			intent.Status = outcome.IntentStatus
 			s.store.SavePaymentIntent(*intent)
+			s.publish(domain.PaymentIntentConfirmedEvent{PaymentIntent: *intent, PaymentAttempt: attempt, Charge: nil})
 			return domain.ConfirmPaymentIntentResponse{
 				PaymentIntent:  *intent,
 				PaymentAttempt: attempt,
@@ -158,6 +167,7 @@ func (s *PaymentService) ConfirmPaymentIntent(intentID string, req domain.Confir
 		}
 		s.store.SavePaymentIntent(*intent)
 		s.store.SavePaymentAttempt(attempt)
+		s.publish(domain.PaymentIntentConfirmedEvent{PaymentIntent: *intent, PaymentAttempt: attempt, Charge: confirmedCharge})
 		return domain.ConfirmPaymentIntentResponse{
 			PaymentIntent:  *intent,
 			PaymentAttempt: attempt,
@@ -216,6 +226,7 @@ func (s *PaymentService) FinalizeProcessingPaymentIntent(intentID string) (domai
 	s.store.SaveCharge(charge)
 	s.store.SavePaymentAttempt(*attempt)
 	s.store.SavePaymentIntent(*intent)
+	s.publish(domain.PaymentIntentFinalizedEvent{PaymentIntent: *intent})
 
 	return *intent, nil
 }
@@ -255,6 +266,7 @@ func (s *PaymentService) CapturePaymentIntent(intentID string, req domain.Captur
 	intent.UpdatedAt = now
 	s.store.SaveCharge(*charge)
 	s.store.SavePaymentIntent(*intent)
+	s.publish(domain.PaymentIntentCapturedEvent{PaymentIntent: *intent, Charge: *charge})
 
 	return domain.CapturePaymentIntentResponse{
 		PaymentIntent: *intent,
@@ -311,6 +323,7 @@ func (s *PaymentService) CreateRefund(req domain.RefundRequest, idempotencyKey, 
 		charge.UpdatedAt = now
 		s.store.SaveRefund(refund)
 		s.store.SaveCharge(*charge)
+		s.publish(domain.RefundCreatedEvent{Refund: refund, Charge: *charge})
 		return domain.RefundResponse{
 			Refund: refund,
 			Charge: *charge,

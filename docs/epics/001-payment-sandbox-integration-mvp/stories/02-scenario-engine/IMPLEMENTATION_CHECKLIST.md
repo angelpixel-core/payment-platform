@@ -31,7 +31,7 @@ Ejecutar el Nivel 1 sobre `payment-sandbox` con cambios pequenos, verificables y
 ## 4. Base Event-Driven
 
 - [x] `refactor(payment-sandbox): introduce in-process domain event publisher`
-- [ ] `refactor(payment-sandbox): emit typed events from use cases`
+- [x] `refactor(payment-sandbox): emit typed events from use cases`
 - [ ] `test(payment-sandbox): validate event emission contract`
 
 ## 5. Ajuste de Contratos
