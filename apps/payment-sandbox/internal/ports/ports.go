@@ -24,3 +24,8 @@ type Store interface {
 	SaveRefund(refund domain.Refund) domain.Refund
 	GetRefund(id string) (domain.Refund, error)
 }
+
+type ScenarioResolver interface {
+	Resolve(headerScenario, paymentMethodToken string) (domain.ScenarioName, error)
+	Outcome(name domain.ScenarioName) (domain.ScenarioOutcome, error)
+}
