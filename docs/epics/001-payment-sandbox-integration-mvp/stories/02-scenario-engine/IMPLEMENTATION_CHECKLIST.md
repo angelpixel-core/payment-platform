@@ -32,7 +32,7 @@ Ejecutar el Nivel 1 sobre `payment-sandbox` con cambios pequenos, verificables y
 
 - [x] `refactor(payment-sandbox): introduce in-process domain event publisher`
 - [x] `refactor(payment-sandbox): emit typed events from use cases`
-- [ ] `test(payment-sandbox): validate event emission contract`
+- [x] `test(payment-sandbox): validate event emission contract`
 
 ## 5. Ajuste de Contratos
 
