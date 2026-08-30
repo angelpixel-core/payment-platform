@@ -29,7 +29,3 @@ func (s *Service) CapturePaymentIntent(intentID string, req CapturePaymentIntent
 func (s *Service) CreateRefund(req RefundRequest, idempotencyKey, fingerprint string) (RefundResponse, error) {
 	return s.app.CreateRefund(req, idempotencyKey, fingerprint)
 }
-
-func Fingerprint(payload []byte) string { return application.Fingerprint(payload) }
-
-func FingerprintString(value string) string { return application.FingerprintString(value) }

@@ -4,6 +4,7 @@ import (
 	"net/http"
 	"strings"
 
+	"payment-sandbox/internal/application"
 	"payment-sandbox/internal/sandbox"
 )
 
@@ -38,7 +39,7 @@ func (s *Server) handleCreatePaymentIntent(w http.ResponseWriter, r *http.Reques
 		return
 	}
 	idem := requestIdempotencyKey(r, req.IdempotencyKey)
-	result, err := s.svc.CreatePaymentIntent(req, idem, sandbox.Fingerprint(payload))
+	result, err := s.svc.CreatePaymentIntent(req, idem, application.Fingerprint(payload))
 	if err != nil {
 		writeError(w, err)
 		return
@@ -56,7 +57,7 @@ func (s *Server) handleConfirmPaymentIntent(w http.ResponseWriter, r *http.Reque
 	intentID := r.PathValue("id")
 	scenarioHeader := strings.TrimSpace(r.Header.Get("X-Sandbox-Scenario"))
 	idem := requestIdempotencyKey(r, req.IdempotencyKey)
-	fingerprint := sandbox.FingerprintString(string(payload) + "|scenario=" + scenarioHeader + "|token=" + req.PaymentMethodToken)
+	fingerprint := application.FingerprintString(string(payload) + "|scenario=" + scenarioHeader + "|token=" + req.PaymentMethodToken)
 	result, err := s.svc.ConfirmPaymentIntent(intentID, req, scenarioHeader, idem, fingerprint)
 	if err != nil {
 		writeError(w, err)
@@ -88,7 +89,7 @@ func (s *Server) handleCreateRefund(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	idem := requestIdempotencyKey(r, req.IdempotencyKey)
-	result, err := s.svc.CreateRefund(req, idem, sandbox.Fingerprint(payload))
+	result, err := s.svc.CreateRefund(req, idem, application.Fingerprint(payload))
 	if err != nil {
 		writeError(w, err)
 		return

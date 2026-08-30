@@ -1,6 +1,10 @@
 package sandbox
 
-import "testing"
+import (
+	"testing"
+
+	"payment-sandbox/internal/application"
+)
 
 func TestFinalizeProcessingPaymentIntent(t *testing.T) {
 	tests := []struct {
@@ -16,12 +20,12 @@ func TestFinalizeProcessingPaymentIntent(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			svc := NewService()
 
-			created, err := svc.CreatePaymentIntent(CreatePaymentIntentRequest{Amount: 100, Currency: "usd", CaptureMethod: tt.captureMethod}, "create-1", FingerprintString("create-1"))
+			created, err := svc.CreatePaymentIntent(CreatePaymentIntentRequest{Amount: 100, Currency: "usd", CaptureMethod: tt.captureMethod}, "create-1", application.FingerprintString("create-1"))
 			if err != nil {
 				t.Fatalf("create failed: %v", err)
 			}
 
-			confirmed, err := svc.ConfirmPaymentIntent(created.ID, ConfirmPaymentIntentRequest{PaymentMethodToken: "pm_card_processing"}, "", "confirm-1", FingerprintString("confirm-1|processing"))
+			confirmed, err := svc.ConfirmPaymentIntent(created.ID, ConfirmPaymentIntentRequest{PaymentMethodToken: "pm_card_processing"}, "", "confirm-1", application.FingerprintString("confirm-1|processing"))
 			if err != nil {
 				t.Fatalf("confirm failed: %v", err)
 			}
