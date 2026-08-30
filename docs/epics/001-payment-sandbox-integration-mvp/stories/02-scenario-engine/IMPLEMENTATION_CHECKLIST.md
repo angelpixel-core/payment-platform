@@ -51,7 +51,7 @@ Ejecutar el Nivel 1 sobre `payment-sandbox` con cambios pequenos, verificables y
 
 - [x] `docs(payment-sandbox): define level 2 module boundaries`
 - [x] `refactor(payment-sandbox): split payment sandbox into business modules`
-- [ ] `refactor(payment-sandbox): enforce module import boundaries`
+- [x] `refactor(payment-sandbox): enforce module import boundaries`
 
 ### 7.2 DDD Ligero
 
