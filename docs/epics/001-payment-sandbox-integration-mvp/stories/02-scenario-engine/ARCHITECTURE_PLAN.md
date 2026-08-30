@@ -69,6 +69,14 @@ Regla: un modulo no importa internals de otro modulo; solo contracts puertos o A
 - Introducir read models solo cuando haga falta.
 - No forzar CQRS completo si la lectura es trivial.
 
+## Event-Driven
+
+- Introducir eventos de dominio tempranamente como contrato interno.
+- Exponer un `EventPublisher` como puerto en Nivel 2.
+- Empezar con dispatcher in-process.
+- Reservar `outbox`, bus externo y consumidores asincronos para una etapa posterior.
+- La meta es evitar una integracion traumática mas adelante sin pagar todavia el costo completo de distribucion.
+
 ## Unit of Work
 
 - Probablemente util cuando haya multiples escrituras que deban ser atomicas.
@@ -90,8 +98,9 @@ Regla: un modulo no importa internals de otro modulo; solo contracts puertos o A
 2. Introducir puertos de repositorio y clock.
 3. Mover `MemoryStore` a infraestructura.
 4. Formalizar queries y comandos si la lectura crece.
-5. Agregar PostgreSQL detras de los mismos puertos.
-6. Introducir UoW cuando exista necesidad real de atomicidad multi-repositorio.
+5. Introducir foundation event-driven antes de escalar a bus externo.
+6. Agregar PostgreSQL detras de los mismos puertos.
+7. Introducir UoW cuando exista necesidad real de atomicidad multi-repositorio.
 
 ## Principles
 

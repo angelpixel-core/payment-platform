@@ -89,5 +89,6 @@ flowchart LR
 
 ## Related Docs
 
+- [Refactor Proposal](./REFACTOR_PROPOSAL.md)
 - [Architecture Plan](./ARCHITECTURE_PLAN.md)
 - [Roadmap](./ROADMAP.md)
