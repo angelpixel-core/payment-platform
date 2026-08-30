@@ -45,6 +45,55 @@ Ejecutar el Nivel 1 sobre `payment-sandbox` con cambios pequenos, verificables y
 - [x] `docs(payment-sandbox): mark level 1 refactor complete`
 - [x] `test(payment-sandbox): go test ./...`
 
+## 7. Nivel 2
+
+### 7.1 Modular Monolith
+
+- [ ] `docs(payment-sandbox): define level 2 module boundaries`
+- [ ] `refactor(payment-sandbox): split payment sandbox into business modules`
+- [ ] `refactor(payment-sandbox): enforce module import boundaries`
+
+### 7.2 DDD Ligero
+
+- [ ] `refactor(payment-sandbox): formalize payment intent aggregate rules`
+- [ ] `refactor(payment-sandbox): extract value objects for amount and currency`
+- [ ] `refactor(payment-sandbox): move transition invariants into the domain`
+
+### 7.3 CQRS Parcial
+
+- [ ] `refactor(payment-sandbox): separate command handlers from queries`
+- [ ] `refactor(payment-sandbox): add read-only query models where needed`
+- [ ] `test(payment-sandbox): preserve command and query behavior`
+
+### 7.4 Event-Driven Foundation
+
+- [ ] `refactor(payment-sandbox): add internal event handlers for payment events`
+- [ ] `refactor(payment-sandbox): prepare outbox-backed event publication`
+- [ ] `test(payment-sandbox): validate internal event handler contract`
+
+### 7.5 Unit of Work
+
+- [ ] `refactor(payment-sandbox): introduce unit of work port`
+- [ ] `refactor(payment-sandbox): apply unit of work to multi-repository use cases`
+- [ ] `test(payment-sandbox): preserve atomicity across repository writes`
+
+### 7.6 Infra y Adaptadores
+
+- [ ] `refactor(payment-sandbox): add postgres adapter behind ports`
+- [ ] `refactor(payment-sandbox): keep memory adapter for tests and sandbox`
+- [ ] `test(payment-sandbox): run repository contract tests against postgres`
+
+### 7.7 Observabilidad y Rendimiento
+
+- [ ] `refactor(payment-sandbox): add structured logging and trace hooks`
+- [ ] `refactor(payment-sandbox): expose metrics for payment flows`
+- [ ] `test(payment-sandbox): add benchmarks and profiling checks`
+
+### 7.8 Cierre del Nivel 2
+
+- [ ] `docs(payment-sandbox): mark level 2 refactor complete`
+- [ ] `test(payment-sandbox): go test ./...`
+
 ## Notas
 
 - `UnitOfWork`, `outbox` y bus externo quedan fuera de este checklist.
