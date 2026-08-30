@@ -61,23 +61,6 @@ type PaymentIntent struct {
 	UpdatedAt       time.Time           `json:"updated_at"`
 }
 
-type ConfirmPaymentIntentResult struct {
-	PaymentIntent  PaymentIntent
-	PaymentAttempt PaymentAttempt
-	Charge         *Charge
-}
-
-type FinalizeProcessingResult struct {
-	PaymentIntent  PaymentIntent
-	PaymentAttempt PaymentAttempt
-	Charge         Charge
-}
-
-type CapturePaymentIntentResult struct {
-	PaymentIntent PaymentIntent
-	Charge        Charge
-}
-
 func (p PaymentIntent) CanConfirm() error {
 	if p.Status != PaymentIntentRequiresPaymentMethod && p.Status != PaymentIntentRequiresConfirmation {
 		return NewError(409, "invalid_intent_state", "payment intent cannot be confirmed in its current state")
@@ -102,13 +85,17 @@ func (p PaymentIntent) CanFinalizeProcessing() error {
 	return nil
 }
 
-func (p *PaymentIntent) Confirm(outcome ScenarioOutcome, attempt *PaymentAttempt, charge *Charge, now time.Time) (ConfirmPaymentIntentResult, error) {
+func (p *PaymentIntent) Confirm(cmd ConfirmPaymentIntentCommand) (ConfirmPaymentIntentResult, error) {
 	if err := p.CanConfirm(); err != nil {
 		return ConfirmPaymentIntentResult{}, err
 	}
+	attempt := cmd.Attempt
 	if attempt == nil {
 		return ConfirmPaymentIntentResult{}, NewError(409, "invalid_attempt_state", "payment attempt is required")
 	}
+	charge := cmd.Charge
+	now := cmd.Now
+	outcome := cmd.Outcome
 
 	p.Scenario = string(outcome.Scenario)
 	p.LatestAttemptID = attempt.ID
@@ -154,19 +141,22 @@ func (p *PaymentIntent) Confirm(outcome ScenarioOutcome, attempt *PaymentAttempt
 	return ConfirmPaymentIntentResult{PaymentIntent: *p, PaymentAttempt: *attempt, Charge: resultCharge}, nil
 }
 
-func (p *PaymentIntent) FinalizeProcessing(attempt *PaymentAttempt, charge *Charge, now time.Time) (FinalizeProcessingResult, error) {
+func (p *PaymentIntent) FinalizeProcessing(cmd FinalizeProcessingCommand) (FinalizeProcessingResult, error) {
 	if err := p.CanFinalizeProcessing(); err != nil {
 		return FinalizeProcessingResult{}, err
 	}
+	attempt := cmd.Attempt
 	if attempt == nil {
 		return FinalizeProcessingResult{}, NewError(409, "invalid_attempt_state", "processing payment intent cannot be finalized in its current attempt state")
 	}
 	if attempt.Status != PaymentAttemptSubmitted {
 		return FinalizeProcessingResult{}, NewError(409, "invalid_attempt_state", "processing payment intent cannot be finalized in its current attempt state")
 	}
+	charge := cmd.Charge
 	if charge == nil {
 		return FinalizeProcessingResult{}, NewError(409, "invalid_charge_state", "charge is required")
 	}
+	now := cmd.Now
 
 	charge.PaymentIntentID = p.ID
 	charge.PaymentAttemptID = attempt.ID
@@ -189,10 +179,11 @@ func (p *PaymentIntent) FinalizeProcessing(attempt *PaymentAttempt, charge *Char
 	return FinalizeProcessingResult{PaymentIntent: *p, PaymentAttempt: *attempt, Charge: *charge}, nil
 }
 
-func (p *PaymentIntent) Capture(charge *Charge, amount int64, now time.Time) (CapturePaymentIntentResult, error) {
+func (p *PaymentIntent) Capture(cmd CapturePaymentIntentCommand) (CapturePaymentIntentResult, error) {
 	if err := p.CanCapture(); err != nil {
 		return CapturePaymentIntentResult{}, err
 	}
+	charge := cmd.Charge
 	if charge == nil {
 		return CapturePaymentIntentResult{}, NewError(409, "invalid_charge_state", "charge cannot be captured in its current state")
 	}
@@ -200,6 +191,8 @@ func (p *PaymentIntent) Capture(charge *Charge, amount int64, now time.Time) (Ca
 		return CapturePaymentIntentResult{}, NewError(409, "invalid_charge_state", "charge cannot be captured in its current state")
 	}
 
+	amount := cmd.Amount
+	now := cmd.Now
 	if amount == 0 {
 		amount = charge.Amount
 	}
