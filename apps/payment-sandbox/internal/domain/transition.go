@@ -17,7 +17,7 @@ type FinalizeProcessingCommand struct {
 
 type CapturePaymentIntentCommand struct {
 	Charge *Charge
-	Amount int64
+	Amount Amount
 	Now    time.Time
 }
 
