@@ -24,7 +24,7 @@ Ejecutar el Nivel 1 sobre `payment-sandbox` con cambios pequenos, verificables y
 
 ## 3. Puertos y Adaptadores
 
-- [ ] `refactor(payment-sandbox): define repository and clock ports`
+- [x] `refactor(payment-sandbox): define repository and clock ports`
 - [ ] `refactor(payment-sandbox): move memory store behind infrastructure adapter`
 - [ ] `refactor(payment-sandbox): keep HTTP as thin input adapter`
 
