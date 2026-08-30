@@ -3,21 +3,17 @@ package sandbox
 import (
 	"fmt"
 	"sync"
+
+	"payment-sandbox/internal/application"
 )
 
-type Store interface {
-	WithIdempotency(key, fingerprint string, fn func() (any, error)) (any, error)
-	NextID(prefix string) string
-	NextReference(prefix string) string
+type Store = application.Store
 
-	SavePaymentIntent(intent PaymentIntent) PaymentIntent
-	GetPaymentIntent(id string) (PaymentIntent, error)
-	SavePaymentAttempt(attempt PaymentAttempt) PaymentAttempt
-	GetPaymentAttempt(id string) (PaymentAttempt, error)
-	SaveCharge(charge Charge) Charge
-	GetCharge(id string) (Charge, error)
-	SaveRefund(refund Refund) Refund
-	GetRefund(id string) (Refund, error)
+var _ application.Store = (*MemoryStore)(nil)
+
+type idempotencyRecord struct {
+	fingerprint string
+	value       any
 }
 
 type MemoryStore struct {
