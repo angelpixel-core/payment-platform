@@ -36,7 +36,7 @@ Ejecutar el Nivel 1 sobre `payment-sandbox` con cambios pequenos, verificables y
 
 ## 5. Ajuste de Contratos
 
-- [ ] `refactor(payment-sandbox): align error mapping with layered packages`
+- [x] `refactor(payment-sandbox): align error mapping with layered packages`
 - [ ] `refactor(payment-sandbox): keep request and response shapes unchanged`
 - [ ] `test(payment-sandbox): verify HTTP contract remains stable`
 
