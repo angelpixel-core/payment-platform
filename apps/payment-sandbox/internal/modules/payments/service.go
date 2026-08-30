@@ -69,7 +69,7 @@ func (s *PaymentService) ConfirmPaymentIntent(intentID string, req domain.Confir
 		if outcome.CreatesCharge {
 			charge = &domain.Charge{ID: s.nextID("ch")}
 		}
-		result, err := intent.Confirm(outcome, &attempt, charge, now)
+		result, err := intent.Confirm(domain.ConfirmPaymentIntentCommand{Outcome: outcome, Attempt: &attempt, Charge: charge, Now: now})
 		if err != nil {
 			return nil, err
 		}
@@ -101,7 +101,7 @@ func (s *PaymentService) FinalizeProcessingPaymentIntent(intentID string) (domai
 
 	now := s.clock.Now()
 	charge := domain.Charge{ID: s.nextID("ch")}
-	result, err := intent.FinalizeProcessing(attempt, &charge, now)
+	result, err := intent.FinalizeProcessing(domain.FinalizeProcessingCommand{Attempt: attempt, Charge: &charge, Now: now})
 	if err != nil {
 		return domain.PaymentIntent{}, err
 	}
@@ -131,7 +131,7 @@ func (s *PaymentService) CapturePaymentIntent(intentID string, req domain.Captur
 	}
 
 	now := s.clock.Now()
-	result, err := intent.Capture(charge, req.Amount, now)
+	result, err := intent.Capture(domain.CapturePaymentIntentCommand{Charge: charge, Amount: req.Amount, Now: now})
 	if err != nil {
 		return domain.CapturePaymentIntentResponse{}, err
 	}

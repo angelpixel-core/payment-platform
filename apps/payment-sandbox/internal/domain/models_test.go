@@ -14,7 +14,7 @@ func TestPaymentIntentConfirm(t *testing.T) {
 		charge := &Charge{ID: "ch_1"}
 
 		outcome := ScenarioOutcome{Scenario: ScenarioApprovedImmediate, IntentStatus: PaymentIntentRequiresCapture, AttemptStatus: PaymentAttemptAuthorized, ChargeStatus: ChargeAuthorized, CreatesCharge: true}
-		result, err := intent.Confirm(outcome, attempt, charge, now)
+		result, err := intent.Confirm(ConfirmPaymentIntentCommand{Outcome: outcome, Attempt: attempt, Charge: charge, Now: now})
 		if err != nil {
 			t.Fatalf("confirm failed: %v", err)
 		}
@@ -38,7 +38,7 @@ func TestPaymentIntentConfirm(t *testing.T) {
 		attempt := &PaymentAttempt{ID: "pa_1"}
 
 		outcome := ScenarioOutcome{Scenario: ScenarioDeclinedInsufficientFunds, IntentStatus: PaymentIntentFailed, AttemptStatus: PaymentAttemptDeclined, DeclineCode: "insufficient_funds"}
-		result, err := intent.Confirm(outcome, attempt, nil, now)
+		result, err := intent.Confirm(ConfirmPaymentIntentCommand{Outcome: outcome, Attempt: attempt, Now: now})
 		if err != nil {
 			t.Fatalf("confirm failed: %v", err)
 		}
@@ -59,7 +59,7 @@ func TestPaymentIntentFinalizeProcessing(t *testing.T) {
 	attempt := &PaymentAttempt{ID: "pa_1", Status: PaymentAttemptSubmitted}
 	charge := &Charge{ID: "ch_1"}
 
-	result, err := intent.FinalizeProcessing(attempt, charge, now)
+	result, err := intent.FinalizeProcessing(FinalizeProcessingCommand{Attempt: attempt, Charge: charge, Now: now})
 	if err != nil {
 		t.Fatalf("finalize failed: %v", err)
 	}
@@ -81,7 +81,7 @@ func TestPaymentIntentCapture(t *testing.T) {
 	intent := PaymentIntent{ID: "pi_1", Status: PaymentIntentRequiresCapture}
 	charge := &Charge{ID: "ch_1", Amount: 100, Status: ChargeAuthorized}
 
-	result, err := intent.Capture(charge, 0, now)
+	result, err := intent.Capture(CapturePaymentIntentCommand{Charge: charge, Now: now})
 	if err != nil {
 		t.Fatalf("capture failed: %v", err)
 	}
