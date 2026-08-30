@@ -24,7 +24,7 @@ func (fakeScenarioResolver) Resolve(headerScenario, paymentMethodToken string) (
 func (fakeScenarioResolver) Outcome(name domain.ScenarioName) (domain.ScenarioOutcome, error) {
 	switch domain.NormalizeScenarioName(string(name)) {
 	case domain.ScenarioApprovedImmediate:
-		return domain.ScenarioOutcome{Scenario: domain.ScenarioApprovedImmediate, IntentStatus: domain.PaymentIntentRequiresCapture, AttemptStatus: domain.PaymentAttemptAuthorized, ChargeStatus: domain.ChargeAuthorized}, nil
+		return domain.ScenarioOutcome{Scenario: domain.ScenarioApprovedImmediate, IntentStatus: domain.PaymentIntentRequiresCapture, AttemptStatus: domain.PaymentAttemptAuthorized, ChargeStatus: domain.ChargeAuthorized, CreatesCharge: true}, nil
 	case domain.ScenarioDeclinedInsufficientFunds:
 		return domain.ScenarioOutcome{Scenario: domain.ScenarioDeclinedInsufficientFunds, IntentStatus: domain.PaymentIntentFailed, AttemptStatus: domain.PaymentAttemptDeclined, DeclineCode: "insufficient_funds"}, nil
 	case domain.ScenarioRequiresAction3DS:

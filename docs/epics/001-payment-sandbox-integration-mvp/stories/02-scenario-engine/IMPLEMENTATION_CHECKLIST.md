@@ -55,7 +55,7 @@ Ejecutar el Nivel 1 sobre `payment-sandbox` con cambios pequenos, verificables y
 
 ### 7.2 DDD Ligero
 
-- [ ] `refactor(payment-sandbox): formalize payment intent aggregate rules`
+- [x] `refactor(payment-sandbox): formalize payment intent aggregate rules`
 - [ ] `refactor(payment-sandbox): extract value objects for amount and currency`
 - [ ] `refactor(payment-sandbox): move transition invariants into the domain`
 
