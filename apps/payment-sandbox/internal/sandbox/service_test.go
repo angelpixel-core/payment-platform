@@ -3,49 +3,76 @@ package sandbox
 import "testing"
 
 func TestFinalizeProcessingPaymentIntent(t *testing.T) {
-	svc := NewService()
-
-	created, err := svc.CreatePaymentIntent(CreatePaymentIntentRequest{Amount: 100, Currency: "usd", CaptureMethod: "manual"}, "create-1", FingerprintString("create-1"))
-	if err != nil {
-		t.Fatalf("create failed: %v", err)
+	tests := []struct {
+		name          string
+		captureMethod string
+		wantStatus    PaymentIntentStatus
+	}{
+		{name: "manual capture", captureMethod: "manual", wantStatus: PaymentIntentRequiresCapture},
+		{name: "automatic capture", captureMethod: "automatic", wantStatus: PaymentIntentSucceeded},
 	}
 
-	confirmed, err := svc.ConfirmPaymentIntent(created.ID, ConfirmPaymentIntentRequest{PaymentMethodToken: "pm_card_processing"}, "", "confirm-1", FingerprintString("confirm-1|processing"))
-	if err != nil {
-		t.Fatalf("confirm failed: %v", err)
-	}
-	if confirmed.PaymentIntent.Status != PaymentIntentProcessing {
-		t.Fatalf("expected processing, got %s", confirmed.PaymentIntent.Status)
-	}
-	if confirmed.Charge != nil {
-		t.Fatal("expected no charge before finalization")
-	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			svc := NewService()
 
-	finalized, err := svc.FinalizeProcessingPaymentIntent(created.ID)
-	if err != nil {
-		t.Fatalf("finalize failed: %v", err)
-	}
-	if finalized.Status != PaymentIntentRequiresCapture {
-		t.Fatalf("expected requires_capture after finalization, got %s", finalized.Status)
+			created, err := svc.CreatePaymentIntent(CreatePaymentIntentRequest{Amount: 100, Currency: "usd", CaptureMethod: tt.captureMethod}, "create-1", FingerprintString("create-1"))
+			if err != nil {
+				t.Fatalf("create failed: %v", err)
+			}
+
+			confirmed, err := svc.ConfirmPaymentIntent(created.ID, ConfirmPaymentIntentRequest{PaymentMethodToken: "pm_card_processing"}, "", "confirm-1", FingerprintString("confirm-1|processing"))
+			if err != nil {
+				t.Fatalf("confirm failed: %v", err)
+			}
+			if confirmed.PaymentIntent.Status != PaymentIntentProcessing {
+				t.Fatalf("expected processing, got %s", confirmed.PaymentIntent.Status)
+			}
+			if confirmed.Charge != nil {
+				t.Fatal("expected no charge before finalization")
+			}
+
+			finalized, err := svc.FinalizeProcessingPaymentIntent(created.ID)
+			if err != nil {
+				t.Fatalf("finalize failed: %v", err)
+			}
+			if finalized.Status != tt.wantStatus {
+				t.Fatalf("expected %s after finalization, got %s", tt.wantStatus, finalized.Status)
+			}
+		})
 	}
 }
 
 func TestScenarioResolution(t *testing.T) {
 	engine := NewScenarioEngine()
 
-	if scenario, err := engine.Resolve("declined_insufficient_funds", "pm_card_visa"); err != nil {
-		t.Fatalf("resolve failed: %v", err)
-	} else if scenario != ScenarioDeclinedInsufficientFunds {
-		t.Fatalf("expected header priority, got %s", scenario)
+	tests := []struct {
+		name           string
+		headerScenario string
+		token          string
+		wantScenario   ScenarioName
+		wantError      bool
+	}{
+		{name: "header priority", headerScenario: "declined_insufficient_funds", token: "pm_card_visa", wantScenario: ScenarioDeclinedInsufficientFunds},
+		{name: "token fallback", headerScenario: "", token: "pm_card_insufficient_funds", wantScenario: ScenarioDeclinedInsufficientFunds},
+		{name: "unknown header", headerScenario: "unknown_scenario", token: "pm_card_visa", wantError: true},
 	}
 
-	if scenario, err := engine.Resolve("", "pm_card_insufficient_funds"); err != nil {
-		t.Fatalf("resolve failed: %v", err)
-	} else if scenario != ScenarioDeclinedInsufficientFunds {
-		t.Fatalf("expected token fallback, got %s", scenario)
-	}
-
-	if _, err := engine.Resolve("unknown_scenario", "pm_card_visa"); err == nil {
-		t.Fatal("expected invalid scenario error")
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			scenario, err := engine.Resolve(tt.headerScenario, tt.token)
+			if tt.wantError {
+				if err == nil {
+					t.Fatal("expected invalid scenario error")
+				}
+				return
+			}
+			if err != nil {
+				t.Fatalf("resolve failed: %v", err)
+			}
+			if scenario != tt.wantScenario {
+				t.Fatalf("expected %s, got %s", tt.wantScenario, scenario)
+			}
+		})
 	}
 }

@@ -92,86 +92,146 @@ func TestIdempotency(t *testing.T) {
 	}
 }
 
-func TestInvalidTransition(t *testing.T) {
-	client := httptest.NewServer(New(sandbox.NewService()))
-	defer client.Close()
-
-	_, created := doPost[createEnvelope](t, client.URL+"/v1/payment_intents", map[string]any{
-		"amount":   100,
-		"currency": "usd",
-	}, "create-invalid", nil)
-
-	resp, body := doRawPost(t, client.URL+"/v1/payment_intents/"+created.PaymentIntent.ID+"/capture", map[string]any{})
-	if resp.StatusCode != http.StatusConflict {
-		t.Fatalf("expected 409, got %d", resp.StatusCode)
+func TestScenarioResponses(t *testing.T) {
+	tests := []struct {
+		name              string
+		headers           map[string]string
+		payload           map[string]any
+		wantStatus        int
+		wantIntentStatus  string
+		wantAttemptStatus string
+		wantCharge        bool
+		wantErrorCode     string
+		wantErrorMessage  string
+	}{
+		{
+			name:              "header priority",
+			headers:           map[string]string{"X-Sandbox-Scenario": "declined_insufficient_funds"},
+			payload:           map[string]any{"payment_method_token": "pm_card_visa"},
+			wantStatus:        http.StatusOK,
+			wantIntentStatus:  "failed",
+			wantAttemptStatus: "declined",
+			wantCharge:        false,
+		},
+		{
+			name:              "token fallback",
+			payload:           map[string]any{"payment_method_token": "pm_card_insufficient_funds"},
+			wantStatus:        http.StatusOK,
+			wantIntentStatus:  "failed",
+			wantAttemptStatus: "declined",
+			wantCharge:        false,
+		},
+		{
+			name:             "unknown header",
+			headers:          map[string]string{"X-Sandbox-Scenario": "unknown_scenario"},
+			payload:          map[string]any{"payment_method_token": "pm_card_visa"},
+			wantStatus:       http.StatusUnprocessableEntity,
+			wantErrorCode:    "invalid_scenario",
+			wantErrorMessage: "unknown sandbox scenario \"unknown_scenario\"",
+		},
 	}
-	if got := decodeError(t, body); got.Error.Code != "invalid_intent_state" || got.Error.Message != "payment intent cannot be captured in its current state" {
-		t.Fatalf("unexpected error: %+v", got)
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			client := httptest.NewServer(New(sandbox.NewService()))
+			defer client.Close()
+
+			_, created := doPost[createEnvelope](t, client.URL+"/v1/payment_intents", map[string]any{
+				"amount":   100,
+				"currency": "usd",
+			}, "scenario-create-"+tt.name, nil)
+
+			resp, body := doPostRawWithHeaders(t, client.URL+"/v1/payment_intents/"+created.PaymentIntent.ID+"/confirm", tt.payload, "scenario-confirm-"+tt.name, tt.headers)
+			if resp.StatusCode != tt.wantStatus {
+				t.Fatalf("expected %d, got %d", tt.wantStatus, resp.StatusCode)
+			}
+			if tt.wantStatus != http.StatusOK {
+				got := decodeError(t, body)
+				if got.Error.Code != tt.wantErrorCode || got.Error.Message != tt.wantErrorMessage {
+					t.Fatalf("unexpected error: %+v", got)
+				}
+				return
+			}
+
+			var confirmed confirmEnvelope
+			if err := json.Unmarshal(body, &confirmed); err != nil {
+				t.Fatalf("decode failed: %v", err)
+			}
+			if string(confirmed.PaymentIntent.Status) != tt.wantIntentStatus {
+				t.Fatalf("expected intent status %s, got %s", tt.wantIntentStatus, confirmed.PaymentIntent.Status)
+			}
+			if string(confirmed.PaymentAttempt.Status) != tt.wantAttemptStatus {
+				t.Fatalf("expected attempt status %s, got %s", tt.wantAttemptStatus, confirmed.PaymentAttempt.Status)
+			}
+			if (confirmed.Charge != nil) != tt.wantCharge {
+				t.Fatalf("expected charge presence %t, got %t", tt.wantCharge, confirmed.Charge != nil)
+			}
+		})
 	}
 }
 
-func TestScenarioHeaderPriority(t *testing.T) {
-	client := httptest.NewServer(New(sandbox.NewService()))
-	defer client.Close()
-
-	_, created := doPost[createEnvelope](t, client.URL+"/v1/payment_intents", map[string]any{
-		"amount":   100,
-		"currency": "usd",
-	}, "scenario-priority-create", nil)
-
-	_, confirmed := doPost[confirmEnvelope](t, client.URL+"/v1/payment_intents/"+created.PaymentIntent.ID+"/confirm", map[string]any{
-		"payment_method_token": "pm_card_visa",
-	}, "scenario-priority-confirm", map[string]string{"X-Sandbox-Scenario": "declined_insufficient_funds"})
-
-	if confirmed.PaymentIntent.Status != "failed" {
-		t.Fatalf("expected failed from header scenario, got %s", confirmed.PaymentIntent.Status)
+func TestErrorResponses(t *testing.T) {
+	tests := []struct {
+		name             string
+		setup            func(t *testing.T, clientURL string) (*http.Response, []byte)
+		wantStatus       int
+		wantErrorCode    string
+		wantErrorMessage string
+	}{
+		{
+			name: "invalid transition",
+			setup: func(t *testing.T, clientURL string) (*http.Response, []byte) {
+				_, created := doPost[createEnvelope](t, clientURL+"/v1/payment_intents", map[string]any{"amount": 100, "currency": "usd"}, "create-invalid", nil)
+				return doRawPost(t, clientURL+"/v1/payment_intents/"+created.PaymentIntent.ID+"/capture", map[string]any{})
+			},
+			wantStatus:       http.StatusConflict,
+			wantErrorCode:    "invalid_intent_state",
+			wantErrorMessage: "payment intent cannot be captured in its current state",
+		},
+		{
+			name: "invalid amount",
+			setup: func(t *testing.T, clientURL string) (*http.Response, []byte) {
+				return doPostRawWithHeaders(t, clientURL+"/v1/payment_intents", map[string]any{"amount": 0, "currency": "usd"}, "invalid-amount", nil)
+			},
+			wantStatus:       http.StatusBadRequest,
+			wantErrorCode:    "invalid_amount",
+			wantErrorMessage: "amount must be greater than zero",
+		},
+		{
+			name: "malformed json",
+			setup: func(t *testing.T, clientURL string) (*http.Response, []byte) {
+				req, err := http.NewRequest(http.MethodPost, clientURL+"/v1/payment_intents", bytes.NewBufferString("{"))
+				if err != nil {
+					t.Fatalf("request creation failed: %v", err)
+				}
+				req.Header.Set("Content-Type", "application/json")
+				resp, err := http.DefaultClient.Do(req)
+				if err != nil {
+					t.Fatalf("request failed: %v", err)
+				}
+				defer resp.Body.Close()
+				return resp, mustReadAll(t, resp)
+			},
+			wantStatus:       http.StatusInternalServerError,
+			wantErrorCode:    "internal_error",
+			wantErrorMessage: "unexpected end of JSON input",
+		},
 	}
-	if confirmed.Charge != nil {
-		t.Fatalf("expected no charge for declined scenario")
-	}
-	if confirmed.PaymentAttempt.Status != "declined" {
-		t.Fatalf("expected declined attempt, got %s", confirmed.PaymentAttempt.Status)
-	}
-}
 
-func TestScenarioTokenFallback(t *testing.T) {
-	client := httptest.NewServer(New(sandbox.NewService()))
-	defer client.Close()
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			client := httptest.NewServer(New(sandbox.NewService()))
+			defer client.Close()
 
-	_, created := doPost[createEnvelope](t, client.URL+"/v1/payment_intents", map[string]any{
-		"amount":   100,
-		"currency": "usd",
-	}, "scenario-fallback-create", nil)
-
-	_, confirmed := doPost[confirmEnvelope](t, client.URL+"/v1/payment_intents/"+created.PaymentIntent.ID+"/confirm", map[string]any{
-		"payment_method_token": "pm_card_insufficient_funds",
-	}, "scenario-fallback-confirm", nil)
-
-	if confirmed.PaymentIntent.Status != "failed" {
-		t.Fatalf("expected failed from token fallback, got %s", confirmed.PaymentIntent.Status)
-	}
-	if confirmed.Charge != nil {
-		t.Fatalf("expected no charge for declined token scenario")
-	}
-}
-
-func TestScenarioInvalid(t *testing.T) {
-	client := httptest.NewServer(New(sandbox.NewService()))
-	defer client.Close()
-
-	_, created := doPost[createEnvelope](t, client.URL+"/v1/payment_intents", map[string]any{
-		"amount":   100,
-		"currency": "usd",
-	}, "scenario-invalid-create", nil)
-
-	resp, body := doPostRawWithHeaders(t, client.URL+"/v1/payment_intents/"+created.PaymentIntent.ID+"/confirm", map[string]any{
-		"payment_method_token": "pm_card_visa",
-	}, "scenario-invalid-confirm", map[string]string{"X-Sandbox-Scenario": "unknown_scenario"})
-	if resp.StatusCode != http.StatusUnprocessableEntity {
-		t.Fatalf("expected 422, got %d", resp.StatusCode)
-	}
-	if got := decodeError(t, body); got.Error.Code != "invalid_scenario" || got.Error.Message != "unknown sandbox scenario \"unknown_scenario\"" {
-		t.Fatalf("unexpected error: %+v", got)
+			resp, body := tt.setup(t, client.URL)
+			if resp.StatusCode != tt.wantStatus {
+				t.Fatalf("expected %d, got %d", tt.wantStatus, resp.StatusCode)
+			}
+			got := decodeError(t, body)
+			if got.Error.Code != tt.wantErrorCode || got.Error.Message != tt.wantErrorMessage {
+				t.Fatalf("unexpected error: %+v", got)
+			}
+		})
 	}
 }
 
@@ -186,46 +246,6 @@ func TestHealth(t *testing.T) {
 	defer resp.Body.Close()
 	if resp.StatusCode != http.StatusOK {
 		t.Fatalf("expected 200, got %d", resp.StatusCode)
-	}
-}
-
-func TestMalformedJSONReturnsInternalError(t *testing.T) {
-	client := httptest.NewServer(New(sandbox.NewService()))
-	defer client.Close()
-
-	req, err := http.NewRequest(http.MethodPost, client.URL+"/v1/payment_intents", bytes.NewBufferString("{"))
-	if err != nil {
-		t.Fatalf("request creation failed: %v", err)
-	}
-	req.Header.Set("Content-Type", "application/json")
-
-	resp, err := http.DefaultClient.Do(req)
-	if err != nil {
-		t.Fatalf("request failed: %v", err)
-	}
-	defer resp.Body.Close()
-
-	if resp.StatusCode != http.StatusInternalServerError {
-		t.Fatalf("expected 500, got %d", resp.StatusCode)
-	}
-	if got := decodeError(t, mustReadAll(t, resp)); got.Error.Code != "internal_error" || got.Error.Message != "unexpected end of JSON input" {
-		t.Fatalf("unexpected error: %+v", got)
-	}
-}
-
-func TestInvalidAmountReturnsTypedError(t *testing.T) {
-	client := httptest.NewServer(New(sandbox.NewService()))
-	defer client.Close()
-
-	resp, body := doPostRawWithHeaders(t, client.URL+"/v1/payment_intents", map[string]any{
-		"amount":   0,
-		"currency": "usd",
-	}, "invalid-amount", nil)
-	if resp.StatusCode != http.StatusBadRequest {
-		t.Fatalf("expected 400, got %d", resp.StatusCode)
-	}
-	if got := decodeError(t, body); got.Error.Code != "invalid_amount" || got.Error.Message != "amount must be greater than zero" {
-		t.Fatalf("unexpected error: %+v", got)
 	}
 }
 
