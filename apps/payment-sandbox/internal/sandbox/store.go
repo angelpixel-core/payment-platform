@@ -4,12 +4,12 @@ import (
 	"fmt"
 	"sync"
 
-	"payment-sandbox/internal/application"
+	"payment-sandbox/internal/ports"
 )
 
-type Store = application.Store
+type Store = ports.Store
 
-var _ application.Store = (*MemoryStore)(nil)
+var _ ports.Store = (*MemoryStore)(nil)
 
 type idempotencyRecord struct {
 	fingerprint string

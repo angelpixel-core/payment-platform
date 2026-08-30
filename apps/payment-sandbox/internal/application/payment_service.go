@@ -4,25 +4,10 @@ import (
 	"crypto/sha256"
 	"encoding/hex"
 	"strings"
-	"time"
 
 	"payment-sandbox/internal/domain"
+	"payment-sandbox/internal/ports"
 )
-
-type Store interface {
-	WithIdempotency(key, fingerprint string, fn func() (any, error)) (any, error)
-	NextID(prefix string) string
-	NextReference(prefix string) string
-
-	SavePaymentIntent(intent domain.PaymentIntent) domain.PaymentIntent
-	GetPaymentIntent(id string) (domain.PaymentIntent, error)
-	SavePaymentAttempt(attempt domain.PaymentAttempt) domain.PaymentAttempt
-	GetPaymentAttempt(id string) (domain.PaymentAttempt, error)
-	SaveCharge(charge domain.Charge) domain.Charge
-	GetCharge(id string) (domain.Charge, error)
-	SaveRefund(refund domain.Refund) domain.Refund
-	GetRefund(id string) (domain.Refund, error)
-}
 
 type ScenarioResolver interface {
 	Resolve(headerScenario, paymentMethodToken string) (domain.ScenarioName, error)
@@ -30,9 +15,9 @@ type ScenarioResolver interface {
 }
 
 type PaymentService struct {
-	now            func() time.Time
+	clock          ports.Clock
 	scenarioEngine ScenarioResolver
-	store          Store
+	store          ports.Store
 }
 
 type idempotencyRecord struct {
@@ -40,9 +25,9 @@ type idempotencyRecord struct {
 	value       any
 }
 
-func NewPaymentService(store Store, scenarioEngine ScenarioResolver) *PaymentService {
+func NewPaymentService(store ports.Store, scenarioEngine ScenarioResolver) *PaymentService {
 	return &PaymentService{
-		now:            time.Now,
+		clock:          systemClock{},
 		scenarioEngine: scenarioEngine,
 		store:          store,
 	}
@@ -61,7 +46,7 @@ func (s *PaymentService) CreatePaymentIntent(req domain.CreatePaymentIntentReque
 
 	key := "create_payment_intent:" + idempotencyKey
 	result, err := s.withIdempotency(key, fingerprint, func() (any, error) {
-		now := s.now()
+		now := s.clock.Now()
 		intent := domain.PaymentIntent{
 			ID:             s.nextID("pi"),
 			MerchantID:     req.MerchantID,
@@ -106,7 +91,7 @@ func (s *PaymentService) ConfirmPaymentIntent(intentID string, req domain.Confir
 			return nil, err
 		}
 
-		now := s.now()
+		now := s.clock.Now()
 		attempt := domain.PaymentAttempt{
 			ID:                 s.nextID("pa"),
 			PaymentIntentID:    intent.ID,
@@ -203,7 +188,7 @@ func (s *PaymentService) FinalizeProcessingPaymentIntent(intentID string) (domai
 		return domain.PaymentIntent{}, domain.NewError(409, "invalid_attempt_state", "processing payment intent cannot be finalized in its current attempt state")
 	}
 
-	now := s.now()
+	now := s.clock.Now()
 	charge := domain.Charge{
 		ID:               s.nextID("ch"),
 		PaymentIntentID:  intent.ID,
@@ -260,7 +245,7 @@ func (s *PaymentService) CapturePaymentIntent(intentID string, req domain.Captur
 		return domain.CapturePaymentIntentResponse{}, domain.NewError(400, "invalid_amount", "capture amount cannot exceed charge amount")
 	}
 
-	now := s.now()
+	now := s.clock.Now()
 	charge.CapturedAmount = amount
 	charge.Status = domain.ChargeCaptured
 	charge.UpdatedAt = now
@@ -305,7 +290,7 @@ func (s *PaymentService) CreateRefund(req domain.RefundRequest, idempotencyKey, 
 			return nil, domain.NewError(400, "invalid_amount", "refund amount cannot exceed remaining captured amount")
 		}
 
-		now := s.now()
+		now := s.clock.Now()
 		refund := domain.Refund{
 			ID:              s.nextID("re"),
 			ChargeID:        charge.ID,
