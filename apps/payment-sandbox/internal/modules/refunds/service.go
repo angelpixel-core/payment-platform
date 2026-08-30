@@ -36,7 +36,7 @@ func (s *Service) CreateRefund(req domain.RefundRequest, idempotencyKey, fingerp
 		}
 
 		remaining := charge.CapturedAmount - charge.RefundedAmount
-		amount := req.Amount
+		amount := domain.Amount(req.Amount)
 		if amount == 0 {
 			amount = remaining
 		}
@@ -77,4 +77,8 @@ func (s *Service) charge(id string) (*domain.Charge, error) {
 
 func (s *Service) nextID(prefix string) string { return s.store.NextID(prefix) }
 
-func (s *Service) publish(event domain.Event) { if s.events != nil && event != nil { _ = s.events.Publish(event) } }
+func (s *Service) publish(event domain.Event) {
+	if s.events != nil && event != nil {
+		_ = s.events.Publish(event)
+	}
+}

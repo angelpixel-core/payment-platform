@@ -28,11 +28,19 @@ func (s *PaymentService) CreatePaymentIntent(req domain.CreatePaymentIntentReque
 	if strings.TrimSpace(req.Currency) == "" {
 		return domain.PaymentIntent{}, domain.NewError(400, "invalid_currency", "currency is required")
 	}
+	amount, err := domain.NewAmount(req.Amount)
+	if err != nil {
+		return domain.PaymentIntent{}, err
+	}
+	currency, err := domain.NewCurrency(req.Currency)
+	if err != nil {
+		return domain.PaymentIntent{}, err
+	}
 
 	key := "create_payment_intent:" + idempotencyKey
 	result, err := s.withIdempotency(key, fingerprint, func() (any, error) {
 		now := s.clock.Now()
-		intent := domain.PaymentIntent{ID: s.nextID("pi"), MerchantID: req.MerchantID, CustomerID: req.CustomerID, Amount: req.Amount, Currency: strings.ToUpper(req.Currency), CaptureMethod: normalizeCaptureMethod(req.CaptureMethod), Status: domain.PaymentIntentRequiresPaymentMethod, IdempotencyKey: idempotencyKey, CreatedAt: now, UpdatedAt: now}
+		intent := domain.PaymentIntent{ID: s.nextID("pi"), MerchantID: req.MerchantID, CustomerID: req.CustomerID, Amount: amount, Currency: currency, CaptureMethod: normalizeCaptureMethod(req.CaptureMethod), Status: domain.PaymentIntentRequiresPaymentMethod, IdempotencyKey: idempotencyKey, CreatedAt: now, UpdatedAt: now}
 		s.store.SavePaymentIntent(intent)
 		s.publish(domain.PaymentIntentCreatedEvent{PaymentIntent: intent})
 		return intent, nil
@@ -131,7 +139,7 @@ func (s *PaymentService) CapturePaymentIntent(intentID string, req domain.Captur
 	}
 
 	now := s.clock.Now()
-	result, err := intent.Capture(domain.CapturePaymentIntentCommand{Charge: charge, Amount: req.Amount, Now: now})
+	result, err := intent.Capture(domain.CapturePaymentIntentCommand{Charge: charge, Amount: domain.Amount(req.Amount), Now: now})
 	if err != nil {
 		return domain.CapturePaymentIntentResponse{}, err
 	}

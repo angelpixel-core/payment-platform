@@ -49,8 +49,8 @@ type PaymentIntent struct {
 	ID              string              `json:"id"`
 	MerchantID      string              `json:"merchant_id,omitempty"`
 	CustomerID      string              `json:"customer_id,omitempty"`
-	Amount          int64               `json:"amount"`
-	Currency        string              `json:"currency"`
+	Amount          Amount              `json:"amount"`
+	Currency        Currency            `json:"currency"`
 	CaptureMethod   string              `json:"capture_method"`
 	Status          PaymentIntentStatus `json:"status"`
 	Scenario        string              `json:"scenario,omitempty"`
@@ -227,9 +227,9 @@ type Charge struct {
 	ID               string       `json:"id"`
 	PaymentIntentID  string       `json:"payment_intent_id"`
 	PaymentAttemptID string       `json:"payment_attempt_id,omitempty"`
-	Amount           int64        `json:"amount"`
-	CapturedAmount   int64        `json:"captured_amount"`
-	RefundedAmount   int64        `json:"refunded_amount"`
+	Amount           Amount       `json:"amount"`
+	CapturedAmount   Amount       `json:"captured_amount"`
+	RefundedAmount   Amount       `json:"refunded_amount"`
 	Status           ChargeStatus `json:"status"`
 	CreatedAt        time.Time    `json:"created_at"`
 	UpdatedAt        time.Time    `json:"updated_at"`
@@ -239,7 +239,7 @@ type Refund struct {
 	ID              string       `json:"id"`
 	ChargeID        string       `json:"charge_id"`
 	PaymentIntentID string       `json:"payment_intent_id"`
-	Amount          int64        `json:"amount"`
+	Amount          Amount       `json:"amount"`
 	Status          RefundStatus `json:"status"`
 	CreatedAt       time.Time    `json:"created_at"`
 	UpdatedAt       time.Time    `json:"updated_at"`
