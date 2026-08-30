@@ -36,10 +36,10 @@ Dividir la implementación del sandbox en unidades más pequeñas sin cambiar el
 
 ## Fase 5: Convertir Escenarios y Workflows en Table-Driven Tests
 
-- [ ] Convertir los tests de escenarios en tests table-driven.
-- [ ] Convertir los tests de workflow en tests table-driven donde tenga sentido.
-- [ ] Agregar cobertura explícita para la finalización de `processing_then_succeeded`.
-- [ ] Mantener cada test enfocado en un solo comportamiento.
+- [x] Convertir los tests de escenarios en tests table-driven.
+- [x] Convertir los tests de workflow en tests table-driven donde tenga sentido.
+- [x] Agregar cobertura explícita para la finalización de `processing_then_succeeded`.
+- [x] Mantener cada test enfocado en un solo comportamiento.
 
 ## Orden
 
@@ -51,7 +51,7 @@ Dividir la implementación del sandbox en unidades más pequeñas sin cambiar el
 
 ## Terminado Cuando
 
-- [ ] El contrato HTTP público no cambió.
-- [ ] `go test ./...` pasa.
-- [ ] El sandbox sigue siendo demostrable manualmente.
-- [ ] El storage futuro en PostgreSQL puede agregarse detrás de la nueva interfaz de store.
+- [x] El contrato HTTP público no cambió.
+- [x] `go test ./...` pasa.
+- [x] El sandbox sigue siendo demostrable manualmente.
+- [x] El storage futuro en PostgreSQL puede agregarse detrás de la nueva interfaz de store.
