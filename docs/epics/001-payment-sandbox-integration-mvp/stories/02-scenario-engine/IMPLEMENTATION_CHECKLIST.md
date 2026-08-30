@@ -57,7 +57,7 @@ Ejecutar el Nivel 1 sobre `payment-sandbox` con cambios pequenos, verificables y
 
 - [x] `refactor(payment-sandbox): formalize payment intent aggregate rules`
 - [x] `refactor(payment-sandbox): extract value objects for amount and currency`
-- [ ] `refactor(payment-sandbox): move transition invariants into the domain`
+- [x] `refactor(payment-sandbox): move transition invariants into the domain`
 
 ### 7.3 CQRS Parcial
 

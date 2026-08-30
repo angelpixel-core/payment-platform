@@ -72,6 +72,9 @@ func (p PaymentIntent) CanCapture() error {
 	if p.Status != PaymentIntentRequiresCapture {
 		return NewError(409, "invalid_intent_state", "payment intent cannot be captured in its current state")
 	}
+	if p.ChargeID == "" {
+		return NewError(409, "invalid_intent_state", "payment intent cannot be captured in its current state")
+	}
 	return nil
 }
 
