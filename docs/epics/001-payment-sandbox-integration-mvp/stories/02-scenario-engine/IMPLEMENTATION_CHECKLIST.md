@@ -20,7 +20,7 @@ Ejecutar el Nivel 1 sobre `payment-sandbox` con cambios pequenos, verificables y
 
 - [x] `refactor(payment-sandbox): extract payment use cases into application package`
 - [x] `refactor(payment-sandbox): keep service orchestration thin`
-- [ ] `test(payment-sandbox): preserve create confirm capture refund flows`
+- [x] `test(payment-sandbox): preserve create confirm capture refund flows`
 
 ## 3. Puertos y Adaptadores
 

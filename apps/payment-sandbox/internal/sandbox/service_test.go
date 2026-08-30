@@ -47,6 +47,45 @@ func TestFinalizeProcessingPaymentIntent(t *testing.T) {
 	}
 }
 
+func TestPaymentLifecycle(t *testing.T) {
+	svc := NewService()
+
+	created, err := svc.CreatePaymentIntent(CreatePaymentIntentRequest{Amount: 100, Currency: "usd", CaptureMethod: "manual"}, "create-1", application.FingerprintString("create-1"))
+	if err != nil {
+		t.Fatalf("create failed: %v", err)
+	}
+
+	confirmed, err := svc.ConfirmPaymentIntent(created.ID, ConfirmPaymentIntentRequest{PaymentMethodToken: "pm_card_visa"}, "", "confirm-1", application.FingerprintString("confirm-1|confirm"))
+	if err != nil {
+		t.Fatalf("confirm failed: %v", err)
+	}
+	if confirmed.PaymentIntent.Status != PaymentIntentRequiresCapture {
+		t.Fatalf("expected requires_capture, got %s", confirmed.PaymentIntent.Status)
+	}
+	if confirmed.Charge == nil {
+		t.Fatal("expected charge after confirm")
+	}
+
+	captured, err := svc.CapturePaymentIntent(created.ID, CapturePaymentIntentRequest{})
+	if err != nil {
+		t.Fatalf("capture failed: %v", err)
+	}
+	if captured.PaymentIntent.Status != PaymentIntentSucceeded {
+		t.Fatalf("expected succeeded, got %s", captured.PaymentIntent.Status)
+	}
+
+	refunded, err := svc.CreateRefund(RefundRequest{ChargeID: captured.Charge.ID}, "refund-1", application.FingerprintString("refund-1|refund"))
+	if err != nil {
+		t.Fatalf("refund failed: %v", err)
+	}
+	if refunded.Refund.Amount != 100 {
+		t.Fatalf("expected full refund, got %d", refunded.Refund.Amount)
+	}
+	if refunded.Charge.Status != ChargeRefunded {
+		t.Fatalf("expected refunded charge, got %s", refunded.Charge.Status)
+	}
+}
+
 func TestScenarioResolution(t *testing.T) {
 	engine := NewScenarioEngine()
 
