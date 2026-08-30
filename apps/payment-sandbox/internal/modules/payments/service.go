@@ -53,9 +53,6 @@ func (s *PaymentService) ConfirmPaymentIntent(intentID string, req domain.Confir
 		if err != nil {
 			return nil, err
 		}
-		if intent.Status != domain.PaymentIntentRequiresPaymentMethod && intent.Status != domain.PaymentIntentRequiresConfirmation {
-			return nil, domain.NewError(409, "invalid_intent_state", "payment intent cannot be confirmed in its current state")
-		}
 
 		scenarioName, err := s.scenarioEngine.Resolve(scenarioHeader, req.PaymentMethodToken)
 		if err != nil {
@@ -68,52 +65,22 @@ func (s *PaymentService) ConfirmPaymentIntent(intentID string, req domain.Confir
 
 		now := s.clock.Now()
 		attempt := domain.PaymentAttempt{ID: s.nextID("pa"), PaymentIntentID: intent.ID, PaymentMethodToken: req.PaymentMethodToken, Status: outcome.AttemptStatus, ProcessorReference: s.nextReference("pr"), RequestedAt: now, RespondedAt: now}
-		s.store.SavePaymentAttempt(attempt)
-
-		intent.Scenario = string(outcome.Scenario)
-		intent.LatestAttemptID = attempt.ID
-		intent.UpdatedAt = now
-
-		if outcome.FinalizesLater {
-			intent.Status = outcome.IntentStatus
-			s.store.SavePaymentIntent(*intent)
-			s.publish(domain.PaymentIntentConfirmedEvent{PaymentIntent: *intent, PaymentAttempt: attempt, Charge: nil})
-			return domain.ConfirmPaymentIntentResponse{PaymentIntent: *intent, PaymentAttempt: attempt, Charge: nil}, nil
+		var charge *domain.Charge
+		if outcome.CreatesCharge {
+			charge = &domain.Charge{ID: s.nextID("ch")}
+		}
+		result, err := intent.Confirm(outcome, &attempt, charge, now)
+		if err != nil {
+			return nil, err
 		}
 
-		charge := domain.Charge{ID: s.nextID("ch"), PaymentIntentID: intent.ID, PaymentAttemptID: attempt.ID, Amount: intent.Amount, CreatedAt: now, UpdatedAt: now}
-		switch outcome.Scenario {
-		case domain.ScenarioApprovedImmediate:
-			charge.Status = outcome.ChargeStatus
-			if intent.CaptureMethod == "automatic" {
-				charge.CapturedAmount = intent.Amount
-				charge.Status = domain.ChargeCaptured
-				intent.Status = domain.PaymentIntentSucceeded
-			} else {
-				intent.Status = domain.PaymentIntentRequiresCapture
-			}
-		case domain.ScenarioDeclinedInsufficientFunds:
-			intent.Status = outcome.IntentStatus
-			attempt.DeclineCode = outcome.DeclineCode
-			charge = domain.Charge{}
-		case domain.ScenarioRequiresAction3DS:
-			intent.Status = outcome.IntentStatus
-			charge = domain.Charge{}
-		default:
-			return nil, domain.NewError(422, "invalid_scenario", "scenario not supported")
+		s.store.SavePaymentIntent(result.PaymentIntent)
+		s.store.SavePaymentAttempt(result.PaymentAttempt)
+		if result.Charge != nil {
+			s.store.SaveCharge(*result.Charge)
 		}
-
-		var confirmedCharge *domain.Charge
-		if charge.ID != "" {
-			intent.ChargeID = charge.ID
-			charge.UpdatedAt = now
-			s.store.SaveCharge(charge)
-			confirmedCharge = &charge
-		}
-		s.store.SavePaymentIntent(*intent)
-		s.store.SavePaymentAttempt(attempt)
-		s.publish(domain.PaymentIntentConfirmedEvent{PaymentIntent: *intent, PaymentAttempt: attempt, Charge: confirmedCharge})
-		return domain.ConfirmPaymentIntentResponse{PaymentIntent: *intent, PaymentAttempt: attempt, Charge: confirmedCharge}, nil
+		s.publish(domain.PaymentIntentConfirmedEvent{PaymentIntent: result.PaymentIntent, PaymentAttempt: result.PaymentAttempt, Charge: result.Charge})
+		return domain.ConfirmPaymentIntentResponse{PaymentIntent: result.PaymentIntent, PaymentAttempt: result.PaymentAttempt, Charge: result.Charge}, nil
 	})
 	if err != nil {
 		return domain.ConfirmPaymentIntentResponse{}, err
@@ -126,43 +93,25 @@ func (s *PaymentService) FinalizeProcessingPaymentIntent(intentID string) (domai
 	if err != nil {
 		return domain.PaymentIntent{}, err
 	}
-	if intent.Status != domain.PaymentIntentProcessing {
-		return domain.PaymentIntent{}, domain.NewError(409, "invalid_intent_state", "payment intent cannot be finalized in its current state")
-	}
-	if domain.NormalizeScenarioName(intent.Scenario) != domain.ScenarioProcessingThenSucceeded {
-		return domain.PaymentIntent{}, domain.NewError(409, "invalid_scenario", "payment intent is not in the processing scenario")
-	}
 
 	attempt, err := s.paymentAttempt(intent.LatestAttemptID)
 	if err != nil {
 		return domain.PaymentIntent{}, err
 	}
-	if attempt.Status != domain.PaymentAttemptSubmitted {
-		return domain.PaymentIntent{}, domain.NewError(409, "invalid_attempt_state", "processing payment intent cannot be finalized in its current attempt state")
-	}
 
 	now := s.clock.Now()
-	charge := domain.Charge{ID: s.nextID("ch"), PaymentIntentID: intent.ID, PaymentAttemptID: attempt.ID, Amount: intent.Amount, CreatedAt: now, UpdatedAt: now}
-	if intent.CaptureMethod == "automatic" {
-		charge.CapturedAmount = intent.Amount
-		charge.Status = domain.ChargeCaptured
-		intent.Status = domain.PaymentIntentSucceeded
-	} else {
-		charge.Status = domain.ChargeAuthorized
-		intent.Status = domain.PaymentIntentRequiresCapture
+	charge := domain.Charge{ID: s.nextID("ch")}
+	result, err := intent.FinalizeProcessing(attempt, &charge, now)
+	if err != nil {
+		return domain.PaymentIntent{}, err
 	}
-	intent.ChargeID = charge.ID
-	intent.UpdatedAt = now
-	attempt.Status = domain.PaymentAttemptAuthorized
-	attempt.RespondedAt = now
-	charge.UpdatedAt = now
 
-	s.store.SaveCharge(charge)
-	s.store.SavePaymentAttempt(*attempt)
-	s.store.SavePaymentIntent(*intent)
-	s.publish(domain.PaymentIntentFinalizedEvent{PaymentIntent: *intent})
+	s.store.SaveCharge(result.Charge)
+	s.store.SavePaymentAttempt(result.PaymentAttempt)
+	s.store.SavePaymentIntent(result.PaymentIntent)
+	s.publish(domain.PaymentIntentFinalizedEvent{PaymentIntent: result.PaymentIntent})
 
-	return *intent, nil
+	return result.PaymentIntent, nil
 }
 
 func (s *PaymentService) CapturePaymentIntent(intentID string, req domain.CapturePaymentIntentRequest) (domain.CapturePaymentIntentResponse, error) {
@@ -170,7 +119,7 @@ func (s *PaymentService) CapturePaymentIntent(intentID string, req domain.Captur
 	if err != nil {
 		return domain.CapturePaymentIntentResponse{}, err
 	}
-	if intent.Status != domain.PaymentIntentRequiresCapture {
+	if intent.ChargeID == "" {
 		return domain.CapturePaymentIntentResponse{}, domain.NewError(409, "invalid_intent_state", "payment intent cannot be captured in its current state")
 	}
 	charge, err := s.charge(intent.ChargeID)
@@ -181,35 +130,53 @@ func (s *PaymentService) CapturePaymentIntent(intentID string, req domain.Captur
 		return domain.CapturePaymentIntentResponse{}, domain.NewError(409, "invalid_charge_state", "charge cannot be captured in its current state")
 	}
 
-	amount := req.Amount
-	if amount == 0 {
-		amount = charge.Amount
-	}
-	if amount <= 0 {
-		return domain.CapturePaymentIntentResponse{}, domain.NewError(400, "invalid_amount", "capture amount must be greater than zero")
-	}
-	if amount > charge.Amount {
-		return domain.CapturePaymentIntentResponse{}, domain.NewError(400, "invalid_amount", "capture amount cannot exceed charge amount")
-	}
-
 	now := s.clock.Now()
-	charge.CapturedAmount = amount
-	charge.Status = domain.ChargeCaptured
-	charge.UpdatedAt = now
-	intent.Status = domain.PaymentIntentSucceeded
-	intent.UpdatedAt = now
-	s.store.SaveCharge(*charge)
-	s.store.SavePaymentIntent(*intent)
-	s.publish(domain.PaymentIntentCapturedEvent{PaymentIntent: *intent, Charge: *charge})
+	result, err := intent.Capture(charge, req.Amount, now)
+	if err != nil {
+		return domain.CapturePaymentIntentResponse{}, err
+	}
+	s.store.SaveCharge(result.Charge)
+	s.store.SavePaymentIntent(result.PaymentIntent)
+	s.publish(domain.PaymentIntentCapturedEvent{PaymentIntent: result.PaymentIntent, Charge: result.Charge})
 
-	return domain.CapturePaymentIntentResponse{PaymentIntent: *intent, Charge: *charge}, nil
+	return domain.CapturePaymentIntentResponse{PaymentIntent: result.PaymentIntent, Charge: result.Charge}, nil
 }
 
-func (s *PaymentService) withIdempotency(key, fingerprint string, fn func() (any, error)) (any, error) { return s.store.WithIdempotency(key, fingerprint, fn) }
-func (s *PaymentService) intent(id string) (*domain.PaymentIntent, error) { intent, err := s.store.GetPaymentIntent(id); if err != nil { return nil, err }; return &intent, nil }
-func (s *PaymentService) charge(id string) (*domain.Charge, error) { charge, err := s.store.GetCharge(id); if err != nil { return nil, err }; return &charge, nil }
-func (s *PaymentService) paymentAttempt(id string) (*domain.PaymentAttempt, error) { attempt, err := s.store.GetPaymentAttempt(id); if err != nil { return nil, err }; return &attempt, nil }
-func (s *PaymentService) nextID(prefix string) string { return s.store.NextID(prefix) }
+func (s *PaymentService) withIdempotency(key, fingerprint string, fn func() (any, error)) (any, error) {
+	return s.store.WithIdempotency(key, fingerprint, fn)
+}
+func (s *PaymentService) intent(id string) (*domain.PaymentIntent, error) {
+	intent, err := s.store.GetPaymentIntent(id)
+	if err != nil {
+		return nil, err
+	}
+	return &intent, nil
+}
+func (s *PaymentService) charge(id string) (*domain.Charge, error) {
+	charge, err := s.store.GetCharge(id)
+	if err != nil {
+		return nil, err
+	}
+	return &charge, nil
+}
+func (s *PaymentService) paymentAttempt(id string) (*domain.PaymentAttempt, error) {
+	attempt, err := s.store.GetPaymentAttempt(id)
+	if err != nil {
+		return nil, err
+	}
+	return &attempt, nil
+}
+func (s *PaymentService) nextID(prefix string) string        { return s.store.NextID(prefix) }
 func (s *PaymentService) nextReference(prefix string) string { return s.store.NextReference(prefix) }
-func (s *PaymentService) publish(event domain.Event) { if s.events != nil && event != nil { _ = s.events.Publish(event) } }
-func normalizeCaptureMethod(value string) string { value = strings.ToLower(strings.TrimSpace(value)); if value == "" || (value != "manual" && value != "automatic") { return "manual" }; return value }
+func (s *PaymentService) publish(event domain.Event) {
+	if s.events != nil && event != nil {
+		_ = s.events.Publish(event)
+	}
+}
+func normalizeCaptureMethod(value string) string {
+	value = strings.ToLower(strings.TrimSpace(value))
+	if value == "" || (value != "manual" && value != "automatic") {
+		return "manual"
+	}
+	return value
+}
