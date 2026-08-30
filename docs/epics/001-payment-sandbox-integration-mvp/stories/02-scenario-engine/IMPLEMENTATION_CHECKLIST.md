@@ -13,7 +13,7 @@ Ejecutar el Nivel 1 sobre `payment-sandbox` con cambios pequenos, verificables y
 ## 1. Estructura de Capas
 
 - [x] `chore(payment-sandbox): create domain/application/ports folders`
-- [ ] `refactor(payment-sandbox): move domain models to domain package`
+- [x] `refactor(payment-sandbox): move domain models to domain package`
 - [ ] `refactor(payment-sandbox): move domain errors to domain package`
 
 ## 2. Casos de Uso
