@@ -78,7 +78,7 @@ func TestPaymentIntentFinalizeProcessing(t *testing.T) {
 func TestPaymentIntentCapture(t *testing.T) {
 	now := time.Unix(300, 0)
 
-	intent := PaymentIntent{ID: "pi_1", Status: PaymentIntentRequiresCapture}
+	intent := PaymentIntent{ID: "pi_1", Status: PaymentIntentRequiresCapture, ChargeID: "ch_1"}
 	charge := &Charge{ID: "ch_1", Amount: 100, Status: ChargeAuthorized}
 
 	result, err := intent.Capture(CapturePaymentIntentCommand{Charge: charge, Now: now})
@@ -104,6 +104,13 @@ func TestPaymentIntentAggregateRules(t *testing.T) {
 
 	t.Run("rejects invalid capture state", func(t *testing.T) {
 		intent := PaymentIntent{Status: PaymentIntentProcessing}
+		if err := intent.CanCapture(); err == nil {
+			t.Fatalf("expected error")
+		}
+	})
+
+	t.Run("rejects capture without charge", func(t *testing.T) {
+		intent := PaymentIntent{Status: PaymentIntentRequiresCapture}
 		if err := intent.CanCapture(); err == nil {
 			t.Fatalf("expected error")
 		}

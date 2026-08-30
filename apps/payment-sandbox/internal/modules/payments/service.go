@@ -127,15 +127,12 @@ func (s *PaymentService) CapturePaymentIntent(intentID string, req domain.Captur
 	if err != nil {
 		return domain.CapturePaymentIntentResponse{}, err
 	}
-	if intent.ChargeID == "" {
-		return domain.CapturePaymentIntentResponse{}, domain.NewError(409, "invalid_intent_state", "payment intent cannot be captured in its current state")
+	if err := intent.CanCapture(); err != nil {
+		return domain.CapturePaymentIntentResponse{}, err
 	}
 	charge, err := s.charge(intent.ChargeID)
 	if err != nil {
 		return domain.CapturePaymentIntentResponse{}, err
-	}
-	if charge.Status != domain.ChargeAuthorized {
-		return domain.CapturePaymentIntentResponse{}, domain.NewError(409, "invalid_charge_state", "charge cannot be captured in its current state")
 	}
 
 	now := s.clock.Now()
