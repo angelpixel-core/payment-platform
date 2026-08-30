@@ -14,7 +14,7 @@ Ejecutar el Nivel 1 sobre `payment-sandbox` con cambios pequenos, verificables y
 
 - [x] `chore(payment-sandbox): create domain/application/ports folders`
 - [x] `refactor(payment-sandbox): move domain models to domain package`
-- [ ] `refactor(payment-sandbox): move domain errors to domain package`
+- [x] `refactor(payment-sandbox): move domain errors to domain package`
 
 ## 2. Casos de Uso
 

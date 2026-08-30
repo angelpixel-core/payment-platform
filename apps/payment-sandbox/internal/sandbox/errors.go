@@ -1,20 +1,10 @@
 package sandbox
 
-import "fmt"
+import "payment-sandbox/internal/domain"
 
-type Error struct {
-	StatusCode int    `json:"-"`
-	Code       string `json:"code"`
-	Message    string `json:"message"`
-}
+type Error = domain.Error
 
-func (e *Error) Error() string {
-	return fmt.Sprintf("%s: %s", e.Code, e.Message)
-}
-
-func NewError(statusCode int, code, message string) *Error {
-	return &Error{StatusCode: statusCode, Code: code, Message: message}
-}
+var NewError = domain.NewError
 
 func newError(statusCode int, code, message string) error {
 	return NewError(statusCode, code, message)
