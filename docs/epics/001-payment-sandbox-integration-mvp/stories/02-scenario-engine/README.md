@@ -89,6 +89,7 @@ flowchart LR
 
 ## Related Docs
 
+- [Level 2 Module Boundaries](./LEVEL2_MODULE_BOUNDARIES.md)
 - [Implementation Checklist](./IMPLEMENTATION_CHECKLIST.md)
 - [Refactor Proposal](./REFACTOR_PROPOSAL.md)
 - [Architecture Plan](./ARCHITECTURE_PLAN.md)
