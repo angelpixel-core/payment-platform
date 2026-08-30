@@ -22,6 +22,7 @@ Objetivo: preparar el sistema para operacion seria y crecimiento.
 - Modular Monolith por capacidad de negocio.
 - DDD ligero con agregados claros.
 - CQRS parcial para separar comandos y consultas de lectura.
+- Event-driven foundation: domain events tipados, `EventPublisher` como puerto y dispatcher in-process como primer paso.
 - Observabilidad completa: logs, metrics, traces.
 - Benchmarks, profiling y race detector.
 - Hardening de errores, idempotencia y timeouts.
@@ -40,7 +41,7 @@ Objetivo: maximizar aislamiento y formalidad.
 - DDD formal con agregados y eventos de dominio.
 - CQRS completo con read models o proyecciones.
 - Unit of Work para operaciones multi-repositorio.
-- Outbox / event dispatcher si hay integraciones asincronas.
+- Outbox, bus externo y consumidores asincronos si hay integraciones reales.
 
 Cuando elegirlo:
 - la complejidad del dominio lo justifica.
@@ -57,4 +58,5 @@ Cuando elegirlo:
 
 - `Modular Monolith` si aplica bien aqui.
 - `Unit of Work` probablemente aparecera al introducir PostgreSQL real o multiples repositorios por caso de uso.
+- Event-driven debe empezar como foundation en Nivel 2, no como bus distribuido completo.
 - CQRS debe ser parcial al inicio; no merece complejidad completa sin una necesidad real.
