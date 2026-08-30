@@ -42,8 +42,8 @@ Ejecutar el Nivel 1 sobre `payment-sandbox` con cambios pequenos, verificables y
 
 ## 6. Cierre del Nivel 1
 
-- [ ] `docs(payment-sandbox): mark level 1 refactor complete`
-- [ ] `test(payment-sandbox): go test ./...`
+- [x] `docs(payment-sandbox): mark level 1 refactor complete`
+- [x] `test(payment-sandbox): go test ./...`
 
 ## Notas
 
