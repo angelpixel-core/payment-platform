@@ -18,6 +18,7 @@ type PaymentService struct {
 	clock          ports.Clock
 	scenarioEngine ScenarioResolver
 	store          ports.Store
+	events         ports.EventPublisher
 }
 
 type idempotencyRecord struct {
@@ -25,11 +26,12 @@ type idempotencyRecord struct {
 	value       any
 }
 
-func NewPaymentService(store ports.Store, scenarioEngine ScenarioResolver) *PaymentService {
+func NewPaymentService(store ports.Store, scenarioEngine ScenarioResolver, events ports.EventPublisher) *PaymentService {
 	return &PaymentService{
 		clock:          systemClock{},
 		scenarioEngine: scenarioEngine,
 		store:          store,
+		events:         events,
 	}
 }
 
