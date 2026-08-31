@@ -2,6 +2,7 @@ package sandbox
 
 import (
 	"payment-sandbox/internal/adapters/eventing/inprocess"
+	"payment-sandbox/internal/adapters/eventing/outbox"
 	"payment-sandbox/internal/application"
 	appEvents "payment-sandbox/internal/application/events"
 	"payment-sandbox/internal/application/queries"
@@ -15,9 +16,10 @@ type Service struct {
 
 func NewService() *Service {
 	store := NewMemoryStore()
-	publisher := inprocess.NewPublisher()
+	dispatcher := inprocess.NewPublisher()
 	recorder := appEvents.NewRecorder()
-	appEvents.RegisterInternalHandlers(publisher, recorder)
+	appEvents.RegisterInternalHandlers(dispatcher, recorder)
+	publisher := outbox.NewPublisher(dispatcher)
 	return &Service{commands: application.NewPaymentService(store, NewScenarioEngine(), publisher), queries: queries.NewPaymentQueryService(store), recorder: recorder}
 }
 
