@@ -7,34 +7,39 @@ import (
 	"payment-sandbox/internal/adapters/messaging/outbox"
 	"payment-sandbox/internal/adapters/persistence/memory"
 	"payment-sandbox/internal/adapters/persistence/postgres"
-	"payment-sandbox/internal/application"
-	appEvents "payment-sandbox/internal/application/events"
-	"payment-sandbox/internal/application/queries"
+	clockadapter "payment-sandbox/internal/adapters/time/system"
+	commandpayments "payment-sandbox/internal/application/commands/payments"
+	commandrefunds "payment-sandbox/internal/application/commands/refunds"
+	"payment-sandbox/internal/application/queries/payments"
+	appobs "payment-sandbox/internal/application/support/observability"
 )
 
 type Service struct {
-	commands *application.PaymentService
-	queries  *queries.PaymentQueryService
-	recorder *appEvents.Recorder
+	commands *commandpayments.PaymentService
+	refunds  *commandrefunds.Service
+	queries  *payments.PaymentQueryService
+	recorder *appobs.Recorder
 }
 
 func NewService() *Service {
 	store := NewMemoryStore()
 	dispatcher := inprocess.NewPublisher()
-	recorder := appEvents.NewRecorder()
-	appEvents.RegisterInternalHandlers(dispatcher, recorder)
+	recorder := appobs.NewRecorder()
+	appobs.RegisterInternalHandlers(dispatcher, recorder)
 	publisher := outbox.NewPublisher(dispatcher)
 	uow := memory.NewUnitOfWork(store, publisher)
-	return &Service{commands: application.NewPaymentService(uow, NewScenarioEngine()), queries: queries.NewPaymentQueryService(store), recorder: recorder}
+	clock := clockadapter.NewClock()
+	return &Service{commands: commandpayments.NewService(uow, clock, NewScenarioEngine()), refunds: commandrefunds.NewService(uow, clock), queries: payments.NewPaymentQueryService(store), recorder: recorder}
 }
 
 func NewPostgresService(db *sql.DB) *Service {
 	store := postgres.NewStore(db)
 	dispatcher := inprocess.NewPublisher()
-	recorder := appEvents.NewRecorder()
-	appEvents.RegisterInternalHandlers(dispatcher, recorder)
+	recorder := appobs.NewRecorder()
+	appobs.RegisterInternalHandlers(dispatcher, recorder)
 	uow := postgres.NewUnitOfWork(db, dispatcher)
-	return &Service{commands: application.NewPaymentService(uow, NewScenarioEngine()), queries: queries.NewPaymentQueryService(store), recorder: recorder}
+	clock := clockadapter.NewClock()
+	return &Service{commands: commandpayments.NewService(uow, clock, NewScenarioEngine()), refunds: commandrefunds.NewService(uow, clock), queries: payments.NewPaymentQueryService(store), recorder: recorder}
 }
 
 func (s *Service) CreatePaymentIntent(req CreatePaymentIntentRequest, idempotencyKey, fingerprint string) (PaymentIntent, error) {
@@ -54,7 +59,7 @@ func (s *Service) CapturePaymentIntent(intentID string, req CapturePaymentIntent
 }
 
 func (s *Service) CreateRefund(req RefundRequest, idempotencyKey, fingerprint string) (RefundResponse, error) {
-	return s.commands.CreateRefund(req, idempotencyKey, fingerprint)
+	return s.refunds.CreateRefund(req, idempotencyKey, fingerprint)
 }
 
 func (s *Service) GetPaymentIntent(id string) (PaymentIntentView, error) {
@@ -66,4 +71,4 @@ func (s *Service) GetPaymentAttempt(id string) (PaymentAttemptView, error) {
 func (s *Service) GetCharge(id string) (ChargeView, error) { return s.queries.GetCharge(id) }
 func (s *Service) GetRefund(id string) (RefundView, error) { return s.queries.GetRefund(id) }
 
-func (s *Service) EventRecorder() *appEvents.Recorder { return s.recorder }
+func (s *Service) EventRecorder() *appobs.Recorder { return s.recorder }

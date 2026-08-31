@@ -1,4 +1,4 @@
-package queries
+package payments
 
 import (
 	"payment-sandbox/internal/ports"
