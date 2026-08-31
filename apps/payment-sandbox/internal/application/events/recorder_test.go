@@ -4,7 +4,7 @@ import (
 	"reflect"
 	"testing"
 
-	"payment-sandbox/internal/adapters/eventing/inprocess"
+	"payment-sandbox/internal/adapters/messaging/inprocess"
 	"payment-sandbox/internal/domain"
 	"payment-sandbox/internal/ports"
 )
