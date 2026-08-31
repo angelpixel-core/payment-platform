@@ -9,8 +9,9 @@ import (
 	"time"
 
 	"payment-sandbox/internal/adapters/observability/logging"
-	newrelictracing "payment-sandbox/internal/adapters/observability/tracing/newrelic"
-	oteltracing "payment-sandbox/internal/adapters/observability/tracing/otel"
+	"payment-sandbox/internal/adapters/observability/metrics"
+	newrelicmetrics "payment-sandbox/internal/adapters/observability/metrics/newrelic"
+	otelmetrics "payment-sandbox/internal/adapters/observability/metrics/otel"
 	"payment-sandbox/internal/adapters/persistence/postgres"
 	"payment-sandbox/internal/sandbox"
 	"payment-sandbox/internal/server"
@@ -24,13 +25,17 @@ func main() {
 
 	logger := logging.NewJSON(os.Stdout, slog.LevelInfo)
 
-	otelShutdown, err := oteltracing.Setup(context.Background(), "payment-sandbox")
+	otelShutdown, err := otelmetrics.Setup(context.Background())
 	if err != nil {
 		log.Fatal(err)
 	}
 	defer func() { _ = otelShutdown(context.Background()) }()
 
-	nrApp, err := newrelictracing.Setup("payment-sandbox", os.Getenv("NEW_RELIC_LICENSE_KEY"))
+	nrApp, err := newrelicmetrics.Setup("payment-sandbox", os.Getenv("NEW_RELIC_LICENSE_KEY"))
+	if err != nil {
+		log.Fatal(err)
+	}
+	recorder, err := metrics.NewRecorder(nrApp)
 	if err != nil {
 		log.Fatal(err)
 	}
@@ -44,11 +49,11 @@ func main() {
 		if err := postgres.EnsureSchema(context.Background(), db); err != nil {
 			log.Fatal(err)
 		}
-		svc = sandbox.NewPostgresService(db)
+		svc = sandbox.NewPostgresServiceWithMetrics(db, recorder)
 	} else {
-		svc = sandbox.NewService()
+		svc = sandbox.NewServiceWithMetrics(recorder)
 	}
-	handler := server.New(svc, server.WithLogger(logger), server.WithNewRelic(nrApp))
+	handler := server.New(svc, server.WithLogger(logger), server.WithNewRelic(nrApp), server.WithMetrics(recorder))
 
 	server := &http.Server{
 		Addr:              ":" + addr,

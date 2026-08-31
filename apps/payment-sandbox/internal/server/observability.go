@@ -8,12 +8,14 @@ import (
 
 	httpadapter "payment-sandbox/internal/adapters/inbound/http"
 	httpmiddleware "payment-sandbox/internal/adapters/inbound/http/middleware"
+	"payment-sandbox/internal/adapters/observability/metrics"
 	"payment-sandbox/internal/sandbox"
 )
 
 type config struct {
-	logger *slog.Logger
-	nrApp  *nr.Application
+	logger  *slog.Logger
+	nrApp   *nr.Application
+	metrics *metrics.Recorder
 }
 
 type Option func(*config)
@@ -32,12 +34,19 @@ func WithNewRelic(app *nr.Application) Option {
 	}
 }
 
+func WithMetrics(recorder *metrics.Recorder) Option {
+	return func(cfg *config) {
+		cfg.metrics = recorder
+	}
+}
+
 func New(svc *sandbox.Service, opts ...Option) http.Handler {
 	cfg := config{logger: slog.Default()}
 	for _, opt := range opts {
 		opt(&cfg)
 	}
 	h := httpadapter.New(svc)
+	h = httpmiddleware.Metrics(h, cfg.metrics)
 	h = httpmiddleware.Observability(h, cfg.logger)
 	if cfg.nrApp != nil {
 		_, h = nr.WrapHandle(cfg.nrApp, "payment-sandbox", h)

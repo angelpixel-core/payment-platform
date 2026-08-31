@@ -86,7 +86,7 @@ Ejecutar el Nivel 1 sobre `payment-sandbox` con cambios pequenos, verificables y
 ### 7.7 Observabilidad y Rendimiento
 
 - [x] `refactor(payment-sandbox): add structured logging and trace hooks`
-- [ ] `refactor(payment-sandbox): expose metrics for payment flows`
+- [x] `refactor(payment-sandbox): expose metrics for payment flows`
 - [ ] `test(payment-sandbox): add benchmarks and profiling checks`
 
 ### 7.8 Cierre del Nivel 2

@@ -1,10 +1,13 @@
 package sandbox
 
 import (
+	"context"
 	"database/sql"
+	"time"
 
 	"payment-sandbox/internal/adapters/messaging/inprocess"
 	"payment-sandbox/internal/adapters/messaging/outbox"
+	"payment-sandbox/internal/adapters/observability/metrics"
 	"payment-sandbox/internal/adapters/persistence/memory"
 	"payment-sandbox/internal/adapters/persistence/postgres"
 	clockadapter "payment-sandbox/internal/adapters/time/system"
@@ -19,47 +22,76 @@ type Service struct {
 	refunds  *commandrefunds.Service
 	queries  *payments.PaymentQueryService
 	recorder *appobs.Recorder
+	metrics  *metrics.Recorder
 }
 
 func NewService() *Service {
+	return NewServiceWithMetrics(nil)
+}
+
+func NewServiceWithMetrics(metricsRecorder *metrics.Recorder) *Service {
 	store := NewMemoryStore()
 	dispatcher := inprocess.NewPublisher()
-	recorder := appobs.NewRecorder()
-	appobs.RegisterInternalHandlers(dispatcher, recorder)
+	eventRecorder := appobs.NewRecorder()
+	appobs.RegisterInternalHandlers(dispatcher, eventRecorder)
 	publisher := outbox.NewPublisher(dispatcher)
 	uow := memory.NewUnitOfWork(store, publisher)
 	clock := clockadapter.NewClock()
-	return &Service{commands: commandpayments.NewService(uow, clock, NewScenarioEngine()), refunds: commandrefunds.NewService(uow, clock), queries: payments.NewPaymentQueryService(store), recorder: recorder}
+	return &Service{commands: commandpayments.NewService(uow, clock, NewScenarioEngine()), refunds: commandrefunds.NewService(uow, clock), queries: payments.NewPaymentQueryService(store), recorder: eventRecorder, metrics: metricsRecorder}
 }
 
 func NewPostgresService(db *sql.DB) *Service {
+	return NewPostgresServiceWithMetrics(db, nil)
+}
+
+func NewPostgresServiceWithMetrics(db *sql.DB, metricsRecorder *metrics.Recorder) *Service {
 	store := postgres.NewStore(db)
 	dispatcher := inprocess.NewPublisher()
-	recorder := appobs.NewRecorder()
-	appobs.RegisterInternalHandlers(dispatcher, recorder)
+	eventRecorder := appobs.NewRecorder()
+	appobs.RegisterInternalHandlers(dispatcher, eventRecorder)
 	uow := postgres.NewUnitOfWork(db, dispatcher)
 	clock := clockadapter.NewClock()
-	return &Service{commands: commandpayments.NewService(uow, clock, NewScenarioEngine()), refunds: commandrefunds.NewService(uow, clock), queries: payments.NewPaymentQueryService(store), recorder: recorder}
+	return &Service{commands: commandpayments.NewService(uow, clock, NewScenarioEngine()), refunds: commandrefunds.NewService(uow, clock), queries: payments.NewPaymentQueryService(store), recorder: eventRecorder, metrics: metricsRecorder}
 }
 
 func (s *Service) CreatePaymentIntent(req CreatePaymentIntentRequest, idempotencyKey, fingerprint string) (PaymentIntent, error) {
-	return s.commands.CreatePaymentIntent(req, idempotencyKey, fingerprint)
+	start := time.Now()
+	var err error
+	defer s.recordFlow("payment_intent.create", start, &err)
+	result, err := s.commands.CreatePaymentIntent(req, idempotencyKey, fingerprint)
+	return result, err
 }
 
 func (s *Service) ConfirmPaymentIntent(intentID string, req ConfirmPaymentIntentRequest, scenarioHeader, idempotencyKey, fingerprint string) (ConfirmPaymentIntentResponse, error) {
-	return s.commands.ConfirmPaymentIntent(intentID, req, scenarioHeader, idempotencyKey, fingerprint)
+	start := time.Now()
+	var err error
+	defer s.recordFlow("payment_intent.confirm", start, &err)
+	result, err := s.commands.ConfirmPaymentIntent(intentID, req, scenarioHeader, idempotencyKey, fingerprint)
+	return result, err
 }
 
 func (s *Service) FinalizeProcessingPaymentIntent(intentID string) (PaymentIntent, error) {
-	return s.commands.FinalizeProcessingPaymentIntent(intentID)
+	start := time.Now()
+	var err error
+	defer s.recordFlow("payment_intent.finalize_processing", start, &err)
+	result, err := s.commands.FinalizeProcessingPaymentIntent(intentID)
+	return result, err
 }
 
 func (s *Service) CapturePaymentIntent(intentID string, req CapturePaymentIntentRequest) (CapturePaymentIntentResponse, error) {
-	return s.commands.CapturePaymentIntent(intentID, req)
+	start := time.Now()
+	var err error
+	defer s.recordFlow("payment_intent.capture", start, &err)
+	result, err := s.commands.CapturePaymentIntent(intentID, req)
+	return result, err
 }
 
 func (s *Service) CreateRefund(req RefundRequest, idempotencyKey, fingerprint string) (RefundResponse, error) {
-	return s.refunds.CreateRefund(req, idempotencyKey, fingerprint)
+	start := time.Now()
+	var err error
+	defer s.recordFlow("refund.create", start, &err)
+	result, err := s.refunds.CreateRefund(req, idempotencyKey, fingerprint)
+	return result, err
 }
 
 func (s *Service) GetPaymentIntent(id string) (PaymentIntentView, error) {
@@ -72,3 +104,14 @@ func (s *Service) GetCharge(id string) (ChargeView, error) { return s.queries.Ge
 func (s *Service) GetRefund(id string) (RefundView, error) { return s.queries.GetRefund(id) }
 
 func (s *Service) EventRecorder() *appobs.Recorder { return s.recorder }
+
+func (s *Service) recordFlow(flow string, start time.Time, err *error) {
+	if s.metrics == nil {
+		return
+	}
+	outcome := "success"
+	if err != nil && *err != nil {
+		outcome = "error"
+	}
+	s.metrics.RecordPaymentFlow(context.Background(), flow, outcome, time.Since(start))
+}
