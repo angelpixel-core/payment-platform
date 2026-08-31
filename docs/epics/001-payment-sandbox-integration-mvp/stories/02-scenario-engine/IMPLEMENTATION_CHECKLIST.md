@@ -63,7 +63,7 @@ Ejecutar el Nivel 1 sobre `payment-sandbox` con cambios pequenos, verificables y
 
 - [x] `refactor(payment-sandbox): separate command handlers from queries`
 - [x] `refactor(payment-sandbox): add read-only query models where needed`
-- [ ] `test(payment-sandbox): preserve command and query behavior`
+- [x] `test(payment-sandbox): preserve command and query behavior`
 
 ### 7.4 Event-Driven Foundation
 
