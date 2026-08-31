@@ -7,6 +7,7 @@ import (
 	"net/http"
 
 	httpadapter "payment-sandbox/internal/adapters/inbound/http"
+	httpmiddleware "payment-sandbox/internal/adapters/inbound/http/middleware"
 	"payment-sandbox/internal/sandbox"
 )
 
@@ -37,7 +38,7 @@ func New(svc *sandbox.Service, opts ...Option) http.Handler {
 		opt(&cfg)
 	}
 	h := httpadapter.New(svc)
-	h = httpadapter.Observability(h, cfg.logger)
+	h = httpmiddleware.Observability(h, cfg.logger)
 	if cfg.nrApp != nil {
 		_, h = nr.WrapHandle(cfg.nrApp, "payment-sandbox", h)
 	}

@@ -1,13 +1,11 @@
-package httpadapter
+package middleware
 
 import (
 	"context"
 	"log/slog"
 	"net/http"
-	"strings"
 	"time"
 
-	"github.com/google/uuid"
 	"go.opentelemetry.io/otel"
 	"go.opentelemetry.io/otel/attribute"
 	"go.opentelemetry.io/otel/codes"
@@ -16,29 +14,13 @@ import (
 	"payment-sandbox/internal/domain"
 )
 
-type contextKey string
-
-const requestIDKey contextKey = "request_id"
-
-func RequestIDFromContext(ctx context.Context) string {
-	if v, ok := ctx.Value(requestIDKey).(string); ok {
-		return v
-	}
-	return ""
-}
-
 func Observability(next http.Handler, logger *slog.Logger) http.Handler {
 	if logger == nil {
 		logger = slog.Default()
 	}
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		requestID := strings.TrimSpace(r.Header.Get("X-Request-Id"))
-		if requestID == "" {
-			requestID = uuid.NewString()
-		}
-
-		ctx := context.WithValue(r.Context(), requestIDKey, requestID)
-		ctx, span := otel.Tracer("payment-sandbox/http").Start(ctx, r.Method+" "+r.URL.Path,
+		r, requestID := withRequestID(r)
+		ctx, span := otel.Tracer("payment-sandbox/http").Start(r.Context(), r.Method+" "+r.URL.Path,
 			trace.WithAttributes(
 				attribute.String("http.method", r.Method),
 				attribute.String("http.route", r.URL.Path),
@@ -53,7 +35,8 @@ func Observability(next http.Handler, logger *slog.Logger) http.Handler {
 
 		defer func() {
 			if recovered := recover(); recovered != nil {
-				span.RecordError(toError(recovered))
+				recoveredError := toError(recovered)
+				span.RecordError(recoveredError)
 				span.SetStatus(codes.Error, "panic")
 				logger.ErrorContext(ctx, "request panic",
 					"request_id", requestID,
@@ -61,7 +44,7 @@ func Observability(next http.Handler, logger *slog.Logger) http.Handler {
 					"path", r.URL.Path,
 					"panic", recovered,
 				)
-				writeJSON(rec, http.StatusInternalServerError, map[string]any{"error": domain.NewError(http.StatusInternalServerError, "internal_error", "internal server error")})
+				writeErrorJSON(rec, http.StatusInternalServerError, domain.NewError(http.StatusInternalServerError, "internal_error", "internal server error"))
 				return
 			}
 
@@ -119,11 +102,4 @@ func traceIDs(ctx context.Context) (string, string) {
 		return "", ""
 	}
 	return spanCtx.TraceID().String(), spanCtx.SpanID().String()
-}
-
-func toError(v any) error {
-	if err, ok := v.(error); ok {
-		return err
-	}
-	return domain.NewError(http.StatusInternalServerError, "panic", "panic")
 }
