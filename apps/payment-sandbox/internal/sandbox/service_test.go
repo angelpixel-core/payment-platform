@@ -1,10 +1,15 @@
 package sandbox
 
 import (
+	"crypto/sha256"
+	"encoding/hex"
 	"testing"
-
-	"payment-sandbox/internal/application"
 )
+
+func fingerprintString(value string) string {
+	sum := sha256.Sum256([]byte(value))
+	return hex.EncodeToString(sum[:])
+}
 
 func TestDefaultSandboxUsesMemory(t *testing.T) {
 	svc := NewService()
@@ -12,7 +17,7 @@ func TestDefaultSandboxUsesMemory(t *testing.T) {
 		t.Fatal("expected event recorder on default sandbox service")
 	}
 
-	created, err := svc.CreatePaymentIntent(CreatePaymentIntentRequest{Amount: 100, Currency: "usd"}, "memory-default-create", application.FingerprintString("memory-default-create"))
+	created, err := svc.CreatePaymentIntent(CreatePaymentIntentRequest{Amount: 100, Currency: "usd"}, "memory-default-create", fingerprintString("memory-default-create"))
 	if err != nil {
 		t.Fatalf("create failed: %v", err)
 	}
@@ -40,12 +45,12 @@ func TestFinalizeProcessingPaymentIntent(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			svc := NewService()
 
-			created, err := svc.CreatePaymentIntent(CreatePaymentIntentRequest{Amount: 100, Currency: "usd", CaptureMethod: tt.captureMethod}, "create-1", application.FingerprintString("create-1"))
+			created, err := svc.CreatePaymentIntent(CreatePaymentIntentRequest{Amount: 100, Currency: "usd", CaptureMethod: tt.captureMethod}, "create-1", fingerprintString("create-1"))
 			if err != nil {
 				t.Fatalf("create failed: %v", err)
 			}
 
-			confirmed, err := svc.ConfirmPaymentIntent(created.ID, ConfirmPaymentIntentRequest{PaymentMethodToken: "pm_card_processing"}, "", "confirm-1", application.FingerprintString("confirm-1|processing"))
+			confirmed, err := svc.ConfirmPaymentIntent(created.ID, ConfirmPaymentIntentRequest{PaymentMethodToken: "pm_card_processing"}, "", "confirm-1", fingerprintString("confirm-1|processing"))
 			if err != nil {
 				t.Fatalf("confirm failed: %v", err)
 			}
@@ -70,12 +75,12 @@ func TestFinalizeProcessingPaymentIntent(t *testing.T) {
 func TestPaymentLifecycle(t *testing.T) {
 	svc := NewService()
 
-	created, err := svc.CreatePaymentIntent(CreatePaymentIntentRequest{Amount: 100, Currency: "usd", CaptureMethod: "manual"}, "create-1", application.FingerprintString("create-1"))
+	created, err := svc.CreatePaymentIntent(CreatePaymentIntentRequest{Amount: 100, Currency: "usd", CaptureMethod: "manual"}, "create-1", fingerprintString("create-1"))
 	if err != nil {
 		t.Fatalf("create failed: %v", err)
 	}
 
-	confirmed, err := svc.ConfirmPaymentIntent(created.ID, ConfirmPaymentIntentRequest{PaymentMethodToken: "pm_card_visa"}, "", "confirm-1", application.FingerprintString("confirm-1|confirm"))
+	confirmed, err := svc.ConfirmPaymentIntent(created.ID, ConfirmPaymentIntentRequest{PaymentMethodToken: "pm_card_visa"}, "", "confirm-1", fingerprintString("confirm-1|confirm"))
 	if err != nil {
 		t.Fatalf("confirm failed: %v", err)
 	}
@@ -94,7 +99,7 @@ func TestPaymentLifecycle(t *testing.T) {
 		t.Fatalf("expected succeeded, got %s", captured.PaymentIntent.Status)
 	}
 
-	refunded, err := svc.CreateRefund(RefundRequest{ChargeID: captured.Charge.ID}, "refund-1", application.FingerprintString("refund-1|refund"))
+	refunded, err := svc.CreateRefund(RefundRequest{ChargeID: captured.Charge.ID}, "refund-1", fingerprintString("refund-1|refund"))
 	if err != nil {
 		t.Fatalf("refund failed: %v", err)
 	}
@@ -109,11 +114,11 @@ func TestPaymentLifecycle(t *testing.T) {
 func TestInternalEventHandlers(t *testing.T) {
 	svc := NewService()
 
-	created, err := svc.CreatePaymentIntent(CreatePaymentIntentRequest{Amount: 100, Currency: "usd", CaptureMethod: "manual"}, "create-events", application.FingerprintString("create-events"))
+	created, err := svc.CreatePaymentIntent(CreatePaymentIntentRequest{Amount: 100, Currency: "usd", CaptureMethod: "manual"}, "create-events", fingerprintString("create-events"))
 	if err != nil {
 		t.Fatalf("create failed: %v", err)
 	}
-	confirmed, err := svc.ConfirmPaymentIntent(created.ID, ConfirmPaymentIntentRequest{}, "", "confirm-events", application.FingerprintString("confirm-events"))
+	confirmed, err := svc.ConfirmPaymentIntent(created.ID, ConfirmPaymentIntentRequest{}, "", "confirm-events", fingerprintString("confirm-events"))
 	if err != nil {
 		t.Fatalf("confirm failed: %v", err)
 	}
@@ -121,7 +126,7 @@ func TestInternalEventHandlers(t *testing.T) {
 	if err != nil {
 		t.Fatalf("capture failed: %v", err)
 	}
-	_, err = svc.CreateRefund(RefundRequest{ChargeID: confirmed.Charge.ID}, "refund-events", application.FingerprintString("refund-events"))
+	_, err = svc.CreateRefund(RefundRequest{ChargeID: confirmed.Charge.ID}, "refund-events", fingerprintString("refund-events"))
 	if err != nil {
 		t.Fatalf("refund failed: %v", err)
 	}

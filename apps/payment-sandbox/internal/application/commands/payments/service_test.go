@@ -1,12 +1,20 @@
-package application
+package payments
 
 import (
+	"crypto/sha256"
+	"encoding/hex"
 	"testing"
+	"time"
 
 	"payment-sandbox/internal/adapters/persistence/memory"
 	"payment-sandbox/internal/domain"
 	"payment-sandbox/internal/ports"
 )
+
+func fingerprintString(value string) string {
+	sum := sha256.Sum256([]byte(value))
+	return hex.EncodeToString(sum[:])
+}
 
 type fakeScenarioResolver struct{}
 
@@ -56,7 +64,7 @@ func TestPaymentServicePublishesEvents(t *testing.T) {
 		{
 			name: "create emits created",
 			setup: func(t *testing.T, svc *PaymentService) {
-				if _, err := svc.CreatePaymentIntent(domain.CreatePaymentIntentRequest{Amount: 100, Currency: "usd"}, "create-1", FingerprintString("create-1")); err != nil {
+				if _, err := svc.CreatePaymentIntent(domain.CreatePaymentIntentRequest{Amount: 100, Currency: "usd"}, "create-1", fingerprintString("create-1")); err != nil {
 					t.Fatalf("create failed: %v", err)
 				}
 			},
@@ -65,11 +73,11 @@ func TestPaymentServicePublishesEvents(t *testing.T) {
 		{
 			name: "confirm emits confirmed",
 			setup: func(t *testing.T, svc *PaymentService) {
-				created, err := svc.CreatePaymentIntent(domain.CreatePaymentIntentRequest{Amount: 100, Currency: "usd"}, "create-1", FingerprintString("create-1"))
+				created, err := svc.CreatePaymentIntent(domain.CreatePaymentIntentRequest{Amount: 100, Currency: "usd"}, "create-1", fingerprintString("create-1"))
 				if err != nil {
 					t.Fatalf("create failed: %v", err)
 				}
-				if _, err := svc.ConfirmPaymentIntent(created.ID, domain.ConfirmPaymentIntentRequest{}, "", "confirm-1", FingerprintString("confirm-1")); err != nil {
+				if _, err := svc.ConfirmPaymentIntent(created.ID, domain.ConfirmPaymentIntentRequest{}, "", "confirm-1", fingerprintString("confirm-1")); err != nil {
 					t.Fatalf("confirm failed: %v", err)
 				}
 			},
@@ -78,11 +86,11 @@ func TestPaymentServicePublishesEvents(t *testing.T) {
 		{
 			name: "finalize emits finalized",
 			setup: func(t *testing.T, svc *PaymentService) {
-				created, err := svc.CreatePaymentIntent(domain.CreatePaymentIntentRequest{Amount: 100, Currency: "usd"}, "create-1", FingerprintString("create-1"))
+				created, err := svc.CreatePaymentIntent(domain.CreatePaymentIntentRequest{Amount: 100, Currency: "usd"}, "create-1", fingerprintString("create-1"))
 				if err != nil {
 					t.Fatalf("create failed: %v", err)
 				}
-				confirmed, err := svc.ConfirmPaymentIntent(created.ID, domain.ConfirmPaymentIntentRequest{PaymentMethodToken: "pm_card_processing"}, "", "confirm-1", FingerprintString("confirm-1|processing"))
+				confirmed, err := svc.ConfirmPaymentIntent(created.ID, domain.ConfirmPaymentIntentRequest{PaymentMethodToken: "pm_card_processing"}, "", "confirm-1", fingerprintString("confirm-1|processing"))
 				if err != nil {
 					t.Fatalf("confirm failed: %v", err)
 				}
@@ -98,11 +106,11 @@ func TestPaymentServicePublishesEvents(t *testing.T) {
 		{
 			name: "capture emits captured",
 			setup: func(t *testing.T, svc *PaymentService) {
-				created, err := svc.CreatePaymentIntent(domain.CreatePaymentIntentRequest{Amount: 100, Currency: "usd", CaptureMethod: "manual"}, "create-1", FingerprintString("create-1"))
+				created, err := svc.CreatePaymentIntent(domain.CreatePaymentIntentRequest{Amount: 100, Currency: "usd", CaptureMethod: "manual"}, "create-1", fingerprintString("create-1"))
 				if err != nil {
 					t.Fatalf("create failed: %v", err)
 				}
-				confirmed, err := svc.ConfirmPaymentIntent(created.ID, domain.ConfirmPaymentIntentRequest{}, "", "confirm-1", FingerprintString("confirm-1"))
+				confirmed, err := svc.ConfirmPaymentIntent(created.ID, domain.ConfirmPaymentIntentRequest{}, "", "confirm-1", fingerprintString("confirm-1"))
 				if err != nil {
 					t.Fatalf("confirm failed: %v", err)
 				}
@@ -115,37 +123,13 @@ func TestPaymentServicePublishesEvents(t *testing.T) {
 			},
 			wantEvents: []string{"payment_intent.created", "payment_intent.confirmed", "payment_intent.captured"},
 		},
-		{
-			name: "refund emits refund_created",
-			setup: func(t *testing.T, svc *PaymentService) {
-				created, err := svc.CreatePaymentIntent(domain.CreatePaymentIntentRequest{Amount: 100, Currency: "usd", CaptureMethod: "manual"}, "create-1", FingerprintString("create-1"))
-				if err != nil {
-					t.Fatalf("create failed: %v", err)
-				}
-				confirmed, err := svc.ConfirmPaymentIntent(created.ID, domain.ConfirmPaymentIntentRequest{}, "", "confirm-1", FingerprintString("confirm-1"))
-				if err != nil {
-					t.Fatalf("confirm failed: %v", err)
-				}
-				captured, err := svc.CapturePaymentIntent(created.ID, domain.CapturePaymentIntentRequest{})
-				if err != nil {
-					t.Fatalf("capture failed: %v", err)
-				}
-				if captured.PaymentIntent.Status != domain.PaymentIntentSucceeded || confirmed.Charge == nil {
-					t.Fatalf("expected successful capture flow")
-				}
-				if _, err := svc.CreateRefund(domain.RefundRequest{ChargeID: captured.Charge.ID}, "refund-1", FingerprintString("refund-1")); err != nil {
-					t.Fatalf("refund failed: %v", err)
-				}
-			},
-			wantEvents: []string{"payment_intent.created", "payment_intent.confirmed", "payment_intent.captured", "refund.created"},
-		},
 	}
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			spy := &eventSpy{}
 			uow := memory.NewUnitOfWork(memory.NewStore(), spy)
-			svc := NewPaymentService(uow, fakeScenarioResolver{})
+			svc := NewService(uow, staticClock{}, fakeScenarioResolver{})
 			tt.setup(t, svc)
 			if len(spy.events) != len(tt.wantEvents) {
 				t.Fatalf("expected %d events, got %d: %v", len(tt.wantEvents), len(spy.events), spy.events)
@@ -158,3 +142,7 @@ func TestPaymentServicePublishesEvents(t *testing.T) {
 		})
 	}
 }
+
+type staticClock struct{}
+
+func (staticClock) Now() time.Time { return time.Unix(0, 0).UTC() }

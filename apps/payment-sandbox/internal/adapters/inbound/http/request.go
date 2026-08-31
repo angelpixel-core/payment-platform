@@ -1,6 +1,8 @@
 package httpadapter
 
 import (
+	"crypto/sha256"
+	"encoding/hex"
 	"net/http"
 	"strings"
 )
@@ -10,4 +12,13 @@ func requestIdempotencyKey(r *http.Request, fallback string) string {
 		return key
 	}
 	return strings.TrimSpace(fallback)
+}
+
+func fingerprint(payload []byte) string {
+	sum := sha256.Sum256(payload)
+	return hex.EncodeToString(sum[:])
+}
+
+func fingerprintString(value string) string {
+	return fingerprint([]byte(value))
 }

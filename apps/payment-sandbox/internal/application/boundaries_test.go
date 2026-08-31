@@ -1,4 +1,4 @@
-package modules_test
+package application_test
 
 import (
 	"go/parser"
@@ -11,7 +11,7 @@ import (
 	"testing"
 )
 
-func TestModuleImportBoundaries(t *testing.T) {
+func TestApplicationImportBoundaries(t *testing.T) {
 	_, currentFile, _, ok := runtime.Caller(0)
 	if !ok {
 		t.Fatal("failed to resolve caller path")

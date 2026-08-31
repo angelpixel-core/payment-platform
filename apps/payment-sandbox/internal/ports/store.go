@@ -1,14 +1,6 @@
 package ports
 
-import (
-	"time"
-
-	"payment-sandbox/internal/domain"
-)
-
-type Clock interface {
-	Now() time.Time
-}
+import "payment-sandbox/internal/domain"
 
 type Store interface {
 	WithIdempotency(key, fingerprint string, fn func() (any, error)) (any, error)
@@ -23,9 +15,4 @@ type Store interface {
 	GetCharge(id string) (domain.Charge, error)
 	SaveRefund(refund domain.Refund) domain.Refund
 	GetRefund(id string) (domain.Refund, error)
-}
-
-type ScenarioResolver interface {
-	Resolve(headerScenario, paymentMethodToken string) (domain.ScenarioName, error)
-	Outcome(name domain.ScenarioName) (domain.ScenarioOutcome, error)
 }

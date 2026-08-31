@@ -1,7 +1,7 @@
 package sandbox
 
 import (
-	"payment-sandbox/internal/application/queries"
+	"payment-sandbox/internal/application/queries/payments"
 	"payment-sandbox/internal/domain"
 )
 
@@ -44,10 +44,10 @@ type PaymentAttempt = domain.PaymentAttempt
 type Charge = domain.Charge
 type Refund = domain.Refund
 
-type PaymentIntentView = queries.PaymentIntentView
-type PaymentAttemptView = queries.PaymentAttemptView
-type ChargeView = queries.ChargeView
-type RefundView = queries.RefundView
+type PaymentIntentView = payments.PaymentIntentView
+type PaymentAttemptView = payments.PaymentAttemptView
+type ChargeView = payments.ChargeView
+type RefundView = payments.RefundView
 
 type CreatePaymentIntentRequest = domain.CreatePaymentIntentRequest
 type ConfirmPaymentIntentRequest = domain.ConfirmPaymentIntentRequest
