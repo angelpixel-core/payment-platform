@@ -1,6 +1,8 @@
 package memory
 
 import (
+	"sync"
+
 	"payment-sandbox/internal/domain"
 	"payment-sandbox/internal/ports"
 )
@@ -13,6 +15,13 @@ type UnitOfWork struct {
 type transaction struct {
 	store     *MemoryStore
 	publisher ports.EventPublisher
+	intents   map[string]domain.PaymentIntent
+	attempts  map[string]domain.PaymentAttempt
+	charges   map[string]domain.Charge
+	refunds   map[string]domain.Refund
+	events    []domain.Event
+	idem      map[string]idempotencyRecord
+	mu        sync.Mutex
 }
 
 func NewUnitOfWork(store *MemoryStore, publisher ports.EventPublisher) *UnitOfWork {
@@ -23,37 +32,269 @@ var _ ports.UnitOfWork = (*UnitOfWork)(nil)
 var _ ports.Transaction = (*transaction)(nil)
 
 func (u *UnitOfWork) Do(fn func(tx ports.Transaction) error) error {
-	return fn(&transaction{store: u.store, publisher: u.publisher})
+	tx := &transaction{store: u.store, publisher: u.publisher}
+	if err := fn(tx); err != nil {
+		return err
+	}
+	return tx.commit()
 }
 
 func (tx *transaction) WithIdempotency(key, fingerprint string, fn func() (any, error)) (any, error) {
-	return tx.store.WithIdempotency(key, fingerprint, fn)
+	tx.store.mu.Lock()
+	if existing, ok := tx.store.idempotency[key]; ok {
+		tx.store.mu.Unlock()
+		if existing.fingerprint != fingerprint {
+			return nil, domain.NewError(409, "idempotency_conflict", "idempotency key was already used with a different request")
+		}
+		return existing.value, nil
+	}
+	tx.store.mu.Unlock()
+
+	value, err := fn()
+	if err != nil {
+		return nil, err
+	}
+	tx.mu.Lock()
+	defer tx.mu.Unlock()
+	if tx.idem == nil {
+		tx.idem = make(map[string]idempotencyRecord)
+	}
+	tx.idem[key] = idempotencyRecord{fingerprint: fingerprint, value: value}
+	return value, nil
 }
+
 func (tx *transaction) NextID(prefix string) string        { return tx.store.NextID(prefix) }
 func (tx *transaction) NextReference(prefix string) string { return tx.store.NextReference(prefix) }
+
 func (tx *transaction) SavePaymentIntent(intent domain.PaymentIntent) domain.PaymentIntent {
-	return tx.store.SavePaymentIntent(intent)
+	tx.mu.Lock()
+	defer tx.mu.Unlock()
+	if tx.intents == nil {
+		tx.intents = make(map[string]domain.PaymentIntent)
+	}
+	tx.intents[intent.ID] = intent
+	return intent
 }
+
 func (tx *transaction) GetPaymentIntent(id string) (domain.PaymentIntent, error) {
+	tx.mu.Lock()
+	if intent, ok := tx.intents[id]; ok {
+		tx.mu.Unlock()
+		return intent, nil
+	}
+	tx.mu.Unlock()
 	return tx.store.GetPaymentIntent(id)
 }
+
 func (tx *transaction) SavePaymentAttempt(attempt domain.PaymentAttempt) domain.PaymentAttempt {
-	return tx.store.SavePaymentAttempt(attempt)
+	tx.mu.Lock()
+	defer tx.mu.Unlock()
+	if tx.attempts == nil {
+		tx.attempts = make(map[string]domain.PaymentAttempt)
+	}
+	tx.attempts[attempt.ID] = attempt
+	return attempt
 }
+
 func (tx *transaction) GetPaymentAttempt(id string) (domain.PaymentAttempt, error) {
+	tx.mu.Lock()
+	if attempt, ok := tx.attempts[id]; ok {
+		tx.mu.Unlock()
+		return attempt, nil
+	}
+	tx.mu.Unlock()
 	return tx.store.GetPaymentAttempt(id)
 }
+
 func (tx *transaction) SaveCharge(charge domain.Charge) domain.Charge {
-	return tx.store.SaveCharge(charge)
+	tx.mu.Lock()
+	defer tx.mu.Unlock()
+	if tx.charges == nil {
+		tx.charges = make(map[string]domain.Charge)
+	}
+	tx.charges[charge.ID] = charge
+	return charge
 }
-func (tx *transaction) GetCharge(id string) (domain.Charge, error) { return tx.store.GetCharge(id) }
+
+func (tx *transaction) GetCharge(id string) (domain.Charge, error) {
+	tx.mu.Lock()
+	if charge, ok := tx.charges[id]; ok {
+		tx.mu.Unlock()
+		return charge, nil
+	}
+	tx.mu.Unlock()
+	return tx.store.GetCharge(id)
+}
+
 func (tx *transaction) SaveRefund(refund domain.Refund) domain.Refund {
-	return tx.store.SaveRefund(refund)
+	tx.mu.Lock()
+	defer tx.mu.Unlock()
+	if tx.refunds == nil {
+		tx.refunds = make(map[string]domain.Refund)
+	}
+	tx.refunds[refund.ID] = refund
+	return refund
 }
-func (tx *transaction) GetRefund(id string) (domain.Refund, error) { return tx.store.GetRefund(id) }
+
+func (tx *transaction) GetRefund(id string) (domain.Refund, error) {
+	tx.mu.Lock()
+	if refund, ok := tx.refunds[id]; ok {
+		tx.mu.Unlock()
+		return refund, nil
+	}
+	tx.mu.Unlock()
+	return tx.store.GetRefund(id)
+}
+
 func (tx *transaction) Publish(event domain.Event) error {
-	if tx.publisher == nil || event == nil {
+	tx.mu.Lock()
+	defer tx.mu.Unlock()
+	tx.events = append(tx.events, event)
+	return nil
+}
+
+func (tx *transaction) commit() error {
+	tx.store.mu.Lock()
+	backup := snapshotStore(tx.store)
+	applyTransactionState(tx.store, tx)
+	tx.store.mu.Unlock()
+
+	for _, event := range tx.events {
+		if tx.publisher != nil {
+			if err := tx.publisher.Publish(event); err != nil {
+				tx.store.mu.Lock()
+				restoreStore(tx.store, backup)
+				tx.store.mu.Unlock()
+				return err
+			}
+		}
+	}
+	return nil
+}
+
+type storeSnapshot struct {
+	seq         int64
+	intents     map[string]domain.PaymentIntent
+	attempts    map[string]domain.PaymentAttempt
+	charges     map[string]domain.Charge
+	refunds     map[string]domain.Refund
+	idempotency map[string]idempotencyRecord
+}
+
+func snapshotStore(store *MemoryStore) storeSnapshot {
+	return storeSnapshot{
+		seq:         store.seq,
+		intents:     cloneIntents(store.intents),
+		attempts:    cloneAttempts(store.attempts),
+		charges:     cloneCharges(store.charges),
+		refunds:     cloneRefunds(store.refunds),
+		idempotency: cloneIdempotency(store.idempotency),
+	}
+}
+
+func applyTransactionState(store *MemoryStore, tx *transaction) {
+	if tx.intents != nil {
+		if store.intents == nil {
+			store.intents = make(map[string]domain.PaymentIntent)
+		}
+		for k, v := range tx.intents {
+			store.intents[k] = v
+		}
+	}
+	if tx.attempts != nil {
+		if store.attempts == nil {
+			store.attempts = make(map[string]domain.PaymentAttempt)
+		}
+		for k, v := range tx.attempts {
+			store.attempts[k] = v
+		}
+	}
+	if tx.charges != nil {
+		if store.charges == nil {
+			store.charges = make(map[string]domain.Charge)
+		}
+		for k, v := range tx.charges {
+			store.charges[k] = v
+		}
+	}
+	if tx.refunds != nil {
+		if store.refunds == nil {
+			store.refunds = make(map[string]domain.Refund)
+		}
+		for k, v := range tx.refunds {
+			store.refunds[k] = v
+		}
+	}
+	if tx.idem != nil {
+		if store.idempotency == nil {
+			store.idempotency = make(map[string]idempotencyRecord)
+		}
+		for k, v := range tx.idem {
+			store.idempotency[k] = v
+		}
+	}
+}
+
+func restoreStore(store *MemoryStore, snapshot storeSnapshot) {
+	store.seq = snapshot.seq
+	store.intents = snapshot.intents
+	store.attempts = snapshot.attempts
+	store.charges = snapshot.charges
+	store.refunds = snapshot.refunds
+	store.idempotency = snapshot.idempotency
+}
+
+func cloneIntents(src map[string]domain.PaymentIntent) map[string]domain.PaymentIntent {
+	if src == nil {
 		return nil
 	}
-	return tx.publisher.Publish(event)
+	dst := make(map[string]domain.PaymentIntent, len(src))
+	for k, v := range src {
+		dst[k] = v
+	}
+	return dst
+}
+
+func cloneAttempts(src map[string]domain.PaymentAttempt) map[string]domain.PaymentAttempt {
+	if src == nil {
+		return nil
+	}
+	dst := make(map[string]domain.PaymentAttempt, len(src))
+	for k, v := range src {
+		dst[k] = v
+	}
+	return dst
+}
+
+func cloneCharges(src map[string]domain.Charge) map[string]domain.Charge {
+	if src == nil {
+		return nil
+	}
+	dst := make(map[string]domain.Charge, len(src))
+	for k, v := range src {
+		dst[k] = v
+	}
+	return dst
+}
+
+func cloneRefunds(src map[string]domain.Refund) map[string]domain.Refund {
+	if src == nil {
+		return nil
+	}
+	dst := make(map[string]domain.Refund, len(src))
+	for k, v := range src {
+		dst[k] = v
+	}
+	return dst
+}
+
+func cloneIdempotency(src map[string]idempotencyRecord) map[string]idempotencyRecord {
+	if src == nil {
+		return nil
+	}
+	dst := make(map[string]idempotencyRecord, len(src))
+	for k, v := range src {
+		dst[k] = v
+	}
+	return dst
 }
