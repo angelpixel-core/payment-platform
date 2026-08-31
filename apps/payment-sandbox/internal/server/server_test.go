@@ -34,6 +34,12 @@ type errorEnvelope struct {
 	Error sandbox.Error `json:"error"`
 }
 
+type queryEnvelope struct {
+	PaymentIntent sandbox.PaymentIntent `json:"payment_intent"`
+	Charge        sandbox.Charge        `json:"charge"`
+	Refund        sandbox.Refund        `json:"refund"`
+}
+
 func TestPaymentLifecycle(t *testing.T) {
 	client := httptest.NewServer(New(sandbox.NewService()))
 	defer client.Close()
@@ -65,6 +71,55 @@ func TestPaymentLifecycle(t *testing.T) {
 	}
 	if refunded.Charge.Status != "refunded" {
 		t.Fatalf("expected refunded charge status, got %s", refunded.Charge.Status)
+	}
+}
+
+func TestQueryEndpoints(t *testing.T) {
+	client := httptest.NewServer(New(sandbox.NewService()))
+	defer client.Close()
+
+	_, created := doPost[createEnvelope](t, client.URL+"/v1/payment_intents", map[string]any{
+		"amount":   100,
+		"currency": "usd",
+	}, "query-create", nil)
+
+	resp, body := doGet(t, client.URL+"/v1/payment_intents/"+created.PaymentIntent.ID)
+	if resp.StatusCode != http.StatusOK {
+		t.Fatalf("expected 200, got %d", resp.StatusCode)
+	}
+	var gotIntent queryEnvelope
+	if err := json.Unmarshal(body, &gotIntent); err != nil {
+		t.Fatalf("decode intent failed: %v", err)
+	}
+	if gotIntent.PaymentIntent.ID != created.PaymentIntent.ID {
+		t.Fatalf("expected intent %s, got %s", created.PaymentIntent.ID, gotIntent.PaymentIntent.ID)
+	}
+
+	_, confirmed := doPost[confirmEnvelope](t, client.URL+"/v1/payment_intents/"+created.PaymentIntent.ID+"/confirm", map[string]any{}, "query-confirm", nil)
+	resp, body = doGet(t, client.URL+"/v1/charges/"+confirmed.Charge.ID)
+	if resp.StatusCode != http.StatusOK {
+		t.Fatalf("expected 200, got %d", resp.StatusCode)
+	}
+	var gotCharge queryEnvelope
+	if err := json.Unmarshal(body, &gotCharge); err != nil {
+		t.Fatalf("decode charge failed: %v", err)
+	}
+	if gotCharge.Charge.ID != confirmed.Charge.ID {
+		t.Fatalf("expected charge %s, got %s", confirmed.Charge.ID, gotCharge.Charge.ID)
+	}
+
+	_, captured := doPost[captureEnvelope](t, client.URL+"/v1/payment_intents/"+created.PaymentIntent.ID+"/capture", map[string]any{}, "query-capture", nil)
+	_, refunded := doPost[refundEnvelope](t, client.URL+"/v1/refunds", map[string]any{"charge_id": captured.Charge.ID}, "query-refund", nil)
+	resp, body = doGet(t, client.URL+"/v1/refunds/"+refunded.Refund.ID)
+	if resp.StatusCode != http.StatusOK {
+		t.Fatalf("expected 200, got %d", resp.StatusCode)
+	}
+	var gotRefund queryEnvelope
+	if err := json.Unmarshal(body, &gotRefund); err != nil {
+		t.Fatalf("decode refund failed: %v", err)
+	}
+	if gotRefund.Refund.ID != refunded.Refund.ID {
+		t.Fatalf("expected refund %s, got %s", refunded.Refund.ID, gotRefund.Refund.ID)
 	}
 }
 
@@ -330,6 +385,19 @@ func doPost[T any](t *testing.T, url string, payload any, idem string, headers m
 
 func doRawPost(t *testing.T, url string, payload any) (*http.Response, []byte) {
 	return doPostRawWithHeaders(t, url, payload, "", nil)
+}
+
+func doGet(t *testing.T, url string) (*http.Response, []byte) {
+	t.Helper()
+	req, _ := http.NewRequest(http.MethodGet, url, nil)
+	resp, err := http.DefaultClient.Do(req)
+	if err != nil {
+		t.Fatalf("request failed: %v", err)
+	}
+	defer resp.Body.Close()
+	var buf bytes.Buffer
+	_, _ = buf.ReadFrom(resp.Body)
+	return resp, buf.Bytes()
 }
 
 func doPostRawWithHeaders(t *testing.T, url string, payload any, idem string, headers map[string]string) (*http.Response, []byte) {

@@ -21,6 +21,9 @@ func New(svc *sandbox.Service) http.Handler {
 
 func (s *Server) routes() {
 	s.mux.HandleFunc("GET /health", s.handleHealth)
+	s.mux.HandleFunc("GET /v1/payment_intents/{id}", s.handleGetPaymentIntent)
+	s.mux.HandleFunc("GET /v1/charges/{id}", s.handleGetCharge)
+	s.mux.HandleFunc("GET /v1/refunds/{id}", s.handleGetRefund)
 	s.mux.HandleFunc("POST /v1/payment_intents", s.handleCreatePaymentIntent)
 	s.mux.HandleFunc("POST /v1/payment_intents/{id}/confirm", s.handleConfirmPaymentIntent)
 	s.mux.HandleFunc("POST /v1/payment_intents/{id}/capture", s.handleCapturePaymentIntent)
@@ -45,6 +48,33 @@ func (s *Server) handleCreatePaymentIntent(w http.ResponseWriter, r *http.Reques
 		return
 	}
 	writeJSON(w, http.StatusCreated, sandbox.CreatePaymentIntentResponse{PaymentIntent: result})
+}
+
+func (s *Server) handleGetPaymentIntent(w http.ResponseWriter, r *http.Request) {
+	intent, err := s.svc.GetPaymentIntent(r.PathValue("id"))
+	if err != nil {
+		writeError(w, err)
+		return
+	}
+	writeJSON(w, http.StatusOK, sandbox.CreatePaymentIntentResponse{PaymentIntent: intent})
+}
+
+func (s *Server) handleGetCharge(w http.ResponseWriter, r *http.Request) {
+	charge, err := s.svc.GetCharge(r.PathValue("id"))
+	if err != nil {
+		writeError(w, err)
+		return
+	}
+	writeJSON(w, http.StatusOK, map[string]any{"charge": charge})
+}
+
+func (s *Server) handleGetRefund(w http.ResponseWriter, r *http.Request) {
+	refund, err := s.svc.GetRefund(r.PathValue("id"))
+	if err != nil {
+		writeError(w, err)
+		return
+	}
+	writeJSON(w, http.StatusOK, map[string]any{"refund": refund})
 }
 
 func (s *Server) handleConfirmPaymentIntent(w http.ResponseWriter, r *http.Request) {
