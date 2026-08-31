@@ -18,6 +18,6 @@ func Metrics(next http.Handler, recorder HTTPMetricsRecorder) http.Handler {
 		start := time.Now()
 		rec := &statusRecorder{ResponseWriter: w, status: http.StatusOK}
 		next.ServeHTTP(rec, r)
-		recorder.RecordHTTPRequest(r.Context(), r.Method, r.URL.Path, rec.status, time.Since(start))
+		recorder.RecordHTTPRequest(r.Context(), r.Method, routeLabel(r), rec.status, time.Since(start))
 	})
 }
