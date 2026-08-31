@@ -81,7 +81,7 @@ Ejecutar el Nivel 1 sobre `payment-sandbox` con cambios pequenos, verificables y
 
 - [x] `refactor(payment-sandbox): add postgres adapter behind ports`
 - [x] `refactor(payment-sandbox): keep memory adapter for tests and sandbox`
-- [ ] `test(payment-sandbox): run repository contract tests against postgres`
+- [x] `test(payment-sandbox): run repository contract tests against postgres`
 
 ### 7.7 Observabilidad y Rendimiento
 
