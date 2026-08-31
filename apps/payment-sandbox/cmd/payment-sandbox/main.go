@@ -7,7 +7,7 @@ import (
 	"os"
 	"time"
 
-	"payment-sandbox/internal/adapters/postgres"
+	"payment-sandbox/internal/adapters/persistence/postgres"
 	"payment-sandbox/internal/sandbox"
 	"payment-sandbox/internal/server"
 )

@@ -3,7 +3,7 @@ package queries
 import (
 	"testing"
 
-	"payment-sandbox/internal/adapters/memory"
+	"payment-sandbox/internal/adapters/persistence/memory"
 	"payment-sandbox/internal/domain"
 )
 

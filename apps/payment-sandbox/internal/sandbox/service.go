@@ -3,10 +3,10 @@ package sandbox
 import (
 	"database/sql"
 
-	"payment-sandbox/internal/adapters/eventing/inprocess"
-	"payment-sandbox/internal/adapters/eventing/outbox"
-	"payment-sandbox/internal/adapters/memory"
-	"payment-sandbox/internal/adapters/postgres"
+	"payment-sandbox/internal/adapters/messaging/inprocess"
+	"payment-sandbox/internal/adapters/messaging/outbox"
+	"payment-sandbox/internal/adapters/persistence/memory"
+	"payment-sandbox/internal/adapters/persistence/postgres"
 	"payment-sandbox/internal/application"
 	appEvents "payment-sandbox/internal/application/events"
 	"payment-sandbox/internal/application/queries"

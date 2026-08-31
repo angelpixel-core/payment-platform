@@ -1,6 +1,6 @@
 package sandbox
 
-import "payment-sandbox/internal/adapters/memory"
+import "payment-sandbox/internal/adapters/persistence/memory"
 
 type Store = memory.MemoryStore
 type MemoryStore = memory.MemoryStore
