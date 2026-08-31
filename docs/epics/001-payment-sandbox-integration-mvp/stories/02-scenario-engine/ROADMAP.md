@@ -5,7 +5,7 @@
 Objetivo: mejorar la estructura sin sobrediseñar.
 
 - Mantener HTTP delgado.
-- Separar dominio, aplicacion y adaptadores de forma ligera.
+- Separar dominio, `internal/application/commands`, `internal/application/queries`, `internal/application/support` y `adapters` de forma ligera.
 - Definir repositorios y puertos basicos.
 - Introducir tests por capa.
 - Usar `MemoryStore` como infraestructura.

@@ -4,41 +4,60 @@
 
 Definir los limites del monolito modular para que `payment-sandbox` pueda crecer sin convertir el paquete en un bloque acoplado.
 
-## Module Names
+## Application Boundaries
 
-### `payments`
+### `internal/application/commands/payments`
 
 - Casos de uso y dominio del ciclo de vida de pagos.
 - `PaymentIntent`, captura, confirmacion, finalizacion y reglas de estado.
 
-### `refunds`
+### `internal/application/commands/refunds`
 
 - Casos de uso y dominio de reembolsos.
 - Politicas de refund, validaciones y estados relacionados.
 
-### `scenarios`
+### `internal/application/queries/payments`
+
+- Modelos de lectura para `PaymentIntent`, `PaymentAttempt`, `Charge` y `Refund`.
+- Consultas read-only alineadas con el contrato HTTP.
+
+### `internal/application/support/observability`
+
+- Registro interno de eventos para tests y diagnostico.
+- No es logica de negocio ni un caso de uso.
+
+### `sandbox`
 
 - Resolucion deterministica de escenarios de sandbox.
 - Mapping de header/token a resultado esperado.
 
-### `platform`
+### `ports`
 
-- Infraestructura comun y capacidades tecnicas compartidas.
-- Clock, logging, metrics, tracing, events, storage base, helpers de runtime.
+- Contratos para `Clock`, `Store`, `ScenarioResolver`, `EventPublisher` y `UnitOfWork`.
+
+### `adapters`
+
+- Implementaciones concretas de entrada, messaging, persistencia y tiempo.
 
 ### `shared`
 
 - Solo utilidades realmente transversales y agnosticas del dominio.
 - Value objects genéricos, helpers puros, errores base o contratos reutilizables.
 
-## Why `platform` vs `shared`
+## Why `application/support` vs `shared`
 
-### Elegir `platform` cuando:
+### Elegir `application/support` cuando:
 
-- el contenido es infraestructura o capacidades tecnicas
-- el codigo debe servir a varios modulos pero no representa negocio
-- hay cosas como observabilidad, bus, storage base o configuracion de runtime
+- el contenido es soporte transversal de la aplicacion
+- el codigo acompana a comandos y queries pero no es un caso de uso
+- hay cosas como observabilidad interna o helpers de flujo
 - queremos evitar que `shared` se vuelva un cajon de sastre
+
+### Elegir `adapters` cuando:
+
+- el contenido es infraestructura concreta o capacidades tecnicas
+- el codigo implementa un puerto
+- hay cosas como HTTP, messaging, storage o tiempo del sistema
 
 ### Elegir `shared` cuando:
 
@@ -49,15 +68,17 @@ Definir los limites del monolito modular para que `payment-sandbox` pueda crecer
 
 ## Decision Rule
 
-- Si algo es tecnico/operacional, va en `platform`.
+- Si algo pertenece al negocio, va en `internal/application/commands` o `internal/application/queries/payments`.
+- Si algo es soporte transversal de la aplicacion, va en `internal/application/support`.
+- Si algo es un contrato, va en `ports`.
+- Si algo implementa un contrato, va en `adapters`.
 - Si algo es puramente comun y sin semantica de runtime, va en `shared`.
-- Si algo pertenece al negocio, va en su modulo.
 
 ## Import Rules
 
 - Un modulo no importa internals de otro modulo.
 - Los modulos solo se relacionan por contratos publicos o puertos.
-- `platform` puede ser consumido por los modulos, pero no al reves.
+- `application/support` puede ser consumido por comandos y queries, pero no al reves.
 - `shared` debe permanecer libre de referencias a modulos de negocio.
 
 ## Suggested Location
