@@ -92,7 +92,7 @@ Ejecutar el Nivel 1 sobre `payment-sandbox` con cambios pequenos, verificables y
 
 - [ ] `refactor(payment-sandbox): record HTTP request count by method route and status class`
 - [ ] `refactor(payment-sandbox): record HTTP request duration histogram in milliseconds`
-- [ ] `refactor(payment-sandbox): propagate request metrics through inbound middleware`
+- [x] `refactor(payment-sandbox): propagate request metrics through inbound middleware`
 
 ### 7.7.2 Command Flow Metrics Surface
 
