@@ -1,9 +1,12 @@
 package events
 
 import (
+	"reflect"
 	"testing"
 
 	"payment-sandbox/internal/adapters/eventing/inprocess"
+	"payment-sandbox/internal/domain"
+	"payment-sandbox/internal/ports"
 )
 
 type testEvent struct{ name string }
@@ -36,4 +39,39 @@ func TestRecorderAndRegistration(t *testing.T) {
 
 func TestRegisterInternalHandlersNoop(t *testing.T) {
 	RegisterInternalHandlers(nil, nil)
+}
+
+func TestRegisterInternalHandlersSubscribesExpectedEvents(t *testing.T) {
+	pub := &capturePublisher{}
+	recorder := NewRecorder()
+
+	RegisterInternalHandlers(pub, recorder)
+
+	want := []string{
+		"payment_intent.created",
+		"payment_intent.confirmed",
+		"payment_intent.finalized",
+		"payment_intent.captured",
+		"refund.created",
+	}
+	if !reflect.DeepEqual(pub.eventNames, want) {
+		t.Fatalf("unexpected subscriptions: got %#v want %#v", pub.eventNames, want)
+	}
+	for _, handler := range pub.handlers {
+		if handler == nil {
+			t.Fatal("expected non-nil handler")
+		}
+	}
+}
+
+type capturePublisher struct {
+	eventNames []string
+	handlers   []ports.EventHandler
+}
+
+func (p *capturePublisher) Publish(domain.Event) error { return nil }
+
+func (p *capturePublisher) Subscribe(eventName string, handler ports.EventHandler) {
+	p.eventNames = append(p.eventNames, eventName)
+	p.handlers = append(p.handlers, handler)
 }
