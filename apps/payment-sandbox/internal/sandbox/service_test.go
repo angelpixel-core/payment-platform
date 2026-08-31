@@ -6,6 +6,26 @@ import (
 	"payment-sandbox/internal/application"
 )
 
+func TestDefaultSandboxUsesMemory(t *testing.T) {
+	svc := NewService()
+	if svc.EventRecorder() == nil {
+		t.Fatal("expected event recorder on default sandbox service")
+	}
+
+	created, err := svc.CreatePaymentIntent(CreatePaymentIntentRequest{Amount: 100, Currency: "usd"}, "memory-default-create", application.FingerprintString("memory-default-create"))
+	if err != nil {
+		t.Fatalf("create failed: %v", err)
+	}
+
+	got, err := svc.GetPaymentIntent(created.ID)
+	if err != nil {
+		t.Fatalf("get payment intent failed: %v", err)
+	}
+	if got.ID != created.ID {
+		t.Fatalf("expected intent %s, got %s", created.ID, got.ID)
+	}
+}
+
 func TestFinalizeProcessingPaymentIntent(t *testing.T) {
 	tests := []struct {
 		name          string
