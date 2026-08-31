@@ -1,9 +1,12 @@
 package sandbox
 
 import (
+	"database/sql"
+
 	"payment-sandbox/internal/adapters/eventing/inprocess"
 	"payment-sandbox/internal/adapters/eventing/outbox"
 	"payment-sandbox/internal/adapters/memory"
+	"payment-sandbox/internal/adapters/postgres"
 	"payment-sandbox/internal/application"
 	appEvents "payment-sandbox/internal/application/events"
 	"payment-sandbox/internal/application/queries"
@@ -22,6 +25,15 @@ func NewService() *Service {
 	appEvents.RegisterInternalHandlers(dispatcher, recorder)
 	publisher := outbox.NewPublisher(dispatcher)
 	uow := memory.NewUnitOfWork(store, publisher)
+	return &Service{commands: application.NewPaymentService(uow, NewScenarioEngine()), queries: queries.NewPaymentQueryService(store), recorder: recorder}
+}
+
+func NewPostgresService(db *sql.DB) *Service {
+	store := postgres.NewStore(db)
+	dispatcher := inprocess.NewPublisher()
+	recorder := appEvents.NewRecorder()
+	appEvents.RegisterInternalHandlers(dispatcher, recorder)
+	uow := postgres.NewUnitOfWork(db, dispatcher)
 	return &Service{commands: application.NewPaymentService(uow, NewScenarioEngine()), queries: queries.NewPaymentQueryService(store), recorder: recorder}
 }
 

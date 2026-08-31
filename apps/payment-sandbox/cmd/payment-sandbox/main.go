@@ -1,11 +1,13 @@
 package main
 
 import (
+	"context"
 	"log"
 	"net/http"
 	"os"
 	"time"
 
+	"payment-sandbox/internal/adapters/postgres"
 	"payment-sandbox/internal/sandbox"
 	"payment-sandbox/internal/server"
 )
@@ -16,7 +18,19 @@ func main() {
 		addr = "8080"
 	}
 
-	svc := sandbox.NewService()
+	var svc *sandbox.Service
+	if dsn := os.Getenv("DATABASE_URL"); dsn != "" {
+		db, err := postgres.Open(context.Background(), dsn)
+		if err != nil {
+			log.Fatal(err)
+		}
+		if err := postgres.EnsureSchema(context.Background(), db); err != nil {
+			log.Fatal(err)
+		}
+		svc = sandbox.NewPostgresService(db)
+	} else {
+		svc = sandbox.NewService()
+	}
 	handler := server.New(svc)
 
 	server := &http.Server{
