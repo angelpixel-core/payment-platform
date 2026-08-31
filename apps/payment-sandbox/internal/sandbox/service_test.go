@@ -86,6 +86,32 @@ func TestPaymentLifecycle(t *testing.T) {
 	}
 }
 
+func TestInternalEventHandlers(t *testing.T) {
+	svc := NewService()
+
+	created, err := svc.CreatePaymentIntent(CreatePaymentIntentRequest{Amount: 100, Currency: "usd", CaptureMethod: "manual"}, "create-events", application.FingerprintString("create-events"))
+	if err != nil {
+		t.Fatalf("create failed: %v", err)
+	}
+	confirmed, err := svc.ConfirmPaymentIntent(created.ID, ConfirmPaymentIntentRequest{}, "", "confirm-events", application.FingerprintString("confirm-events"))
+	if err != nil {
+		t.Fatalf("confirm failed: %v", err)
+	}
+	_, err = svc.CapturePaymentIntent(created.ID, CapturePaymentIntentRequest{})
+	if err != nil {
+		t.Fatalf("capture failed: %v", err)
+	}
+	_, err = svc.CreateRefund(RefundRequest{ChargeID: confirmed.Charge.ID}, "refund-events", application.FingerprintString("refund-events"))
+	if err != nil {
+		t.Fatalf("refund failed: %v", err)
+	}
+
+	_, counts := svc.EventRecorder().Snapshot()
+	if counts["payment_intent.created"] != 1 || counts["payment_intent.confirmed"] != 1 || counts["payment_intent.captured"] != 1 || counts["refund.created"] != 1 {
+		t.Fatalf("unexpected event counts: %#v", counts)
+	}
+}
+
 func TestScenarioResolution(t *testing.T) {
 	engine := NewScenarioEngine()
 
