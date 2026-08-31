@@ -73,7 +73,7 @@ Ejecutar el Nivel 1 sobre `payment-sandbox` con cambios pequenos, verificables y
 
 ### 7.5 Unit of Work
 
-- [ ] `refactor(payment-sandbox): introduce unit of work port`
+- [x] `refactor(payment-sandbox): introduce unit of work port`
 - [ ] `refactor(payment-sandbox): apply unit of work to multi-repository use cases`
 - [ ] `test(payment-sandbox): preserve atomicity across repository writes`
 

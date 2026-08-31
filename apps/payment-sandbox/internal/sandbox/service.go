@@ -3,6 +3,7 @@ package sandbox
 import (
 	"payment-sandbox/internal/adapters/eventing/inprocess"
 	"payment-sandbox/internal/adapters/eventing/outbox"
+	"payment-sandbox/internal/adapters/memory"
 	"payment-sandbox/internal/application"
 	appEvents "payment-sandbox/internal/application/events"
 	"payment-sandbox/internal/application/queries"
@@ -20,7 +21,8 @@ func NewService() *Service {
 	recorder := appEvents.NewRecorder()
 	appEvents.RegisterInternalHandlers(dispatcher, recorder)
 	publisher := outbox.NewPublisher(dispatcher)
-	return &Service{commands: application.NewPaymentService(store, NewScenarioEngine(), publisher), queries: queries.NewPaymentQueryService(store), recorder: recorder}
+	uow := memory.NewUnitOfWork(store, publisher)
+	return &Service{commands: application.NewPaymentService(uow, NewScenarioEngine()), queries: queries.NewPaymentQueryService(store), recorder: recorder}
 }
 
 func (s *Service) CreatePaymentIntent(req CreatePaymentIntentRequest, idempotencyKey, fingerprint string) (PaymentIntent, error) {

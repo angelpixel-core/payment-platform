@@ -144,7 +144,8 @@ func TestPaymentServicePublishesEvents(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			spy := &eventSpy{}
-			svc := NewPaymentService(memory.NewStore(), fakeScenarioResolver{}, spy)
+			uow := memory.NewUnitOfWork(memory.NewStore(), spy)
+			svc := NewPaymentService(uow, fakeScenarioResolver{})
 			tt.setup(t, svc)
 			if len(spy.events) != len(tt.wantEvents) {
 				t.Fatalf("expected %d events, got %d: %v", len(tt.wantEvents), len(spy.events), spy.events)
