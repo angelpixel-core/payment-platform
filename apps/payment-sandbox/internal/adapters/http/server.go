@@ -22,6 +22,7 @@ func New(svc *sandbox.Service) http.Handler {
 func (s *Server) routes() {
 	s.mux.HandleFunc("GET /health", s.handleHealth)
 	s.mux.HandleFunc("GET /v1/payment_intents/{id}", s.handleGetPaymentIntent)
+	s.mux.HandleFunc("GET /v1/payment_attempts/{id}", s.handleGetPaymentAttempt)
 	s.mux.HandleFunc("GET /v1/charges/{id}", s.handleGetCharge)
 	s.mux.HandleFunc("GET /v1/refunds/{id}", s.handleGetRefund)
 	s.mux.HandleFunc("POST /v1/payment_intents", s.handleCreatePaymentIntent)
@@ -56,7 +57,16 @@ func (s *Server) handleGetPaymentIntent(w http.ResponseWriter, r *http.Request) 
 		writeError(w, err)
 		return
 	}
-	writeJSON(w, http.StatusOK, sandbox.CreatePaymentIntentResponse{PaymentIntent: intent})
+	writeJSON(w, http.StatusOK, map[string]any{"payment_intent": intent})
+}
+
+func (s *Server) handleGetPaymentAttempt(w http.ResponseWriter, r *http.Request) {
+	attempt, err := s.svc.GetPaymentAttempt(r.PathValue("id"))
+	if err != nil {
+		writeError(w, err)
+		return
+	}
+	writeJSON(w, http.StatusOK, map[string]any{"payment_attempt": attempt})
 }
 
 func (s *Server) handleGetCharge(w http.ResponseWriter, r *http.Request) {
