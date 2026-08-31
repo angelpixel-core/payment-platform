@@ -18,7 +18,7 @@ Ejecutar el Nivel 1 sobre `payment-sandbox` con cambios pequenos, verificables y
 
 ## 2. Casos de Uso
 
-- [x] `refactor(payment-sandbox): extract payment use cases into application package`
+- [x] `refactor(payment-sandbox): extract payment use cases into application/commands`
 - [x] `refactor(payment-sandbox): keep service orchestration thin`
 - [x] `test(payment-sandbox): preserve create confirm capture refund flows`
 
@@ -50,7 +50,7 @@ Ejecutar el Nivel 1 sobre `payment-sandbox` con cambios pequenos, verificables y
 ### 7.1 Modular Monolith
 
 - [x] `docs(payment-sandbox): define level 2 module boundaries`
-- [x] `refactor(payment-sandbox): split payment sandbox into business modules`
+- [x] `refactor(payment-sandbox): split payment sandbox into command/query packages`
 - [x] `refactor(payment-sandbox): enforce module import boundaries`
 
 ### 7.2 DDD Ligero
@@ -67,7 +67,7 @@ Ejecutar el Nivel 1 sobre `payment-sandbox` con cambios pequenos, verificables y
 
 ### 7.4 Event-Driven Foundation
 
-- [x] `refactor(payment-sandbox): add internal event handlers for payment events`
+- [x] `refactor(payment-sandbox): add application observability recorder for payment events`
 - [x] `refactor(payment-sandbox): prepare outbox-backed event publication`
 - [x] `test(payment-sandbox): validate internal event handler contract`
 

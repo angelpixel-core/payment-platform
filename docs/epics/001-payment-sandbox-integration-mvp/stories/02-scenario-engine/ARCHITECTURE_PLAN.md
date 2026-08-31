@@ -7,8 +7,12 @@ Evolucionar `payment-sandbox` hacia una base profesional con `Clean Architecture
 ## Current Baseline
 
 - `internal/server` actua como adaptador HTTP.
-- `internal/sandbox` concentra la logica de aplicacion y dominio hoy.
-- `Store` ya abstrae persistencia en memoria.
+- `internal/application/commands` concentra los casos de uso de escritura.
+- `internal/application/queries/payments` concentra los casos de uso de lectura.
+- `internal/application/support/observability` concentra el soporte transversal de observabilidad.
+- `internal/sandbox` concentra la orquestacion del sandbox y el motor de escenarios.
+- `internal/ports` define los contratos de la aplicacion.
+- `internal/adapters` contiene HTTP, messaging, persistence y time.
 - El comportamiento es determinista via `ScenarioEngine`.
 
 ## Target Shape
@@ -22,29 +26,34 @@ Evolucionar `payment-sandbox` hacia una base profesional con `Clean Architecture
 
 ### Application
 
-- Casos de uso por comando: `CreatePaymentIntent`, `ConfirmPaymentIntent`, `CapturePaymentIntent`, `CreateRefund`, `FinalizeProcessingPaymentIntent`.
+- Casos de uso de escritura en `internal/application/commands/payments` y `internal/application/commands/refunds`.
+- Casos de uso de lectura en `internal/application/queries/payments`.
+- Soporte transversal en `internal/application/support/observability`.
 - La capa aplica orquestacion y coordina puertos.
 - Sin JSON, HTTP ni detalles de persistencia.
 
 ### Ports
 
-- Entrada: comandos y queries.
-- Salida: repositorios, clock, scenario resolver, idempotency, event publisher si aparece.
+- Contratos de entrada y salida para la aplicacion.
+- `Clock`, `Store`, `ScenarioResolver`, `EventPublisher` y `UnitOfWork`.
 
 ### Adapters
 
-- HTTP como adaptador de entrada.
-- MemoryStore y futuro PostgreSQL como adaptadores de salida.
-- Observabilidad, logging y metrics como infraestructura transversal.
+- `adapters/inbound/http` como entrada HTTP.
+- `adapters/messaging/{inprocess,outbox}` para eventos.
+- `adapters/persistence/{memory,postgres}` para almacenamiento.
+- `adapters/time/system` para el reloj del sistema.
+- `adapters/observability/*` para integraciones de telemetria cuando aparezcan.
 
 ## Modular Monolith
 
 Dividir por capacidad de negocio, no por tecnologia.
 
-- `payments`
-- `refunds`
-- `scenarios`
-- `shared` o `platform` solo para infraestructura comun
+- `internal/application/commands/payments`
+- `internal/application/commands/refunds`
+- `internal/application/queries/payments`
+- `sandbox` para el motor de escenarios y wiring de demo
+- `shared` solo para utilidades realmente neutras
 
 Regla: un modulo no importa internals de otro modulo; solo contracts puertos o APIs internas bien definidas.
 
@@ -94,13 +103,13 @@ Regla: un modulo no importa internals de otro modulo; solo contracts puertos o A
 
 ## Migration Strategy
 
-1. Separar dominios y casos de uso del paquete actual.
-2. Introducir puertos de repositorio y clock.
-3. Mover `MemoryStore` a infraestructura.
+1. Separar comandos, queries y soporte transversal.
+2. Mantener puertos de repositorio, reloj, escenarios y eventos como contratos.
+3. Mover adapters concretos bajo `adapters/*`.
 4. Formalizar queries y comandos si la lectura crece.
 5. Introducir foundation event-driven antes de escalar a bus externo.
 6. Agregar PostgreSQL detras de los mismos puertos.
-7. Introducir UoW cuando exista necesidad real de atomicidad multi-repositorio.
+7. Mantener UoW cuando exista necesidad real de atomicidad multi-repositorio.
 
 ## Principles
 

@@ -29,7 +29,7 @@ Make the sandbox deterministic by driving payment outcomes from named scenarios.
 
 ## Implementation Checklist
 
-- [x] Create `internal/sandbox/scenarios.go` for scenario resolution.
+- [x] Create `internal/sandbox/scenario_engine.go` for scenario resolution.
 - [x] Create `internal/sandbox/scenario_config.go` for allowed scenarios and token mapping.
 - [x] Extend `internal/server/server.go` to read `X-Sandbox-Scenario`.
 - [x] Integrate the scenario engine into `ConfirmPaymentIntent`.
