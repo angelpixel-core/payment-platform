@@ -30,14 +30,24 @@ type refundEnvelope struct {
 	Charge sandbox.Charge `json:"charge"`
 }
 
-type errorEnvelope struct {
-	Error sandbox.Error `json:"error"`
+type intentViewEnvelope struct {
+	PaymentIntent sandbox.PaymentIntentView `json:"payment_intent"`
 }
 
-type queryEnvelope struct {
-	PaymentIntent sandbox.PaymentIntent `json:"payment_intent"`
-	Charge        sandbox.Charge        `json:"charge"`
-	Refund        sandbox.Refund        `json:"refund"`
+type attemptViewEnvelope struct {
+	PaymentAttempt sandbox.PaymentAttemptView `json:"payment_attempt"`
+}
+
+type chargeViewEnvelope struct {
+	Charge sandbox.ChargeView `json:"charge"`
+}
+
+type refundViewEnvelope struct {
+	Refund sandbox.RefundView `json:"refund"`
+}
+
+type errorEnvelope struct {
+	Error sandbox.Error `json:"error"`
 }
 
 func TestPaymentLifecycle(t *testing.T) {
@@ -87,7 +97,7 @@ func TestQueryEndpoints(t *testing.T) {
 	if resp.StatusCode != http.StatusOK {
 		t.Fatalf("expected 200, got %d", resp.StatusCode)
 	}
-	var gotIntent queryEnvelope
+	var gotIntent intentViewEnvelope
 	if err := json.Unmarshal(body, &gotIntent); err != nil {
 		t.Fatalf("decode intent failed: %v", err)
 	}
@@ -96,11 +106,23 @@ func TestQueryEndpoints(t *testing.T) {
 	}
 
 	_, confirmed := doPost[confirmEnvelope](t, client.URL+"/v1/payment_intents/"+created.PaymentIntent.ID+"/confirm", map[string]any{}, "query-confirm", nil)
+	resp, body = doGet(t, client.URL+"/v1/payment_attempts/"+confirmed.PaymentAttempt.ID)
+	if resp.StatusCode != http.StatusOK {
+		t.Fatalf("expected 200, got %d", resp.StatusCode)
+	}
+	var gotAttempt attemptViewEnvelope
+	if err := json.Unmarshal(body, &gotAttempt); err != nil {
+		t.Fatalf("decode attempt failed: %v", err)
+	}
+	if gotAttempt.PaymentAttempt.ID != confirmed.PaymentAttempt.ID {
+		t.Fatalf("expected attempt %s, got %s", confirmed.PaymentAttempt.ID, gotAttempt.PaymentAttempt.ID)
+	}
+
 	resp, body = doGet(t, client.URL+"/v1/charges/"+confirmed.Charge.ID)
 	if resp.StatusCode != http.StatusOK {
 		t.Fatalf("expected 200, got %d", resp.StatusCode)
 	}
-	var gotCharge queryEnvelope
+	var gotCharge chargeViewEnvelope
 	if err := json.Unmarshal(body, &gotCharge); err != nil {
 		t.Fatalf("decode charge failed: %v", err)
 	}
@@ -114,7 +136,7 @@ func TestQueryEndpoints(t *testing.T) {
 	if resp.StatusCode != http.StatusOK {
 		t.Fatalf("expected 200, got %d", resp.StatusCode)
 	}
-	var gotRefund queryEnvelope
+	var gotRefund refundViewEnvelope
 	if err := json.Unmarshal(body, &gotRefund); err != nil {
 		t.Fatalf("decode refund failed: %v", err)
 	}

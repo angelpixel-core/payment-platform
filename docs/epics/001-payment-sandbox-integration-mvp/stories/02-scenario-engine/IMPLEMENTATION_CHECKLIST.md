@@ -62,7 +62,7 @@ Ejecutar el Nivel 1 sobre `payment-sandbox` con cambios pequenos, verificables y
 ### 7.3 CQRS Parcial
 
 - [x] `refactor(payment-sandbox): separate command handlers from queries`
-- [ ] `refactor(payment-sandbox): add read-only query models where needed`
+- [x] `refactor(payment-sandbox): add read-only query models where needed`
 - [ ] `test(payment-sandbox): preserve command and query behavior`
 
 ### 7.4 Event-Driven Foundation
