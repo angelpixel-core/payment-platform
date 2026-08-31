@@ -12,14 +12,14 @@ import (
 
 type PaymentService struct {
 	payments *payments.PaymentService
-	refunds   *refunds.Service
+	refunds  *refunds.Service
 }
 
-func NewPaymentService(store ports.Store, scenarioEngine ports.ScenarioResolver, events ports.EventPublisher) *PaymentService {
+func NewPaymentService(uow ports.UnitOfWork, scenarioEngine ports.ScenarioResolver) *PaymentService {
 	clock := systemClock{}
 	return &PaymentService{
-		payments: payments.NewService(store, clock, scenarioEngine, events),
-		refunds:   refunds.NewService(store, clock, events),
+		payments: payments.NewService(uow, clock, scenarioEngine),
+		refunds:  refunds.NewService(uow, clock),
 	}
 }
 
