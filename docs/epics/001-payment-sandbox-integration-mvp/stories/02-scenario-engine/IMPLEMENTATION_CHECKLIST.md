@@ -69,7 +69,7 @@ Ejecutar el Nivel 1 sobre `payment-sandbox` con cambios pequenos, verificables y
 
 - [x] `refactor(payment-sandbox): add internal event handlers for payment events`
 - [x] `refactor(payment-sandbox): prepare outbox-backed event publication`
-- [ ] `test(payment-sandbox): validate internal event handler contract`
+- [x] `test(payment-sandbox): validate internal event handler contract`
 
 ### 7.5 Unit of Work
 
