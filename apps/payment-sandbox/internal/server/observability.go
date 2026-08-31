@@ -46,8 +46,8 @@ func New(svc *sandbox.Service, opts ...Option) http.Handler {
 		opt(&cfg)
 	}
 	h := httpadapter.New(svc)
-	h = httpmiddleware.Metrics(h, cfg.metrics)
 	h = httpmiddleware.Observability(h, cfg.logger)
+	h = httpmiddleware.Metrics(h, cfg.metrics)
 	if cfg.nrApp != nil {
 		_, h = nr.WrapHandle(cfg.nrApp, "payment-sandbox", h)
 	}

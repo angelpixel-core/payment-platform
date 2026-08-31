@@ -20,10 +20,10 @@ func Observability(next http.Handler, logger *slog.Logger) http.Handler {
 	}
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		r, requestID := withRequestID(r)
-		ctx, span := otel.Tracer("payment-sandbox/http").Start(r.Context(), r.Method+" "+r.URL.Path,
+		ctx, span := otel.Tracer("payment-sandbox/http").Start(r.Context(), r.Method+" "+routeLabel(r),
 			trace.WithAttributes(
 				attribute.String("http.method", r.Method),
-				attribute.String("http.route", r.URL.Path),
+				attribute.String("http.route", routeLabel(r)),
 				attribute.String("request.id", requestID),
 			),
 		)
@@ -41,7 +41,7 @@ func Observability(next http.Handler, logger *slog.Logger) http.Handler {
 				logger.ErrorContext(ctx, "request panic",
 					"request_id", requestID,
 					"method", r.Method,
-					"path", r.URL.Path,
+					"route", routeLabel(r),
 					"panic", recovered,
 				)
 				writeErrorJSON(rec, http.StatusInternalServerError, domain.NewError(http.StatusInternalServerError, "internal_error", "internal server error"))
@@ -64,7 +64,7 @@ func Observability(next http.Handler, logger *slog.Logger) http.Handler {
 			logger.InfoContext(ctx, "request completed",
 				"request_id", requestID,
 				"method", r.Method,
-				"path", r.URL.Path,
+				"route", routeLabel(r),
 				"status", status,
 				"duration_ms", time.Since(start).Milliseconds(),
 				"trace_id", traceID,
