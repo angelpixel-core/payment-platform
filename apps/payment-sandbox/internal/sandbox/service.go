@@ -3,17 +3,22 @@ package sandbox
 import (
 	"payment-sandbox/internal/adapters/eventing/inprocess"
 	"payment-sandbox/internal/application"
+	appEvents "payment-sandbox/internal/application/events"
 	"payment-sandbox/internal/application/queries"
 )
 
 type Service struct {
 	commands *application.PaymentService
 	queries  *queries.PaymentQueryService
+	recorder *appEvents.Recorder
 }
 
 func NewService() *Service {
 	store := NewMemoryStore()
-	return &Service{commands: application.NewPaymentService(store, NewScenarioEngine(), inprocess.NewPublisher()), queries: queries.NewPaymentQueryService(store)}
+	publisher := inprocess.NewPublisher()
+	recorder := appEvents.NewRecorder()
+	appEvents.RegisterInternalHandlers(publisher, recorder)
+	return &Service{commands: application.NewPaymentService(store, NewScenarioEngine(), publisher), queries: queries.NewPaymentQueryService(store), recorder: recorder}
 }
 
 func (s *Service) CreatePaymentIntent(req CreatePaymentIntentRequest, idempotencyKey, fingerprint string) (PaymentIntent, error) {
@@ -44,3 +49,5 @@ func (s *Service) GetPaymentAttempt(id string) (PaymentAttemptView, error) {
 }
 func (s *Service) GetCharge(id string) (ChargeView, error) { return s.queries.GetCharge(id) }
 func (s *Service) GetRefund(id string) (RefundView, error) { return s.queries.GetRefund(id) }
+
+func (s *Service) EventRecorder() *appEvents.Recorder { return s.recorder }
