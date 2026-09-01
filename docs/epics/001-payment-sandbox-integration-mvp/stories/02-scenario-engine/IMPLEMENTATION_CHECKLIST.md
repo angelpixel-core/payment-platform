@@ -123,7 +123,7 @@ See [Observability Metrics Contract](./OBSERVABILITY_METRICS.md) for the exact u
 
 ### 7.8 Cierre del Nivel 2
 
-- [ ] `docs(payment-sandbox): mark level 2 refactor complete`
+- [x] `docs(payment-sandbox): mark level 2 refactor complete`
 - [ ] `test(payment-sandbox): go test ./...`
 
 ## Notas
