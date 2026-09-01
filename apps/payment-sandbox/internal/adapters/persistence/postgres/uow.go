@@ -11,28 +11,37 @@ import (
 )
 
 type UnitOfWork struct {
-	db        *sql.DB
+	store     *Store
 	publisher ports.EventPublisher
-	metrics   metrics.MetricsRecorder
 }
 
 func NewUnitOfWork(db *sql.DB, publisher ports.EventPublisher, recorder metrics.MetricsRecorder) *UnitOfWork {
-	return &UnitOfWork{db: db, publisher: publisher, metrics: recorder}
+	return &UnitOfWork{store: &Store{db: db, metrics: recorder}, publisher: publisher}
 }
 
 var _ ports.UnitOfWork = (*UnitOfWork)(nil)
 
-func (u *UnitOfWork) Do(fn func(tx ports.Transaction) error) error {
-	tx, err := u.db.BeginTx(context.Background(), nil)
+func (u *UnitOfWork) Do(fn func(tx ports.Transaction) error) (err error) {
+	start := time.Now()
+	outcome := "success"
+	defer func() {
+		if u.store != nil {
+			u.store.recordUnitOfWork(outcome, time.Since(start))
+		}
+	}()
+	tx, err := u.store.db.BeginTx(context.Background(), nil)
 	if err != nil {
+		outcome = "commit_error"
 		return err
 	}
-	inner := &transaction{store: &Store{db: u.db, metrics: u.metrics}, tx: tx, publisher: u.publisher}
-	if err := fn(inner); err != nil {
+	inner := &transaction{store: u.store, tx: tx, publisher: u.publisher}
+	if err = fn(inner); err != nil {
+		outcome = "rollback"
 		_ = tx.Rollback()
 		return err
 	}
-	if err := inner.commit(); err != nil {
+	if err = inner.commit(); err != nil {
+		outcome = "commit_error"
 		_ = tx.Rollback()
 		return err
 	}

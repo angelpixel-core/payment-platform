@@ -34,6 +34,9 @@ func (f *fakeFlowMetricsRecorder) RecordPaymentCommand(_ context.Context, comman
 }
 
 func (f *fakeFlowMetricsRecorder) RecordPersistenceOperation(context.Context, string, string, string, string, time.Duration) {}
+func (f *fakeFlowMetricsRecorder) RecordUnitOfWork(context.Context, string, string, time.Duration) {}
+func (f *fakeFlowMetricsRecorder) RecordOutboxOperation(context.Context, string, string, string, time.Duration) {}
+func (f *fakeFlowMetricsRecorder) RecordOutboxPending(context.Context, string, int64) {}
 
 func TestServiceRecordsPaymentFlowMetrics(t *testing.T) {
 	recorder := &fakeFlowMetricsRecorder{}

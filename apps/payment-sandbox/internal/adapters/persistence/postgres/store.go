@@ -97,6 +97,13 @@ func (s *Store) GetRefund(id string) (domain.Refund, error) {
 	return refund, err
 }
 
+func (s *Store) recordUnitOfWork(outcome string, duration time.Duration) {
+	if s == nil || s.metrics == nil {
+		return
+	}
+	s.metrics.RecordUnitOfWork(context.Background(), "postgres", outcome, duration)
+}
+
 type transaction struct {
 	store     *Store
 	tx        *sql.Tx
@@ -151,29 +158,43 @@ func (tx *transaction) NextID(prefix string) string { return nextSequenceValue(c
 func (tx *transaction) NextReference(prefix string) string { return nextSequenceValue(context.Background(), tx.tx, prefix) }
 
 func (tx *transaction) Publish(event domain.Event) error {
+	start := time.Now()
 	payload, err := json.Marshal(event)
 	if err != nil {
+		tx.store.recordOutbox("enqueue", "failure", time.Since(start))
+		tx.store.recordOutboxPending(int64(len(tx.events)))
 		return err
 	}
 	var id int64
 	if err := queryRow(tx.tx, `INSERT INTO outbox_events(event_name, payload, created_at) VALUES ($1, $2, now()) RETURNING id`, event.EventName(), payload).Scan(&id); err != nil {
+		tx.store.recordOutbox("enqueue", "failure", time.Since(start))
+		tx.store.recordOutboxPending(int64(len(tx.events)))
 		return err
 	}
 	tx.events = append(tx.events, outboxRecord{ID: id, Event: event})
+	tx.store.recordOutbox("enqueue", "success", time.Since(start))
+	tx.store.recordOutboxPending(int64(len(tx.events)))
 	return nil
 }
 
 func (tx *transaction) commit() error {
+	start := time.Now()
 	if err := tx.tx.Commit(); err != nil {
+		tx.store.recordOutbox("publish", "failure", time.Since(start))
+		tx.store.recordOutboxPending(int64(len(tx.events)))
 		return err
 	}
-	for _, record := range tx.events {
+	for i, record := range tx.events {
 		if tx.publisher != nil {
 			if err := tx.publisher.Publish(record.Event); err != nil {
+				tx.store.recordOutbox("publish", "failure", time.Since(start))
+				tx.store.recordOutboxPending(int64(len(tx.events)-i))
 				return err
 			}
 		}
 		_, _ = exec(tx.store.db, `UPDATE outbox_events SET published_at = now() WHERE id = $1`, record.ID)
+		tx.store.recordOutbox("publish", "success", time.Since(start))
+		tx.store.recordOutboxPending(int64(len(tx.events) - i - 1))
 	}
 	return nil
 }
@@ -346,6 +367,20 @@ func (s *Store) recordPersistence(resource, operation string, err error, start t
 		outcome,
 		time.Since(start),
 	)
+}
+
+func (s *Store) recordOutbox(operation, outcome string, duration time.Duration) {
+	if s == nil || s.metrics == nil {
+		return
+	}
+	s.metrics.RecordOutboxOperation(context.Background(), "postgres", operation, outcome, duration)
+}
+
+func (s *Store) recordOutboxPending(pending int64) {
+	if s == nil || s.metrics == nil {
+		return
+	}
+	s.metrics.RecordOutboxPending(context.Background(), "postgres", pending)
 }
 
 type queryer interface {

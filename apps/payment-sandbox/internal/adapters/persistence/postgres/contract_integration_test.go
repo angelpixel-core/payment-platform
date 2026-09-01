@@ -37,6 +37,11 @@ func (f *fakePersistenceMetricsRecorder) RecordPaymentCommand(context.Context, s
 func (f *fakePersistenceMetricsRecorder) RecordPersistenceOperation(_ context.Context, backend, resource, operation, outcome string, duration time.Duration) {
 	f.calls = append(f.calls, persistenceMetricCall{backend: backend, resource: resource, operation: operation, outcome: outcome, duration: duration})
 }
+func (f *fakePersistenceMetricsRecorder) RecordUnitOfWork(_ context.Context, backend, outcome string, duration time.Duration) {
+	f.calls = append(f.calls, persistenceMetricCall{backend: backend, resource: "uow", operation: "do", outcome: outcome, duration: duration})
+}
+func (f *fakePersistenceMetricsRecorder) RecordOutboxOperation(context.Context, string, string, string, time.Duration) {}
+func (f *fakePersistenceMetricsRecorder) RecordOutboxPending(context.Context, string, int64) {}
 
 func TestStoreContractAgainstPostgres(t *testing.T) {
 	db, cleanup := openTestDB(t)
@@ -135,6 +140,7 @@ func TestPersistenceMetricsAgainstPostgres(t *testing.T) {
 		{backend: "postgres", resource: "payment_intent", operation: "get", outcome: "success"},
 		{backend: "postgres", resource: "payment_attempt", operation: "save", outcome: "success"},
 		{backend: "postgres", resource: "payment_attempt", operation: "get", outcome: "success"},
+		{backend: "postgres", resource: "uow", operation: "do", outcome: "success"},
 	}
 
 	if len(recorder.calls) != len(want) {
@@ -144,6 +150,50 @@ func TestPersistenceMetricsAgainstPostgres(t *testing.T) {
 		got := recorder.calls[i]
 		if got.backend != want[i].backend || got.resource != want[i].resource || got.operation != want[i].operation || got.outcome != want[i].outcome {
 			t.Fatalf("call %d: expected %#v, got %#v", i, want[i], got)
+		}
+		if got.duration <= 0 {
+			t.Fatalf("call %d: expected positive duration, got %s", i, got.duration)
+		}
+	}
+}
+
+func TestUnitOfWorkMetricsAgainstPostgres(t *testing.T) {
+	db, cleanup := openTestDB(t)
+	defer cleanup()
+
+	recorder := &fakePersistenceMetricsRecorder{}
+	uow := NewUnitOfWork(db, inprocess.NewPublisher(), recorder)
+	if err := uow.Do(func(tx ports.Transaction) error {
+		tx.SavePaymentIntent(domain.PaymentIntent{ID: "pi_1"})
+		return nil
+	}); err != nil {
+		t.Fatalf("uow success failed: %v", err)
+	}
+	if err := uow.Do(func(tx ports.Transaction) error {
+		tx.SavePaymentIntent(domain.PaymentIntent{ID: "pi_2"})
+		return domain.NewError(500, "boom", "boom")
+	}); err == nil {
+		t.Fatal("expected rollback error")
+	}
+
+	failing := NewUnitOfWork(db, failingPublisher{}, recorder)
+	if err := failing.Do(func(tx ports.Transaction) error {
+		tx.SavePaymentIntent(domain.PaymentIntent{ID: "pi_3"})
+		_ = tx.Publish(domain.PaymentIntentCreatedEvent{PaymentIntent: domain.PaymentIntent{ID: "pi_3"}})
+		return nil
+	}); err == nil {
+		t.Fatal("expected commit error")
+	}
+
+	uowCalls := filterPersistenceCalls(recorder.calls, "uow")
+	wantOutcomes := []string{"success", "rollback", "commit_error"}
+	if len(uowCalls) != len(wantOutcomes) {
+		t.Fatalf("expected %d uow calls, got %d: %#v", len(wantOutcomes), len(uowCalls), uowCalls)
+	}
+	for i, want := range wantOutcomes {
+		got := uowCalls[i]
+		if got.backend != "postgres" || got.resource != "uow" || got.operation != "do" || got.outcome != want {
+			t.Fatalf("call %d: expected outcome %s, got %#v", i, want, got)
 		}
 		if got.duration <= 0 {
 			t.Fatalf("call %d: expected positive duration, got %s", i, got.duration)
@@ -301,3 +351,18 @@ func queryInt(t *testing.T, db *sql.DB, query string) int {
 	}
 	return count
 }
+
+func filterPersistenceCalls(calls []persistenceMetricCall, resource string) []persistenceMetricCall {
+	filtered := make([]persistenceMetricCall, 0, len(calls))
+	for _, call := range calls {
+		if call.resource == resource {
+			filtered = append(filtered, call)
+		}
+	}
+	return filtered
+}
+
+type failingPublisher struct{}
+
+func (failingPublisher) Publish(domain.Event) error           { return domain.NewError(500, "boom", "boom") }
+func (failingPublisher) Subscribe(string, ports.EventHandler) {}

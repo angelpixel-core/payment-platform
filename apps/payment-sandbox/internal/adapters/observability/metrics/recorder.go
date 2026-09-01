@@ -3,6 +3,7 @@ package metrics
 import (
 	"context"
 	"strings"
+	"sync"
 	"time"
 
 	"go.opentelemetry.io/otel"
@@ -19,6 +20,9 @@ type MetricsRecorder interface {
 	RecordPaymentFlow(ctx context.Context, flow, outcome string, duration time.Duration)
 	RecordPaymentCommand(ctx context.Context, command, outcome string, duration time.Duration)
 	RecordPersistenceOperation(ctx context.Context, backend, resource, operation, outcome string, duration time.Duration)
+	RecordUnitOfWork(ctx context.Context, backend, outcome string, duration time.Duration)
+	RecordOutboxOperation(ctx context.Context, backend, operation, outcome string, duration time.Duration)
+	RecordOutboxPending(ctx context.Context, backend string, pending int64)
 }
 
 type Recorder struct {
@@ -34,6 +38,15 @@ type Recorder struct {
 	persistenceOps   metric.Int64Counter
 	persistenceDur   metric.Int64Histogram
 	persistenceErr   metric.Int64Counter
+	uowOps           metric.Int64Counter
+	uowDur           metric.Int64Histogram
+	uowErr           metric.Int64Counter
+	outboxOps        metric.Int64Counter
+	outboxDur        metric.Int64Histogram
+	outboxErr        metric.Int64Counter
+	outboxPending    metric.Int64UpDownCounter
+	outboxPendingVal map[string]int64
+	outboxMu         sync.Mutex
 }
 
 func NewRecorder(customMetrics customMetricRecorder) (*Recorder, error) {
@@ -120,6 +133,57 @@ func NewRecorder(customMetrics customMetricRecorder) (*Recorder, error) {
 	if err != nil {
 		return nil, err
 	}
+	uowOps, err := meter.Int64Counter(
+		"payment_sandbox_unit_of_work_total",
+		metric.WithDescription("Total unit of work executions"),
+	)
+	if err != nil {
+		return nil, err
+	}
+	uowDur, err := meter.Int64Histogram(
+		"payment_sandbox_unit_of_work_duration_ms",
+		metric.WithUnit("ms"),
+		metric.WithDescription("Unit of work duration in milliseconds"),
+	)
+	if err != nil {
+		return nil, err
+	}
+	uowErr, err := meter.Int64Counter(
+		"payment_sandbox_unit_of_work_errors_total",
+		metric.WithDescription("Total failed unit of work executions"),
+	)
+	if err != nil {
+		return nil, err
+	}
+	outboxOps, err := meter.Int64Counter(
+		"payment_sandbox_outbox_operations_total",
+		metric.WithDescription("Total outbox operations"),
+	)
+	if err != nil {
+		return nil, err
+	}
+	outboxDur, err := meter.Int64Histogram(
+		"payment_sandbox_outbox_operation_duration_ms",
+		metric.WithUnit("ms"),
+		metric.WithDescription("Outbox operation duration in milliseconds"),
+	)
+	if err != nil {
+		return nil, err
+	}
+	outboxErr, err := meter.Int64Counter(
+		"payment_sandbox_outbox_operation_errors_total",
+		metric.WithDescription("Total failed outbox operations"),
+	)
+	if err != nil {
+		return nil, err
+	}
+	outboxPending, err := meter.Int64UpDownCounter(
+		"payment_sandbox_outbox_pending_events",
+		metric.WithDescription("Current pending outbox events"),
+	)
+	if err != nil {
+		return nil, err
+	}
 
 	return &Recorder{
 		customMetrics:    customMetrics,
@@ -134,6 +198,14 @@ func NewRecorder(customMetrics customMetricRecorder) (*Recorder, error) {
 		persistenceOps:   persistenceOps,
 		persistenceDur:   persistenceDur,
 		persistenceErr:   persistenceErr,
+		uowOps:           uowOps,
+		uowDur:           uowDur,
+		uowErr:           uowErr,
+		outboxOps:        outboxOps,
+		outboxDur:        outboxDur,
+		outboxErr:        outboxErr,
+		outboxPending:    outboxPending,
+		outboxPendingVal: make(map[string]int64),
 	}, nil
 }
 
@@ -260,6 +332,97 @@ func (r *Recorder) RecordPersistenceOperation(ctx context.Context, backend, reso
 		if strings.EqualFold(outcome, "error") {
 			r.customMetrics.RecordCustomMetric("Persistence/"+backend+"/"+resource+"/"+operation+"/Errors", 1)
 		}
+	}
+}
+
+func (r *Recorder) RecordUnitOfWork(ctx context.Context, backend, outcome string, duration time.Duration) {
+	if r == nil {
+		return
+	}
+	backend = sanitizeMetricPart(backend)
+	outcome = sanitizeMetricPart(outcome)
+	r.uowOps.Add(ctx, 1,
+		metric.WithAttributes(
+			attribute.String("uow.backend", backend),
+			attribute.String("uow.outcome", outcome),
+		),
+	)
+	r.uowDur.Record(ctx, duration.Milliseconds(),
+		metric.WithAttributes(
+			attribute.String("uow.backend", backend),
+			attribute.String("uow.outcome", outcome),
+		),
+	)
+	if strings.EqualFold(outcome, "rollback") || strings.EqualFold(outcome, "commit_error") {
+		r.uowErr.Add(ctx, 1,
+			metric.WithAttributes(
+				attribute.String("uow.backend", backend),
+				attribute.String("uow.outcome", outcome),
+			),
+		)
+	}
+	if r.customMetrics != nil {
+		r.customMetrics.RecordCustomMetric("UnitOfWork/"+backend+"/Count", 1)
+		r.customMetrics.RecordCustomMetric("UnitOfWork/"+backend+"/DurationMs", float64(duration.Milliseconds()))
+		if strings.EqualFold(outcome, "rollback") || strings.EqualFold(outcome, "commit_error") {
+			r.customMetrics.RecordCustomMetric("UnitOfWork/"+backend+"/Errors", 1)
+		}
+	}
+}
+
+func (r *Recorder) RecordOutboxOperation(ctx context.Context, backend, operation, outcome string, duration time.Duration) {
+	if r == nil {
+		return
+	}
+	backend = sanitizeMetricPart(backend)
+	operation = sanitizeMetricPart(operation)
+	outcome = sanitizeMetricPart(outcome)
+	r.outboxOps.Add(ctx, 1,
+		metric.WithAttributes(
+			attribute.String("outbox.backend", backend),
+			attribute.String("outbox.operation", operation),
+			attribute.String("outbox.outcome", outcome),
+		),
+	)
+	r.outboxDur.Record(ctx, duration.Milliseconds(),
+		metric.WithAttributes(
+			attribute.String("outbox.backend", backend),
+			attribute.String("outbox.operation", operation),
+			attribute.String("outbox.outcome", outcome),
+		),
+	)
+	if strings.EqualFold(outcome, "failure") {
+		r.outboxErr.Add(ctx, 1,
+			metric.WithAttributes(
+				attribute.String("outbox.backend", backend),
+				attribute.String("outbox.operation", operation),
+			),
+		)
+	}
+	if r.customMetrics != nil {
+		r.customMetrics.RecordCustomMetric("Outbox/"+backend+"/"+operation+"/Count", 1)
+		r.customMetrics.RecordCustomMetric("Outbox/"+backend+"/"+operation+"/DurationMs", float64(duration.Milliseconds()))
+		if strings.EqualFold(outcome, "failure") {
+			r.customMetrics.RecordCustomMetric("Outbox/"+backend+"/"+operation+"/Errors", 1)
+		}
+	}
+}
+
+func (r *Recorder) RecordOutboxPending(ctx context.Context, backend string, pending int64) {
+	if r == nil {
+		return
+	}
+	backend = sanitizeMetricPart(backend)
+	r.outboxMu.Lock()
+	prev := r.outboxPendingVal[backend]
+	r.outboxPendingVal[backend] = pending
+	r.outboxMu.Unlock()
+	delta := pending - prev
+	if delta != 0 {
+		r.outboxPending.Add(ctx, delta, metric.WithAttributes(attribute.String("outbox.backend", backend)))
+	}
+	if r.customMetrics != nil {
+		r.customMetrics.RecordCustomMetric("Outbox/"+backend+"/Pending", float64(pending))
 	}
 }
 

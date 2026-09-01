@@ -27,6 +27,11 @@ func (f *fakePersistenceMetricsRecorder) RecordPaymentCommand(context.Context, s
 func (f *fakePersistenceMetricsRecorder) RecordPersistenceOperation(_ context.Context, backend, resource, operation, outcome string, duration time.Duration) {
 	f.calls = append(f.calls, persistenceMetricCall{backend: backend, resource: resource, operation: operation, outcome: outcome, duration: duration})
 }
+func (f *fakePersistenceMetricsRecorder) RecordUnitOfWork(_ context.Context, backend, outcome string, duration time.Duration) {
+	f.calls = append(f.calls, persistenceMetricCall{backend: backend, resource: "uow", operation: "do", outcome: outcome, duration: duration})
+}
+func (f *fakePersistenceMetricsRecorder) RecordOutboxOperation(context.Context, string, string, string, time.Duration) {}
+func (f *fakePersistenceMetricsRecorder) RecordOutboxPending(context.Context, string, int64) {}
 
 func TestMemoryStoreRecordsPersistenceMetrics(t *testing.T) {
 	recorder := &fakePersistenceMetricsRecorder{}
@@ -57,6 +62,7 @@ func TestMemoryStoreRecordsPersistenceMetrics(t *testing.T) {
 		{backend: "memory", resource: "charge", operation: "get", outcome: "error"},
 		{backend: "memory", resource: "payment_attempt", operation: "save", outcome: "success"},
 		{backend: "memory", resource: "payment_attempt", operation: "get", outcome: "success"},
+		{backend: "memory", resource: "uow", operation: "do", outcome: "success"},
 	}
 
 	if len(recorder.calls) != len(want) {
@@ -71,6 +77,59 @@ func TestMemoryStoreRecordsPersistenceMetrics(t *testing.T) {
 			t.Fatalf("call %d: expected positive duration, got %s", i, got.duration)
 		}
 	}
+}
+
+func TestMemoryUnitOfWorkRecordsMetrics(t *testing.T) {
+	recorder := &fakePersistenceMetricsRecorder{}
+	store := NewStore(recorder)
+	uow := NewUnitOfWork(store, noopPublisher{})
+
+	if err := uow.Do(func(tx ports.Transaction) error {
+		tx.SavePaymentIntent(domain.PaymentIntent{ID: "pi_1"})
+		return nil
+	}); err != nil {
+		t.Fatalf("uow success failed: %v", err)
+	}
+	if err := uow.Do(func(tx ports.Transaction) error {
+		tx.SavePaymentIntent(domain.PaymentIntent{ID: "pi_2"})
+		return domain.NewError(500, "boom", "boom")
+	}); err == nil {
+		t.Fatal("expected rollback error")
+	}
+
+failing := NewUnitOfWork(store, failingPublisher{})
+	if err := failing.Do(func(tx ports.Transaction) error {
+		tx.SavePaymentIntent(domain.PaymentIntent{ID: "pi_3"})
+		tx.Publish(domain.PaymentIntentCreatedEvent{PaymentIntent: domain.PaymentIntent{ID: "pi_3"}})
+		return nil
+	}); err == nil {
+		t.Fatal("expected commit error")
+	}
+
+	uowCalls := filterPersistenceCalls(recorder.calls, "uow")
+	wantOutcomes := []string{"success", "rollback", "commit_error"}
+	if len(uowCalls) != len(wantOutcomes) {
+		t.Fatalf("expected %d uow calls, got %d: %#v", len(wantOutcomes), len(uowCalls), uowCalls)
+	}
+	for i, want := range wantOutcomes {
+		got := uowCalls[i]
+		if got.backend != "memory" || got.resource != "uow" || got.operation != "do" || got.outcome != want {
+			t.Fatalf("call %d: expected outcome %s, got %#v", i, want, got)
+		}
+		if got.duration <= 0 {
+			t.Fatalf("call %d: expected positive duration, got %s", i, got.duration)
+		}
+	}
+}
+
+func filterPersistenceCalls(calls []persistenceMetricCall, resource string) []persistenceMetricCall {
+	filtered := make([]persistenceMetricCall, 0, len(calls))
+	for _, call := range calls {
+		if call.resource == resource {
+			filtered = append(filtered, call)
+		}
+	}
+	return filtered
 }
 
 type noopPublisher struct{}
