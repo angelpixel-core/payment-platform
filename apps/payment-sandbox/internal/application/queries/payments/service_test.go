@@ -8,7 +8,7 @@ import (
 )
 
 func TestPaymentQueryService(t *testing.T) {
-	store := memory.NewStore()
+	store := memory.NewStore(nil)
 	query := NewPaymentQueryService(store)
 
 	intent := domain.PaymentIntent{ID: "pi_1", Amount: 100, Currency: "USD", Status: domain.PaymentIntentSucceeded}

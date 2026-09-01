@@ -30,7 +30,7 @@ func (s *eventSpy) Publish(event domain.Event) error {
 func (s *eventSpy) Subscribe(string, ports.EventHandler) {}
 
 func TestRefundServicePublishesEvents(t *testing.T) {
-	store := memory.NewStore()
+	store := memory.NewStore(nil)
 	store.SavePaymentIntent(domain.PaymentIntent{ID: "pi_1", Currency: "USD", Status: domain.PaymentIntentSucceeded})
 	store.SaveCharge(domain.Charge{ID: "ch_1", PaymentIntentID: "pi_1", Amount: 100, CapturedAmount: 100, Status: domain.ChargeCaptured})
 

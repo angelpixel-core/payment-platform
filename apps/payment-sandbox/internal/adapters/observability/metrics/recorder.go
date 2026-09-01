@@ -14,6 +14,13 @@ type customMetricRecorder interface {
 	RecordCustomMetric(name string, value float64)
 }
 
+type MetricsRecorder interface {
+	RecordHTTPRequest(ctx context.Context, method, route string, status int, duration time.Duration)
+	RecordPaymentFlow(ctx context.Context, flow, outcome string, duration time.Duration)
+	RecordPaymentCommand(ctx context.Context, command, outcome string, duration time.Duration)
+	RecordPersistenceOperation(ctx context.Context, backend, resource, operation, outcome string, duration time.Duration)
+}
+
 type Recorder struct {
 	customMetrics    customMetricRecorder
 	httpRequests     metric.Int64Counter
@@ -24,6 +31,9 @@ type Recorder struct {
 	paymentCommands  metric.Int64Counter
 	commandDurations metric.Int64Histogram
 	commandErrors    metric.Int64Counter
+	persistenceOps   metric.Int64Counter
+	persistenceDur   metric.Int64Histogram
+	persistenceErr   metric.Int64Counter
 }
 
 func NewRecorder(customMetrics customMetricRecorder) (*Recorder, error) {
@@ -88,6 +98,28 @@ func NewRecorder(customMetrics customMetricRecorder) (*Recorder, error) {
 	if err != nil {
 		return nil, err
 	}
+	persistenceOps, err := meter.Int64Counter(
+		"payment_sandbox_persistence_operations_total",
+		metric.WithDescription("Total persistence operations"),
+	)
+	if err != nil {
+		return nil, err
+	}
+	persistenceDur, err := meter.Int64Histogram(
+		"payment_sandbox_persistence_operation_duration_ms",
+		metric.WithUnit("ms"),
+		metric.WithDescription("Persistence operation duration in milliseconds"),
+	)
+	if err != nil {
+		return nil, err
+	}
+	persistenceErr, err := meter.Int64Counter(
+		"payment_sandbox_persistence_operation_errors_total",
+		metric.WithDescription("Total failed persistence operations"),
+	)
+	if err != nil {
+		return nil, err
+	}
 
 	return &Recorder{
 		customMetrics:    customMetrics,
@@ -99,6 +131,9 @@ func NewRecorder(customMetrics customMetricRecorder) (*Recorder, error) {
 		paymentCommands:  paymentCommands,
 		commandDurations: commandDurations,
 		commandErrors:    commandErrors,
+		persistenceOps:   persistenceOps,
+		persistenceDur:   persistenceDur,
+		persistenceErr:   persistenceErr,
 	}, nil
 }
 
@@ -182,6 +217,48 @@ func (r *Recorder) RecordPaymentCommand(ctx context.Context, command, outcome st
 		r.customMetrics.RecordCustomMetric("Commands/"+command+"/DurationMs", float64(duration.Milliseconds()))
 		if strings.EqualFold(outcome, "error") {
 			r.customMetrics.RecordCustomMetric("Commands/"+command+"/Errors", 1)
+		}
+	}
+}
+
+func (r *Recorder) RecordPersistenceOperation(ctx context.Context, backend, resource, operation, outcome string, duration time.Duration) {
+	if r == nil {
+		return
+	}
+	backend = sanitizeMetricPart(backend)
+	resource = sanitizeMetricPart(resource)
+	operation = sanitizeMetricPart(operation)
+	outcome = sanitizeMetricPart(outcome)
+	r.persistenceOps.Add(ctx, 1,
+		metric.WithAttributes(
+			attribute.String("persistence.backend", backend),
+			attribute.String("persistence.resource", resource),
+			attribute.String("persistence.operation", operation),
+			attribute.String("persistence.outcome", outcome),
+		),
+	)
+	r.persistenceDur.Record(ctx, duration.Milliseconds(),
+		metric.WithAttributes(
+			attribute.String("persistence.backend", backend),
+			attribute.String("persistence.resource", resource),
+			attribute.String("persistence.operation", operation),
+			attribute.String("persistence.outcome", outcome),
+		),
+	)
+	if strings.EqualFold(outcome, "error") {
+		r.persistenceErr.Add(ctx, 1,
+			metric.WithAttributes(
+				attribute.String("persistence.backend", backend),
+				attribute.String("persistence.resource", resource),
+				attribute.String("persistence.operation", operation),
+			),
+		)
+	}
+	if r.customMetrics != nil {
+		r.customMetrics.RecordCustomMetric("Persistence/"+backend+"/"+resource+"/"+operation+"/Count", 1)
+		r.customMetrics.RecordCustomMetric("Persistence/"+backend+"/"+resource+"/"+operation+"/DurationMs", float64(duration.Milliseconds()))
+		if strings.EqualFold(outcome, "error") {
+			r.customMetrics.RecordCustomMetric("Persistence/"+backend+"/"+resource+"/"+operation+"/Errors", 1)
 		}
 	}
 }

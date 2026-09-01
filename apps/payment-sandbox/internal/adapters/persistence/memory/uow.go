@@ -2,6 +2,7 @@ package memory
 
 import (
 	"sync"
+	"time"
 
 	"payment-sandbox/internal/domain"
 	"payment-sandbox/internal/ports"
@@ -67,83 +68,107 @@ func (tx *transaction) NextID(prefix string) string        { return tx.store.Nex
 func (tx *transaction) NextReference(prefix string) string { return tx.store.NextReference(prefix) }
 
 func (tx *transaction) SavePaymentIntent(intent domain.PaymentIntent) domain.PaymentIntent {
+	start := time.Now()
 	tx.mu.Lock()
 	defer tx.mu.Unlock()
 	if tx.intents == nil {
 		tx.intents = make(map[string]domain.PaymentIntent)
 	}
 	tx.intents[intent.ID] = intent
+	tx.store.recordPersistence("payment_intent", "save", nil, start)
 	return intent
 }
 
 func (tx *transaction) GetPaymentIntent(id string) (domain.PaymentIntent, error) {
+	start := time.Now()
 	tx.mu.Lock()
 	if intent, ok := tx.intents[id]; ok {
 		tx.mu.Unlock()
+		tx.store.recordPersistence("payment_intent", "get", nil, start)
 		return intent, nil
 	}
 	tx.mu.Unlock()
-	return tx.store.GetPaymentIntent(id)
+	intent, err := tx.store.getPaymentIntent(id)
+	tx.store.recordPersistence("payment_intent", "get", err, start)
+	return intent, err
 }
 
 func (tx *transaction) SavePaymentAttempt(attempt domain.PaymentAttempt) domain.PaymentAttempt {
+	start := time.Now()
 	tx.mu.Lock()
 	defer tx.mu.Unlock()
 	if tx.attempts == nil {
 		tx.attempts = make(map[string]domain.PaymentAttempt)
 	}
 	tx.attempts[attempt.ID] = attempt
+	tx.store.recordPersistence("payment_attempt", "save", nil, start)
 	return attempt
 }
 
 func (tx *transaction) GetPaymentAttempt(id string) (domain.PaymentAttempt, error) {
+	start := time.Now()
 	tx.mu.Lock()
 	if attempt, ok := tx.attempts[id]; ok {
 		tx.mu.Unlock()
+		tx.store.recordPersistence("payment_attempt", "get", nil, start)
 		return attempt, nil
 	}
 	tx.mu.Unlock()
-	return tx.store.GetPaymentAttempt(id)
+	attempt, err := tx.store.getPaymentAttempt(id)
+	tx.store.recordPersistence("payment_attempt", "get", err, start)
+	return attempt, err
 }
 
 func (tx *transaction) SaveCharge(charge domain.Charge) domain.Charge {
+	start := time.Now()
 	tx.mu.Lock()
 	defer tx.mu.Unlock()
 	if tx.charges == nil {
 		tx.charges = make(map[string]domain.Charge)
 	}
 	tx.charges[charge.ID] = charge
+	tx.store.recordPersistence("charge", "save", nil, start)
 	return charge
 }
 
 func (tx *transaction) GetCharge(id string) (domain.Charge, error) {
+	start := time.Now()
 	tx.mu.Lock()
 	if charge, ok := tx.charges[id]; ok {
 		tx.mu.Unlock()
+		tx.store.recordPersistence("charge", "get", nil, start)
 		return charge, nil
 	}
 	tx.mu.Unlock()
-	return tx.store.GetCharge(id)
+	charge, err := tx.store.getCharge(id)
+	tx.store.recordPersistence("charge", "get", err, start)
+	return charge, err
 }
 
 func (tx *transaction) SaveRefund(refund domain.Refund) domain.Refund {
+	start := time.Now()
 	tx.mu.Lock()
 	defer tx.mu.Unlock()
 	if tx.refunds == nil {
 		tx.refunds = make(map[string]domain.Refund)
 	}
 	tx.refunds[refund.ID] = refund
+	tx.store.recordPersistence("refund", "save", nil, start)
 	return refund
 }
 
 func (tx *transaction) GetRefund(id string) (domain.Refund, error) {
+	start := time.Now()
 	tx.mu.Lock()
 	if refund, ok := tx.refunds[id]; ok {
 		tx.mu.Unlock()
+		tx.store.recordPersistence("refund", "get", nil, start)
 		return refund, nil
 	}
 	tx.mu.Unlock()
-	return tx.store.GetRefund(id)
+	refund, err := tx.store.getRefund(id)
+	tx.store.recordPersistence("refund", "get", err, start)
+	return refund, err
 }
 
 func (tx *transaction) Publish(event domain.Event) error {

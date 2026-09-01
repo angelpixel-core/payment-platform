@@ -3,7 +3,9 @@ package postgres
 import (
 	"context"
 	"database/sql"
+	"time"
 
+	"payment-sandbox/internal/adapters/observability/metrics"
 	"payment-sandbox/internal/domain"
 	"payment-sandbox/internal/ports"
 )
@@ -11,10 +13,11 @@ import (
 type UnitOfWork struct {
 	db        *sql.DB
 	publisher ports.EventPublisher
+	metrics   metrics.MetricsRecorder
 }
 
-func NewUnitOfWork(db *sql.DB, publisher ports.EventPublisher) *UnitOfWork {
-	return &UnitOfWork{db: db, publisher: publisher}
+func NewUnitOfWork(db *sql.DB, publisher ports.EventPublisher, recorder metrics.MetricsRecorder) *UnitOfWork {
+	return &UnitOfWork{db: db, publisher: publisher, metrics: recorder}
 }
 
 var _ ports.UnitOfWork = (*UnitOfWork)(nil)
@@ -24,7 +27,7 @@ func (u *UnitOfWork) Do(fn func(tx ports.Transaction) error) error {
 	if err != nil {
 		return err
 	}
-	inner := &transaction{store: &Store{db: u.db}, tx: tx, publisher: u.publisher}
+	inner := &transaction{store: &Store{db: u.db, metrics: u.metrics}, tx: tx, publisher: u.publisher}
 	if err := fn(inner); err != nil {
 		_ = tx.Rollback()
 		return err
@@ -38,4 +41,60 @@ func (u *UnitOfWork) Do(fn func(tx ports.Transaction) error) error {
 
 func (u *UnitOfWork) Publish(event domain.Event) error {
 	return u.publisher.Publish(event)
+}
+
+func (tx *transaction) SavePaymentIntent(intent domain.PaymentIntent) domain.PaymentIntent {
+	start := time.Now()
+	_, _ = upsertPaymentIntent(context.Background(), tx.tx, intent)
+	tx.store.recordPersistence("payment_intent", "save", nil, start)
+	return intent
+}
+
+func (tx *transaction) GetPaymentIntent(id string) (domain.PaymentIntent, error) {
+	start := time.Now()
+	intent, err := getPaymentIntent(context.Background(), tx.tx, id)
+	tx.store.recordPersistence("payment_intent", "get", err, start)
+	return intent, err
+}
+
+func (tx *transaction) SavePaymentAttempt(attempt domain.PaymentAttempt) domain.PaymentAttempt {
+	start := time.Now()
+	_, _ = upsertPaymentAttempt(context.Background(), tx.tx, attempt)
+	tx.store.recordPersistence("payment_attempt", "save", nil, start)
+	return attempt
+}
+
+func (tx *transaction) GetPaymentAttempt(id string) (domain.PaymentAttempt, error) {
+	start := time.Now()
+	attempt, err := getPaymentAttempt(context.Background(), tx.tx, id)
+	tx.store.recordPersistence("payment_attempt", "get", err, start)
+	return attempt, err
+}
+
+func (tx *transaction) SaveCharge(charge domain.Charge) domain.Charge {
+	start := time.Now()
+	_, _ = upsertCharge(context.Background(), tx.tx, charge)
+	tx.store.recordPersistence("charge", "save", nil, start)
+	return charge
+}
+
+func (tx *transaction) GetCharge(id string) (domain.Charge, error) {
+	start := time.Now()
+	charge, err := getCharge(context.Background(), tx.tx, id)
+	tx.store.recordPersistence("charge", "get", err, start)
+	return charge, err
+}
+
+func (tx *transaction) SaveRefund(refund domain.Refund) domain.Refund {
+	start := time.Now()
+	_, _ = upsertRefund(context.Background(), tx.tx, refund)
+	tx.store.recordPersistence("refund", "save", nil, start)
+	return refund
+}
+
+func (tx *transaction) GetRefund(id string) (domain.Refund, error) {
+	start := time.Now()
+	refund, err := getRefund(context.Background(), tx.tx, id)
+	tx.store.recordPersistence("refund", "get", err, start)
+	return refund, err
 }

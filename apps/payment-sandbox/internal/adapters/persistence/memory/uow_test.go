@@ -9,7 +9,7 @@ import (
 )
 
 func TestUnitOfWorkDo(t *testing.T) {
-	store := NewStore()
+	store := NewStore(nil)
 	publisher := inprocess.NewPublisher()
 	called := 0
 	publisher.Subscribe("payment_intent.created", func(event domain.Event) error {
@@ -38,7 +38,7 @@ func TestUnitOfWorkDo(t *testing.T) {
 }
 
 func TestUnitOfWorkAtomicityOnError(t *testing.T) {
-	store := NewStore()
+	store := NewStore(nil)
 	publisher := inprocess.NewPublisher()
 	called := 0
 	publisher.Subscribe("payment_intent.created", func(event domain.Event) error {
@@ -67,7 +67,7 @@ func TestUnitOfWorkAtomicityOnError(t *testing.T) {
 }
 
 func TestUnitOfWorkRollbackOnPublishFailure(t *testing.T) {
-	store := NewStore()
+	store := NewStore(nil)
 	uow := NewUnitOfWork(store, failingPublisher{})
 
 	err := uow.Do(func(tx ports.Transaction) error {
