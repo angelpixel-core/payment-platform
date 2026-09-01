@@ -97,3 +97,5 @@ flowchart LR
 - [Refactor Proposal](./REFACTOR_PROPOSAL.md)
 - [Architecture Plan](./ARCHITECTURE_PLAN.md)
 - [Roadmap](./ROADMAP.md)
+- [Roadmap Coverage](./ROADMAP_COVERAGE.md)
+- [Level 3 Implementation Checklist](./LEVEL3_IMPLEMENTATION_CHECKLIST.md)
