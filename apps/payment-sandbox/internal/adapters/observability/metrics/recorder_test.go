@@ -51,3 +51,14 @@ func TestRecorderRecordsHTTPAndPaymentFlowMetrics(t *testing.T) {
 		}
 	}
 }
+
+func TestRecorderWorksWithoutCustomMetricSink(t *testing.T) {
+	recorder, err := NewRecorder(nil)
+	if err != nil {
+		t.Fatalf("new recorder failed: %v", err)
+	}
+
+	recorder.RecordHTTPRequest(context.Background(), http.MethodGet, "/health", 200, 10*time.Millisecond)
+	recorder.RecordPaymentFlow(context.Background(), "payment_intent.create", "success", 12*time.Millisecond)
+	recorder.RecordPaymentCommand(context.Background(), "payment_intent.create", "success", 14*time.Millisecond)
+}
