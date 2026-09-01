@@ -80,3 +80,20 @@ func TestRecorderWorksWithoutCustomMetricSink(t *testing.T) {
 	recorder.RecordOutboxOperation(context.Background(), "memory", "enqueue", "success", 20*time.Millisecond)
 	recorder.RecordOutboxPending(context.Background(), "memory", 0)
 }
+
+func TestStatusClass(t *testing.T) {
+	tests := []struct {
+		status int
+		want   string
+	}{
+		{status: 204, want: "2xx"},
+		{status: 404, want: "4xx"},
+		{status: 503, want: "5xx"},
+	}
+
+	for _, tt := range tests {
+		if got := statusClass(tt.status); got != tt.want {
+			t.Fatalf("status %d: expected %s, got %s", tt.status, tt.want, got)
+		}
+	}
+}
