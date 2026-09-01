@@ -100,7 +100,7 @@ Ejecutar el Nivel 1 sobre `payment-sandbox` con cambios pequenos, verificables y
 
 ### 7.7.3 Persistence Metrics Surface
 
-- [ ] `refactor(payment-sandbox): record repository save and get latency for memory and postgres`
+- [x] `refactor(payment-sandbox): record repository save and get latency for memory and postgres`
 - [ ] `refactor(payment-sandbox): record unit of work commit rollback and error metrics`
 
 ### 7.7.4 Outbox Metrics Surface
