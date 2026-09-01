@@ -1,9 +1,12 @@
 package memory
 
 import (
+	"context"
 	"fmt"
 	"sync"
+	"time"
 
+	"payment-sandbox/internal/adapters/observability/metrics"
 	"payment-sandbox/internal/domain"
 	"payment-sandbox/internal/ports"
 )
@@ -21,15 +24,17 @@ type MemoryStore struct {
 	charges     map[string]domain.Charge
 	refunds     map[string]domain.Refund
 	idempotency map[string]idempotencyRecord
+	metrics     metrics.MetricsRecorder
 }
 
-func NewStore() *MemoryStore {
+func NewStore(recorder metrics.MetricsRecorder) *MemoryStore {
 	return &MemoryStore{
 		intents:     make(map[string]domain.PaymentIntent),
 		attempts:    make(map[string]domain.PaymentAttempt),
 		charges:     make(map[string]domain.Charge),
 		refunds:     make(map[string]domain.Refund),
 		idempotency: make(map[string]idempotencyRecord),
+		metrics:     recorder,
 	}
 }
 
@@ -72,6 +77,12 @@ func (s *MemoryStore) NextReference(prefix string) string {
 }
 
 func (s *MemoryStore) SavePaymentIntent(intent domain.PaymentIntent) domain.PaymentIntent {
+	start := time.Now()
+	defer s.recordPersistence("payment_intent", "save", nil, start)
+	return s.savePaymentIntent(intent)
+}
+
+func (s *MemoryStore) savePaymentIntent(intent domain.PaymentIntent) domain.PaymentIntent {
 	s.mu.Lock()
 	defer s.mu.Unlock()
 	s.intents[intent.ID] = intent
@@ -79,6 +90,13 @@ func (s *MemoryStore) SavePaymentIntent(intent domain.PaymentIntent) domain.Paym
 }
 
 func (s *MemoryStore) GetPaymentIntent(id string) (domain.PaymentIntent, error) {
+	start := time.Now()
+	intent, err := s.getPaymentIntent(id)
+	s.recordPersistence("payment_intent", "get", err, start)
+	return intent, err
+}
+
+func (s *MemoryStore) getPaymentIntent(id string) (domain.PaymentIntent, error) {
 	s.mu.Lock()
 	defer s.mu.Unlock()
 	intent, ok := s.intents[id]
@@ -89,6 +107,12 @@ func (s *MemoryStore) GetPaymentIntent(id string) (domain.PaymentIntent, error) 
 }
 
 func (s *MemoryStore) SavePaymentAttempt(attempt domain.PaymentAttempt) domain.PaymentAttempt {
+	start := time.Now()
+	defer s.recordPersistence("payment_attempt", "save", nil, start)
+	return s.savePaymentAttempt(attempt)
+}
+
+func (s *MemoryStore) savePaymentAttempt(attempt domain.PaymentAttempt) domain.PaymentAttempt {
 	s.mu.Lock()
 	defer s.mu.Unlock()
 	s.attempts[attempt.ID] = attempt
@@ -96,6 +120,13 @@ func (s *MemoryStore) SavePaymentAttempt(attempt domain.PaymentAttempt) domain.P
 }
 
 func (s *MemoryStore) GetPaymentAttempt(id string) (domain.PaymentAttempt, error) {
+	start := time.Now()
+	attempt, err := s.getPaymentAttempt(id)
+	s.recordPersistence("payment_attempt", "get", err, start)
+	return attempt, err
+}
+
+func (s *MemoryStore) getPaymentAttempt(id string) (domain.PaymentAttempt, error) {
 	s.mu.Lock()
 	defer s.mu.Unlock()
 	attempt, ok := s.attempts[id]
@@ -106,6 +137,12 @@ func (s *MemoryStore) GetPaymentAttempt(id string) (domain.PaymentAttempt, error
 }
 
 func (s *MemoryStore) SaveCharge(charge domain.Charge) domain.Charge {
+	start := time.Now()
+	defer s.recordPersistence("charge", "save", nil, start)
+	return s.saveCharge(charge)
+}
+
+func (s *MemoryStore) saveCharge(charge domain.Charge) domain.Charge {
 	s.mu.Lock()
 	defer s.mu.Unlock()
 	s.charges[charge.ID] = charge
@@ -113,6 +150,13 @@ func (s *MemoryStore) SaveCharge(charge domain.Charge) domain.Charge {
 }
 
 func (s *MemoryStore) GetCharge(id string) (domain.Charge, error) {
+	start := time.Now()
+	charge, err := s.getCharge(id)
+	s.recordPersistence("charge", "get", err, start)
+	return charge, err
+}
+
+func (s *MemoryStore) getCharge(id string) (domain.Charge, error) {
 	s.mu.Lock()
 	defer s.mu.Unlock()
 	charge, ok := s.charges[id]
@@ -123,6 +167,12 @@ func (s *MemoryStore) GetCharge(id string) (domain.Charge, error) {
 }
 
 func (s *MemoryStore) SaveRefund(refund domain.Refund) domain.Refund {
+	start := time.Now()
+	defer s.recordPersistence("refund", "save", nil, start)
+	return s.saveRefund(refund)
+}
+
+func (s *MemoryStore) saveRefund(refund domain.Refund) domain.Refund {
 	s.mu.Lock()
 	defer s.mu.Unlock()
 	s.refunds[refund.ID] = refund
@@ -130,6 +180,13 @@ func (s *MemoryStore) SaveRefund(refund domain.Refund) domain.Refund {
 }
 
 func (s *MemoryStore) GetRefund(id string) (domain.Refund, error) {
+	start := time.Now()
+	refund, err := s.getRefund(id)
+	s.recordPersistence("refund", "get", err, start)
+	return refund, err
+}
+
+func (s *MemoryStore) getRefund(id string) (domain.Refund, error) {
 	s.mu.Lock()
 	defer s.mu.Unlock()
 	refund, ok := s.refunds[id]
@@ -137,4 +194,22 @@ func (s *MemoryStore) GetRefund(id string) (domain.Refund, error) {
 		return domain.Refund{}, domain.NewError(404, "refund_not_found", "refund not found")
 	}
 	return refund, nil
+}
+
+func (s *MemoryStore) recordPersistence(resource, operation string, err error, start time.Time) {
+	if s == nil || s.metrics == nil {
+		return
+	}
+	outcome := "success"
+	if err != nil {
+		outcome = "error"
+	}
+	s.metrics.RecordPersistenceOperation(
+		context.Background(),
+		"memory",
+		resource,
+		operation,
+		outcome,
+		time.Since(start),
+	)
 }

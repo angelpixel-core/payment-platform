@@ -19,11 +19,30 @@ import (
 	"github.com/testcontainers/testcontainers-go/wait"
 )
 
+type persistenceMetricCall struct {
+	backend   string
+	resource  string
+	operation string
+	outcome   string
+	duration  time.Duration
+}
+
+type fakePersistenceMetricsRecorder struct {
+	calls []persistenceMetricCall
+}
+
+func (f *fakePersistenceMetricsRecorder) RecordHTTPRequest(context.Context, string, string, int, time.Duration) {}
+func (f *fakePersistenceMetricsRecorder) RecordPaymentFlow(context.Context, string, string, time.Duration) {}
+func (f *fakePersistenceMetricsRecorder) RecordPaymentCommand(context.Context, string, string, time.Duration) {}
+func (f *fakePersistenceMetricsRecorder) RecordPersistenceOperation(_ context.Context, backend, resource, operation, outcome string, duration time.Duration) {
+	f.calls = append(f.calls, persistenceMetricCall{backend: backend, resource: resource, operation: operation, outcome: outcome, duration: duration})
+}
+
 func TestStoreContractAgainstPostgres(t *testing.T) {
 	db, cleanup := openTestDB(t)
 	defer cleanup()
 
-	store := NewStore(db)
+	store := NewStore(db, nil)
 	contractStoreCRUD(t, store)
 	contractStoreIdempotency(t, store)
 	contractStoreSequence(t, store)
@@ -33,7 +52,7 @@ func TestUnitOfWorkContractAgainstPostgres(t *testing.T) {
 	db, cleanup := openTestDB(t)
 	defer cleanup()
 
-	store := NewStore(db)
+	store := NewStore(db, nil)
 	publisher := inprocess.NewPublisher()
 	called := 0
 	publisher.Subscribe("payment_intent.created", func(event domain.Event) error {
@@ -41,7 +60,7 @@ func TestUnitOfWorkContractAgainstPostgres(t *testing.T) {
 		return nil
 	})
 
-	uow := NewUnitOfWork(db, publisher)
+	uow := NewUnitOfWork(db, publisher, nil)
 	if err := uow.Do(func(tx ports.Transaction) error {
 		tx.SavePaymentIntent(domain.PaymentIntent{ID: "pi_1"})
 		tx.SaveCharge(domain.Charge{ID: "ch_1", PaymentIntentID: "pi_1"})
@@ -68,7 +87,7 @@ func TestUnitOfWorkRollbackAgainstPostgres(t *testing.T) {
 	db, cleanup := openTestDB(t)
 	defer cleanup()
 
-	uow := NewUnitOfWork(db, inprocess.NewPublisher())
+	uow := NewUnitOfWork(db, inprocess.NewPublisher(), nil)
 	err := uow.Do(func(tx ports.Transaction) error {
 		tx.SavePaymentIntent(domain.PaymentIntent{ID: "pi_1"})
 		tx.SavePaymentAttempt(domain.PaymentAttempt{ID: "pa_1", PaymentIntentID: "pi_1"})
@@ -86,6 +105,49 @@ func TestUnitOfWorkRollbackAgainstPostgres(t *testing.T) {
 	}
 	if count := queryInt(t, db, `SELECT count(*) FROM outbox_events WHERE event_name = 'payment_intent.created'`); count != 0 {
 		t.Fatalf("expected rollback of outbox, got %d", count)
+	}
+}
+
+func TestPersistenceMetricsAgainstPostgres(t *testing.T) {
+	db, cleanup := openTestDB(t)
+	defer cleanup()
+
+	recorder := &fakePersistenceMetricsRecorder{}
+	store := NewStore(db, recorder)
+	store.SavePaymentIntent(domain.PaymentIntent{ID: "pi_1"})
+	if _, err := store.GetPaymentIntent("pi_1"); err != nil {
+		t.Fatalf("get payment intent failed: %v", err)
+	}
+
+	uow := NewUnitOfWork(db, inprocess.NewPublisher(), recorder)
+	if err := uow.Do(func(tx ports.Transaction) error {
+		tx.SavePaymentAttempt(domain.PaymentAttempt{ID: "pa_1", PaymentIntentID: "pi_1"})
+		if _, err := tx.GetPaymentAttempt("pa_1"); err != nil {
+			return err
+		}
+		return nil
+	}); err != nil {
+		t.Fatalf("uow do failed: %v", err)
+	}
+
+	want := []persistenceMetricCall{
+		{backend: "postgres", resource: "payment_intent", operation: "save", outcome: "success"},
+		{backend: "postgres", resource: "payment_intent", operation: "get", outcome: "success"},
+		{backend: "postgres", resource: "payment_attempt", operation: "save", outcome: "success"},
+		{backend: "postgres", resource: "payment_attempt", operation: "get", outcome: "success"},
+	}
+
+	if len(recorder.calls) != len(want) {
+		t.Fatalf("expected %d calls, got %d: %#v", len(want), len(recorder.calls), recorder.calls)
+	}
+	for i := range want {
+		got := recorder.calls[i]
+		if got.backend != want[i].backend || got.resource != want[i].resource || got.operation != want[i].operation || got.outcome != want[i].outcome {
+			t.Fatalf("call %d: expected %#v, got %#v", i, want[i], got)
+		}
+		if got.duration <= 0 {
+			t.Fatalf("call %d: expected positive duration, got %s", i, got.duration)
+		}
 	}
 }
 

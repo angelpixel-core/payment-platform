@@ -7,6 +7,7 @@ import (
 
 	"payment-sandbox/internal/adapters/messaging/inprocess"
 	"payment-sandbox/internal/adapters/messaging/outbox"
+	"payment-sandbox/internal/adapters/observability/metrics"
 	"payment-sandbox/internal/adapters/persistence/memory"
 	"payment-sandbox/internal/adapters/persistence/postgres"
 	clockadapter "payment-sandbox/internal/adapters/time/system"
@@ -21,20 +22,15 @@ type Service struct {
 	refunds  *commandrefunds.Service
 	queries  *payments.PaymentQueryService
 	recorder *appobs.Recorder
-	metrics  PaymentFlowMetricsRecorder
-}
-
-type PaymentFlowMetricsRecorder interface {
-	RecordPaymentFlow(ctx context.Context, flow, outcome string, duration time.Duration)
-	RecordPaymentCommand(ctx context.Context, command, outcome string, duration time.Duration)
+	metrics  metrics.MetricsRecorder
 }
 
 func NewService() *Service {
 	return NewServiceWithMetrics(nil)
 }
 
-func NewServiceWithMetrics(metricsRecorder PaymentFlowMetricsRecorder) *Service {
-	store := NewMemoryStore()
+func NewServiceWithMetrics(metricsRecorder metrics.MetricsRecorder) *Service {
+	store := NewMemoryStore(metricsRecorder)
 	dispatcher := inprocess.NewPublisher()
 	eventRecorder := appobs.NewRecorder()
 	appobs.RegisterInternalHandlers(dispatcher, eventRecorder)
@@ -48,12 +44,12 @@ func NewPostgresService(db *sql.DB) *Service {
 	return NewPostgresServiceWithMetrics(db, nil)
 }
 
-func NewPostgresServiceWithMetrics(db *sql.DB, metricsRecorder PaymentFlowMetricsRecorder) *Service {
-	store := postgres.NewStore(db)
+func NewPostgresServiceWithMetrics(db *sql.DB, metricsRecorder metrics.MetricsRecorder) *Service {
+	store := postgres.NewStore(db, metricsRecorder)
 	dispatcher := inprocess.NewPublisher()
 	eventRecorder := appobs.NewRecorder()
 	appobs.RegisterInternalHandlers(dispatcher, eventRecorder)
-	uow := postgres.NewUnitOfWork(db, dispatcher)
+	uow := postgres.NewUnitOfWork(db, dispatcher, metricsRecorder)
 	clock := clockadapter.NewClock()
 	return &Service{commands: commandpayments.NewService(uow, clock, NewScenarioEngine()), refunds: commandrefunds.NewService(uow, clock), queries: payments.NewPaymentQueryService(store), recorder: eventRecorder, metrics: metricsRecorder}
 }

@@ -3,7 +3,7 @@ package sandbox
 import "testing"
 
 func TestMemoryStoreRoundTrip(t *testing.T) {
-	store := NewMemoryStore()
+	store := NewMemoryStore(nil)
 
 	intent := PaymentIntent{ID: "pi_1", Amount: 100}
 	store.SavePaymentIntent(intent)

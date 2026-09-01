@@ -8,15 +8,17 @@ import (
 	"reflect"
 	"time"
 
+	"payment-sandbox/internal/adapters/observability/metrics"
 	"payment-sandbox/internal/domain"
 	"payment-sandbox/internal/ports"
 )
 
 type Store struct {
-	db *sql.DB
+	db      *sql.DB
+	metrics metrics.MetricsRecorder
 }
 
-func NewStore(db *sql.DB) *Store { return &Store{db: db} }
+func NewStore(db *sql.DB, recorder metrics.MetricsRecorder) *Store { return &Store{db: db, metrics: recorder} }
 
 var _ ports.Store = (*Store)(nil)
 
@@ -40,36 +42,60 @@ func (s *Store) NextID(prefix string) string { return nextSequenceValue(context.
 func (s *Store) NextReference(prefix string) string { return nextSequenceValue(context.Background(), s.db, prefix) }
 
 func (s *Store) SavePaymentIntent(intent domain.PaymentIntent) domain.PaymentIntent {
+	start := time.Now()
 	_, _ = upsertPaymentIntent(context.Background(), s.db, intent)
+	s.recordPersistence("payment_intent", "save", nil, start)
 	return intent
 }
 
 func (s *Store) GetPaymentIntent(id string) (domain.PaymentIntent, error) {
-	return getPaymentIntent(context.Background(), s.db, id)
+	start := time.Now()
+	intent, err := getPaymentIntent(context.Background(), s.db, id)
+	s.recordPersistence("payment_intent", "get", err, start)
+	return intent, err
 }
 
 func (s *Store) SavePaymentAttempt(attempt domain.PaymentAttempt) domain.PaymentAttempt {
+	start := time.Now()
 	_, _ = upsertPaymentAttempt(context.Background(), s.db, attempt)
+	s.recordPersistence("payment_attempt", "save", nil, start)
 	return attempt
 }
 
 func (s *Store) GetPaymentAttempt(id string) (domain.PaymentAttempt, error) {
-	return getPaymentAttempt(context.Background(), s.db, id)
+	start := time.Now()
+	attempt, err := getPaymentAttempt(context.Background(), s.db, id)
+	s.recordPersistence("payment_attempt", "get", err, start)
+	return attempt, err
 }
 
 func (s *Store) SaveCharge(charge domain.Charge) domain.Charge {
+	start := time.Now()
 	_, _ = upsertCharge(context.Background(), s.db, charge)
+	s.recordPersistence("charge", "save", nil, start)
 	return charge
 }
 
-func (s *Store) GetCharge(id string) (domain.Charge, error) { return getCharge(context.Background(), s.db, id) }
+func (s *Store) GetCharge(id string) (domain.Charge, error) {
+	start := time.Now()
+	charge, err := getCharge(context.Background(), s.db, id)
+	s.recordPersistence("charge", "get", err, start)
+	return charge, err
+}
 
 func (s *Store) SaveRefund(refund domain.Refund) domain.Refund {
+	start := time.Now()
 	_, _ = upsertRefund(context.Background(), s.db, refund)
+	s.recordPersistence("refund", "save", nil, start)
 	return refund
 }
 
-func (s *Store) GetRefund(id string) (domain.Refund, error) { return getRefund(context.Background(), s.db, id) }
+func (s *Store) GetRefund(id string) (domain.Refund, error) {
+	start := time.Now()
+	refund, err := getRefund(context.Background(), s.db, id)
+	s.recordPersistence("refund", "get", err, start)
+	return refund, err
+}
 
 type transaction struct {
 	store     *Store
@@ -123,31 +149,6 @@ func (tx *transaction) WithIdempotency(key, fingerprint string, fn func() (any, 
 
 func (tx *transaction) NextID(prefix string) string { return nextSequenceValue(context.Background(), tx.tx, prefix) }
 func (tx *transaction) NextReference(prefix string) string { return nextSequenceValue(context.Background(), tx.tx, prefix) }
-
-func (tx *transaction) SavePaymentIntent(intent domain.PaymentIntent) domain.PaymentIntent {
-	_, _ = upsertPaymentIntent(context.Background(), tx.tx, intent)
-	return intent
-}
-func (tx *transaction) GetPaymentIntent(id string) (domain.PaymentIntent, error) {
-	return getPaymentIntent(context.Background(), tx.tx, id)
-}
-func (tx *transaction) SavePaymentAttempt(attempt domain.PaymentAttempt) domain.PaymentAttempt {
-	_, _ = upsertPaymentAttempt(context.Background(), tx.tx, attempt)
-	return attempt
-}
-func (tx *transaction) GetPaymentAttempt(id string) (domain.PaymentAttempt, error) {
-	return getPaymentAttempt(context.Background(), tx.tx, id)
-}
-func (tx *transaction) SaveCharge(charge domain.Charge) domain.Charge {
-	_, _ = upsertCharge(context.Background(), tx.tx, charge)
-	return charge
-}
-func (tx *transaction) GetCharge(id string) (domain.Charge, error) { return getCharge(context.Background(), tx.tx, id) }
-func (tx *transaction) SaveRefund(refund domain.Refund) domain.Refund {
-	_, _ = upsertRefund(context.Background(), tx.tx, refund)
-	return refund
-}
-func (tx *transaction) GetRefund(id string) (domain.Refund, error) { return getRefund(context.Background(), tx.tx, id) }
 
 func (tx *transaction) Publish(event domain.Event) error {
 	payload, err := json.Marshal(event)
@@ -327,6 +328,24 @@ VALUES ($1,$2,$3,$4,$5,$6,$7)
 ON CONFLICT (id) DO UPDATE SET charge_id = EXCLUDED.charge_id, payment_intent_id = EXCLUDED.payment_intent_id, amount = EXCLUDED.amount, status = EXCLUDED.status, created_at = EXCLUDED.created_at, updated_at = EXCLUDED.updated_at`,
 		refund.ID, refund.ChargeID, refund.PaymentIntentID, int64(refund.Amount), string(refund.Status), refund.CreatedAt, refund.UpdatedAt)
 	return refund, err
+}
+
+func (s *Store) recordPersistence(resource, operation string, err error, start time.Time) {
+	if s == nil || s.metrics == nil {
+		return
+	}
+	outcome := "success"
+	if err != nil {
+		outcome = "error"
+	}
+	s.metrics.RecordPersistenceOperation(
+		context.Background(),
+		"postgres",
+		resource,
+		operation,
+		outcome,
+		time.Since(start),
+	)
 }
 
 type queryer interface {

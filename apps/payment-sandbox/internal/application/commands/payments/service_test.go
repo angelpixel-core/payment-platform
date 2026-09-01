@@ -128,7 +128,7 @@ func TestPaymentServicePublishesEvents(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			spy := &eventSpy{}
-			uow := memory.NewUnitOfWork(memory.NewStore(), spy)
+			uow := memory.NewUnitOfWork(memory.NewStore(nil), spy)
 			svc := NewService(uow, staticClock{}, fakeScenarioResolver{})
 			tt.setup(t, svc)
 			if len(spy.events) != len(tt.wantEvents) {

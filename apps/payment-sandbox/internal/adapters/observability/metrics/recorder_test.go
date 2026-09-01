@@ -30,6 +30,7 @@ func TestRecorderRecordsHTTPAndPaymentFlowMetrics(t *testing.T) {
 	recorder.RecordHTTPRequest(context.Background(), http.MethodGet, "/v1/payments", 201, 15*time.Millisecond)
 	recorder.RecordPaymentFlow(context.Background(), "Refund/Create", "Error", 23*time.Millisecond)
 	recorder.RecordPaymentCommand(context.Background(), "Refund/Create", "Error", 31*time.Millisecond)
+	recorder.RecordPersistenceOperation(context.Background(), "Postgres", "Refund/Create", "Get", "Error", 37*time.Millisecond)
 
 	want := []recordedCustomMetric{
 		{name: "HTTP/Requests", value: 1},
@@ -40,6 +41,9 @@ func TestRecorderRecordsHTTPAndPaymentFlowMetrics(t *testing.T) {
 		{name: "Commands/refund_create/Count", value: 1},
 		{name: "Commands/refund_create/DurationMs", value: 31},
 		{name: "Commands/refund_create/Errors", value: 1},
+		{name: "Persistence/postgres/refund_create/get/Count", value: 1},
+		{name: "Persistence/postgres/refund_create/get/DurationMs", value: 37},
+		{name: "Persistence/postgres/refund_create/get/Errors", value: 1},
 	}
 
 	if len(sink.calls) != len(want) {
@@ -61,4 +65,5 @@ func TestRecorderWorksWithoutCustomMetricSink(t *testing.T) {
 	recorder.RecordHTTPRequest(context.Background(), http.MethodGet, "/health", 200, 10*time.Millisecond)
 	recorder.RecordPaymentFlow(context.Background(), "payment_intent.create", "success", 12*time.Millisecond)
 	recorder.RecordPaymentCommand(context.Background(), "payment_intent.create", "success", 14*time.Millisecond)
+	recorder.RecordPersistenceOperation(context.Background(), "memory", "payment_intent", "get", "success", 16*time.Millisecond)
 }

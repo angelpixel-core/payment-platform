@@ -15,7 +15,7 @@ import (
 type config struct {
 	logger  *slog.Logger
 	nrApp   *nr.Application
-	metrics *metrics.Recorder
+	metrics metrics.MetricsRecorder
 }
 
 type Option func(*config)
@@ -34,7 +34,7 @@ func WithNewRelic(app *nr.Application) Option {
 	}
 }
 
-func WithMetrics(recorder *metrics.Recorder) Option {
+func WithMetrics(recorder metrics.MetricsRecorder) Option {
 	return func(cfg *config) {
 		cfg.metrics = recorder
 	}
