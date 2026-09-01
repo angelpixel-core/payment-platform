@@ -110,8 +110,8 @@ Ejecutar el Nivel 1 sobre `payment-sandbox` con cambios pequenos, verificables y
 
 ### 7.7.5 Export and Backend Wiring
 
-- [ ] `refactor(payment-sandbox): keep otel as primary metrics API and new relic as optional sink`
-- [ ] `refactor(payment-sandbox): wire metrics recorder into main server bootstrap`
+- [x] `refactor(payment-sandbox): keep otel as primary metrics API and new relic as optional sink`
+- [x] `refactor(payment-sandbox): wire metrics recorder into main server bootstrap`
 
 ### 7.7.6 Umbrella
 
