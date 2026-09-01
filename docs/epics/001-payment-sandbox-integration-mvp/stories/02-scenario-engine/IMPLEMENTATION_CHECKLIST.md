@@ -119,7 +119,7 @@ See [Observability Metrics Contract](./OBSERVABILITY_METRICS.md) for the exact u
 
 - [x] `refactor(payment-sandbox): expose metrics for payment flows`
 
-- [ ] `test(payment-sandbox): add benchmarks and profiling checks`
+- [x] `test(payment-sandbox): add benchmarks and profiling checks`
 
 ### 7.8 Cierre del Nivel 2
 

@@ -93,6 +93,7 @@ flowchart LR
 - [Level 2 DDD Rules](./LEVEL2_DDD_RULES.md)
 - [Implementation Checklist](./IMPLEMENTATION_CHECKLIST.md)
 - [Observability Metrics Contract](./OBSERVABILITY_METRICS.md)
+- [Benchmarking and Profiling](./BENCHMARKING.md)
 - [Refactor Proposal](./REFACTOR_PROPOSAL.md)
 - [Architecture Plan](./ARCHITECTURE_PLAN.md)
 - [Roadmap](./ROADMAP.md)
