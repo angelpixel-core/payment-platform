@@ -101,12 +101,14 @@ Ejecutar el Nivel 1 sobre `payment-sandbox` con cambios pequenos, verificables y
 ### 7.7.3 Persistence Metrics Surface
 
 - [x] `refactor(payment-sandbox): record repository save and get latency for memory and postgres`
-- [ ] `refactor(payment-sandbox): record unit of work commit rollback and error metrics`
+- [x] `refactor(payment-sandbox): record unit of work commit rollback and error metrics`
+
+See [Observability Metrics Contract](./OBSERVABILITY_METRICS.md) for the exact unit of work metric names and outcomes.
 
 ### 7.7.4 Outbox Metrics Surface
 
-- [ ] `refactor(payment-sandbox): record outbox enqueue publish and pending event metrics`
-- [ ] `refactor(payment-sandbox): record outbox publish duration and failure metrics`
+- [x] `refactor(payment-sandbox): record outbox enqueue publish and pending event metrics`
+- [x] `refactor(payment-sandbox): record outbox publish duration and failure metrics`
 
 ### 7.7.5 Export and Backend Wiring
 

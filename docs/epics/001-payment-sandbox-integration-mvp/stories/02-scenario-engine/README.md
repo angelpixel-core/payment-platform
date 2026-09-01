@@ -92,6 +92,7 @@ flowchart LR
 - [Level 2 Module Boundaries](./LEVEL2_MODULE_BOUNDARIES.md)
 - [Level 2 DDD Rules](./LEVEL2_DDD_RULES.md)
 - [Implementation Checklist](./IMPLEMENTATION_CHECKLIST.md)
+- [Observability Metrics Contract](./OBSERVABILITY_METRICS.md)
 - [Refactor Proposal](./REFACTOR_PROPOSAL.md)
 - [Architecture Plan](./ARCHITECTURE_PLAN.md)
 - [Roadmap](./ROADMAP.md)
