@@ -54,6 +54,13 @@ Cuando elegirlo:
 - Siguiente paso natural: subir a Nivel 2.
 - Reservar Nivel 3 para cuando el dominio o la carga lo exijan.
 
+## Coverage
+
+- Nivel 1: implementado.
+- Nivel 2: implementado para esta story y su checklist de cierre.
+- Nivel 3: pendiente.
+- Ver detalle en [Roadmap Coverage](./ROADMAP_COVERAGE.md).
+
 ## Decision Notes
 
 - `Modular Monolith` si aplica bien aqui.
