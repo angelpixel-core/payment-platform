@@ -86,7 +86,6 @@ Ejecutar el Nivel 1 sobre `payment-sandbox` con cambios pequenos, verificables y
 ### 7.7 Observabilidad y Rendimiento
 
 - [x] `refactor(payment-sandbox): add structured logging and trace hooks`
-- [ ] `refactor(payment-sandbox): expose metrics for payment flows`
 
 ### 7.7.1 HTTP Metrics Surface
 
@@ -96,8 +95,8 @@ Ejecutar el Nivel 1 sobre `payment-sandbox` con cambios pequenos, verificables y
 
 ### 7.7.2 Command Flow Metrics Surface
 
-- [ ] `refactor(payment-sandbox): record command duration and error metrics for payment flows`
-- [ ] `refactor(payment-sandbox): record create confirm capture refund and finalize counters`
+- [x] `refactor(payment-sandbox): record command duration and error metrics for payment flows`
+- [x] `refactor(payment-sandbox): record create confirm capture refund and finalize counters`
 
 ### 7.7.3 Persistence Metrics Surface
 
@@ -113,6 +112,10 @@ Ejecutar el Nivel 1 sobre `payment-sandbox` con cambios pequenos, verificables y
 
 - [ ] `refactor(payment-sandbox): keep otel as primary metrics API and new relic as optional sink`
 - [ ] `refactor(payment-sandbox): wire metrics recorder into main server bootstrap`
+
+### 7.7.6 Umbrella
+
+- [ ] `refactor(payment-sandbox): expose metrics for payment flows`
 
 - [ ] `test(payment-sandbox): add benchmarks and profiling checks`
 
