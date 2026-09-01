@@ -5,22 +5,28 @@ import (
 	"strings"
 	"time"
 
-	nr "github.com/newrelic/go-agent/v3/newrelic"
 	"go.opentelemetry.io/otel"
 	"go.opentelemetry.io/otel/attribute"
 	"go.opentelemetry.io/otel/metric"
 )
 
+type customMetricRecorder interface {
+	RecordCustomMetric(name string, value float64)
+}
+
 type Recorder struct {
-	nrApp            *nr.Application
+	customMetrics    customMetricRecorder
 	httpRequests     metric.Int64Counter
 	httpDurations    metric.Int64Histogram
 	paymentFlows     metric.Int64Counter
 	paymentDurations metric.Int64Histogram
 	paymentErrors    metric.Int64Counter
+	paymentCommands  metric.Int64Counter
+	commandDurations metric.Int64Histogram
+	commandErrors    metric.Int64Counter
 }
 
-func NewRecorder(nrApp *nr.Application) (*Recorder, error) {
+func NewRecorder(customMetrics customMetricRecorder) (*Recorder, error) {
 	meter := otel.Meter("payment-sandbox/metrics")
 
 	httpRequests, err := meter.Int64Counter(
@@ -60,14 +66,39 @@ func NewRecorder(nrApp *nr.Application) (*Recorder, error) {
 	if err != nil {
 		return nil, err
 	}
+	paymentCommands, err := meter.Int64Counter(
+		"payment_sandbox_payment_commands_total",
+		metric.WithDescription("Total payment command executions"),
+	)
+	if err != nil {
+		return nil, err
+	}
+	commandDurations, err := meter.Int64Histogram(
+		"payment_sandbox_payment_command_duration_ms",
+		metric.WithUnit("ms"),
+		metric.WithDescription("Payment command duration in milliseconds"),
+	)
+	if err != nil {
+		return nil, err
+	}
+	commandErrors, err := meter.Int64Counter(
+		"payment_sandbox_payment_command_errors_total",
+		metric.WithDescription("Total failed payment command executions"),
+	)
+	if err != nil {
+		return nil, err
+	}
 
 	return &Recorder{
-		nrApp:            nrApp,
+		customMetrics:    customMetrics,
 		httpRequests:     httpRequests,
 		httpDurations:    httpDurations,
 		paymentFlows:     paymentFlows,
 		paymentDurations: paymentDurations,
 		paymentErrors:    paymentErrors,
+		paymentCommands:  paymentCommands,
+		commandDurations: commandDurations,
+		commandErrors:    commandErrors,
 	}, nil
 }
 
@@ -89,9 +120,9 @@ func (r *Recorder) RecordHTTPRequest(ctx context.Context, method, route string, 
 			attribute.Int("http.status_code", status),
 		),
 	)
-	if r.nrApp != nil {
-		r.nrApp.RecordCustomMetric("HTTP/Requests", 1)
-		r.nrApp.RecordCustomMetric("HTTP/RequestDurationMs", float64(duration.Milliseconds()))
+	if r.customMetrics != nil {
+		r.customMetrics.RecordCustomMetric("HTTP/Requests", 1)
+		r.customMetrics.RecordCustomMetric("HTTP/RequestDurationMs", float64(duration.Milliseconds()))
 	}
 }
 
@@ -116,11 +147,41 @@ func (r *Recorder) RecordPaymentFlow(ctx context.Context, flow, outcome string, 
 	if strings.EqualFold(outcome, "error") {
 		r.paymentErrors.Add(ctx, 1, metric.WithAttributes(attribute.String("flow.name", flow)))
 	}
-	if r.nrApp != nil {
-		r.nrApp.RecordCustomMetric("Payments/"+flow+"/Count", 1)
-		r.nrApp.RecordCustomMetric("Payments/"+flow+"/DurationMs", float64(duration.Milliseconds()))
+	if r.customMetrics != nil {
+		r.customMetrics.RecordCustomMetric("Payments/"+flow+"/Count", 1)
+		r.customMetrics.RecordCustomMetric("Payments/"+flow+"/DurationMs", float64(duration.Milliseconds()))
 		if strings.EqualFold(outcome, "error") {
-			r.nrApp.RecordCustomMetric("Payments/"+flow+"/Errors", 1)
+			r.customMetrics.RecordCustomMetric("Payments/"+flow+"/Errors", 1)
+		}
+	}
+}
+
+func (r *Recorder) RecordPaymentCommand(ctx context.Context, command, outcome string, duration time.Duration) {
+	if r == nil {
+		return
+	}
+	command = sanitizeMetricPart(command)
+	outcome = sanitizeMetricPart(outcome)
+	r.paymentCommands.Add(ctx, 1,
+		metric.WithAttributes(
+			attribute.String("command.name", command),
+			attribute.String("command.outcome", outcome),
+		),
+	)
+	r.commandDurations.Record(ctx, duration.Milliseconds(),
+		metric.WithAttributes(
+			attribute.String("command.name", command),
+			attribute.String("command.outcome", outcome),
+		),
+	)
+	if strings.EqualFold(outcome, "error") {
+		r.commandErrors.Add(ctx, 1, metric.WithAttributes(attribute.String("command.name", command)))
+	}
+	if r.customMetrics != nil {
+		r.customMetrics.RecordCustomMetric("Commands/"+command+"/Count", 1)
+		r.customMetrics.RecordCustomMetric("Commands/"+command+"/DurationMs", float64(duration.Milliseconds()))
+		if strings.EqualFold(outcome, "error") {
+			r.customMetrics.RecordCustomMetric("Commands/"+command+"/Errors", 1)
 		}
 	}
 }
