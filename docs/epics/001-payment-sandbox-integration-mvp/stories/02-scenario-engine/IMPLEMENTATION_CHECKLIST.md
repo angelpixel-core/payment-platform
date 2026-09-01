@@ -117,7 +117,7 @@ See [Observability Metrics Contract](./OBSERVABILITY_METRICS.md) for the exact u
 
 ### 7.7.6 Umbrella
 
-- [ ] `refactor(payment-sandbox): expose metrics for payment flows`
+- [x] `refactor(payment-sandbox): expose metrics for payment flows`
 
 - [ ] `test(payment-sandbox): add benchmarks and profiling checks`
 
