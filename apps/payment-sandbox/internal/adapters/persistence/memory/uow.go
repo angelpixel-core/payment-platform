@@ -1,6 +1,7 @@
 package memory
 
 import (
+	"context"
 	"sync"
 	"time"
 
@@ -32,12 +33,25 @@ func NewUnitOfWork(store *MemoryStore, publisher ports.EventPublisher) *UnitOfWo
 var _ ports.UnitOfWork = (*UnitOfWork)(nil)
 var _ ports.Transaction = (*transaction)(nil)
 
-func (u *UnitOfWork) Do(fn func(tx ports.Transaction) error) error {
+
+func (u *UnitOfWork) Do(fn func(tx ports.Transaction) error) (err error) {
+	start := time.Now()
+	outcome := "success"
+	defer func() {
+		if u.store != nil {
+			u.store.recordUnitOfWork(outcome, time.Since(start))
+		}
+	}()
 	tx := &transaction{store: u.store, publisher: u.publisher}
-	if err := fn(tx); err != nil {
+	if err = fn(tx); err != nil {
+		outcome = "rollback"
 		return err
 	}
-	return tx.commit()
+	if err = tx.commit(); err != nil {
+		outcome = "commit_error"
+		return err
+	}
+	return nil
 }
 
 func (tx *transaction) WithIdempotency(key, fingerprint string, fn func() (any, error)) (any, error) {
@@ -195,6 +209,13 @@ func (tx *transaction) commit() error {
 		}
 	}
 	return nil
+}
+
+func (s *MemoryStore) recordUnitOfWork(outcome string, duration time.Duration) {
+	if s == nil || s.metrics == nil {
+		return
+	}
+	s.metrics.RecordUnitOfWork(context.Background(), "memory", outcome, duration)
 }
 
 type storeSnapshot struct {

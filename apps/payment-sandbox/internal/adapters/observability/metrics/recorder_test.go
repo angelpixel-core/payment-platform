@@ -31,6 +31,9 @@ func TestRecorderRecordsHTTPAndPaymentFlowMetrics(t *testing.T) {
 	recorder.RecordPaymentFlow(context.Background(), "Refund/Create", "Error", 23*time.Millisecond)
 	recorder.RecordPaymentCommand(context.Background(), "Refund/Create", "Error", 31*time.Millisecond)
 	recorder.RecordPersistenceOperation(context.Background(), "Postgres", "Refund/Create", "Get", "Error", 37*time.Millisecond)
+	recorder.RecordUnitOfWork(context.Background(), "Postgres", "rollback", 41*time.Millisecond)
+	recorder.RecordOutboxOperation(context.Background(), "memory", "publish", "failure", 45*time.Millisecond)
+	recorder.RecordOutboxPending(context.Background(), "memory", 2)
 
 	want := []recordedCustomMetric{
 		{name: "HTTP/Requests", value: 1},
@@ -44,6 +47,13 @@ func TestRecorderRecordsHTTPAndPaymentFlowMetrics(t *testing.T) {
 		{name: "Persistence/postgres/refund_create/get/Count", value: 1},
 		{name: "Persistence/postgres/refund_create/get/DurationMs", value: 37},
 		{name: "Persistence/postgres/refund_create/get/Errors", value: 1},
+		{name: "UnitOfWork/postgres/Count", value: 1},
+		{name: "UnitOfWork/postgres/DurationMs", value: 41},
+		{name: "UnitOfWork/postgres/Errors", value: 1},
+		{name: "Outbox/memory/publish/Count", value: 1},
+		{name: "Outbox/memory/publish/DurationMs", value: 45},
+		{name: "Outbox/memory/publish/Errors", value: 1},
+		{name: "Outbox/memory/Pending", value: 2},
 	}
 
 	if len(sink.calls) != len(want) {
@@ -66,4 +76,7 @@ func TestRecorderWorksWithoutCustomMetricSink(t *testing.T) {
 	recorder.RecordPaymentFlow(context.Background(), "payment_intent.create", "success", 12*time.Millisecond)
 	recorder.RecordPaymentCommand(context.Background(), "payment_intent.create", "success", 14*time.Millisecond)
 	recorder.RecordPersistenceOperation(context.Background(), "memory", "payment_intent", "get", "success", 16*time.Millisecond)
+	recorder.RecordUnitOfWork(context.Background(), "memory", "success", 18*time.Millisecond)
+	recorder.RecordOutboxOperation(context.Background(), "memory", "enqueue", "success", 20*time.Millisecond)
+	recorder.RecordOutboxPending(context.Background(), "memory", 0)
 }

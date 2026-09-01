@@ -34,7 +34,7 @@ func NewServiceWithMetrics(metricsRecorder metrics.MetricsRecorder) *Service {
 	dispatcher := inprocess.NewPublisher()
 	eventRecorder := appobs.NewRecorder()
 	appobs.RegisterInternalHandlers(dispatcher, eventRecorder)
-	publisher := outbox.NewPublisher(dispatcher)
+	publisher := outbox.NewPublisher(dispatcher, metricsRecorder)
 	uow := memory.NewUnitOfWork(store, publisher)
 	clock := clockadapter.NewClock()
 	return &Service{commands: commandpayments.NewService(uow, clock, NewScenarioEngine()), refunds: commandrefunds.NewService(uow, clock), queries: payments.NewPaymentQueryService(store), recorder: eventRecorder, metrics: metricsRecorder}
