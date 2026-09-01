@@ -7,7 +7,6 @@ import (
 
 	"payment-sandbox/internal/adapters/messaging/inprocess"
 	"payment-sandbox/internal/adapters/messaging/outbox"
-	"payment-sandbox/internal/adapters/observability/metrics"
 	"payment-sandbox/internal/adapters/persistence/memory"
 	"payment-sandbox/internal/adapters/persistence/postgres"
 	clockadapter "payment-sandbox/internal/adapters/time/system"
@@ -22,14 +21,19 @@ type Service struct {
 	refunds  *commandrefunds.Service
 	queries  *payments.PaymentQueryService
 	recorder *appobs.Recorder
-	metrics  *metrics.Recorder
+	metrics  PaymentFlowMetricsRecorder
+}
+
+type PaymentFlowMetricsRecorder interface {
+	RecordPaymentFlow(ctx context.Context, flow, outcome string, duration time.Duration)
+	RecordPaymentCommand(ctx context.Context, command, outcome string, duration time.Duration)
 }
 
 func NewService() *Service {
 	return NewServiceWithMetrics(nil)
 }
 
-func NewServiceWithMetrics(metricsRecorder *metrics.Recorder) *Service {
+func NewServiceWithMetrics(metricsRecorder PaymentFlowMetricsRecorder) *Service {
 	store := NewMemoryStore()
 	dispatcher := inprocess.NewPublisher()
 	eventRecorder := appobs.NewRecorder()
@@ -44,7 +48,7 @@ func NewPostgresService(db *sql.DB) *Service {
 	return NewPostgresServiceWithMetrics(db, nil)
 }
 
-func NewPostgresServiceWithMetrics(db *sql.DB, metricsRecorder *metrics.Recorder) *Service {
+func NewPostgresServiceWithMetrics(db *sql.DB, metricsRecorder PaymentFlowMetricsRecorder) *Service {
 	store := postgres.NewStore(db)
 	dispatcher := inprocess.NewPublisher()
 	eventRecorder := appobs.NewRecorder()
@@ -57,6 +61,7 @@ func NewPostgresServiceWithMetrics(db *sql.DB, metricsRecorder *metrics.Recorder
 func (s *Service) CreatePaymentIntent(req CreatePaymentIntentRequest, idempotencyKey, fingerprint string) (PaymentIntent, error) {
 	start := time.Now()
 	var err error
+	defer s.recordCommand("payment_intent.create", start, &err)
 	defer s.recordFlow("payment_intent.create", start, &err)
 	result, err := s.commands.CreatePaymentIntent(req, idempotencyKey, fingerprint)
 	return result, err
@@ -65,6 +70,7 @@ func (s *Service) CreatePaymentIntent(req CreatePaymentIntentRequest, idempotenc
 func (s *Service) ConfirmPaymentIntent(intentID string, req ConfirmPaymentIntentRequest, scenarioHeader, idempotencyKey, fingerprint string) (ConfirmPaymentIntentResponse, error) {
 	start := time.Now()
 	var err error
+	defer s.recordCommand("payment_intent.confirm", start, &err)
 	defer s.recordFlow("payment_intent.confirm", start, &err)
 	result, err := s.commands.ConfirmPaymentIntent(intentID, req, scenarioHeader, idempotencyKey, fingerprint)
 	return result, err
@@ -73,6 +79,7 @@ func (s *Service) ConfirmPaymentIntent(intentID string, req ConfirmPaymentIntent
 func (s *Service) FinalizeProcessingPaymentIntent(intentID string) (PaymentIntent, error) {
 	start := time.Now()
 	var err error
+	defer s.recordCommand("payment_intent.finalize_processing", start, &err)
 	defer s.recordFlow("payment_intent.finalize_processing", start, &err)
 	result, err := s.commands.FinalizeProcessingPaymentIntent(intentID)
 	return result, err
@@ -81,6 +88,7 @@ func (s *Service) FinalizeProcessingPaymentIntent(intentID string) (PaymentInten
 func (s *Service) CapturePaymentIntent(intentID string, req CapturePaymentIntentRequest) (CapturePaymentIntentResponse, error) {
 	start := time.Now()
 	var err error
+	defer s.recordCommand("payment_intent.capture", start, &err)
 	defer s.recordFlow("payment_intent.capture", start, &err)
 	result, err := s.commands.CapturePaymentIntent(intentID, req)
 	return result, err
@@ -89,6 +97,7 @@ func (s *Service) CapturePaymentIntent(intentID string, req CapturePaymentIntent
 func (s *Service) CreateRefund(req RefundRequest, idempotencyKey, fingerprint string) (RefundResponse, error) {
 	start := time.Now()
 	var err error
+	defer s.recordCommand("refund.create", start, &err)
 	defer s.recordFlow("refund.create", start, &err)
 	result, err := s.refunds.CreateRefund(req, idempotencyKey, fingerprint)
 	return result, err
@@ -114,4 +123,15 @@ func (s *Service) recordFlow(flow string, start time.Time, err *error) {
 		outcome = "error"
 	}
 	s.metrics.RecordPaymentFlow(context.Background(), flow, outcome, time.Since(start))
+}
+
+func (s *Service) recordCommand(command string, start time.Time, err *error) {
+	if s.metrics == nil {
+		return
+	}
+	outcome := "success"
+	if err != nil && *err != nil {
+		outcome = "error"
+	}
+	s.metrics.RecordPaymentCommand(context.Background(), command, outcome, time.Since(start))
 }
