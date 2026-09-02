@@ -66,7 +66,10 @@ Elevar `payment-sandbox` al Nivel 3 sin perder los contratos ya cerrados.
   - [x] Prereq: los puertos base ya estan definidos. [Evidence](./ARCHITECTURE_PLAN.md)
   - [x] Definir reglas de dependencia estrictas para la forma final de Nivel 3.
   - [x] Convertir las reglas en un boundary test automatico. [Evidence](../../../../../apps/payment-sandbox/internal/boundaries_test.go)
-  - [ ] Mover cualquier helper restante a la capa correcta.
+  - [x] Mover cualquier helper restante a la capa correcta.
+    - [x] Helpers HTTP relocados a `internal/adapters/inbound/http`. [Evidence](../../../../../apps/payment-sandbox/internal/adapters/inbound/http/json.go)
+    - [x] Wiring HTTP relocado a `internal/bootstrap`. [Evidence](../../../../../apps/payment-sandbox/internal/bootstrap/http.go)
+    - [x] Scenario engine relocado a `internal/application/support/scenarios`. [Evidence](../../../../../apps/payment-sandbox/internal/application/support/scenarios/engine.go)
 
 ## 2. Hexagonal Completa
 
