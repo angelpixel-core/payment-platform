@@ -10,6 +10,7 @@ import (
 type benchEvent struct{ name string }
 
 func (e benchEvent) EventName() string { return e.name }
+func (e benchEvent) EventVersion() int  { return 1 }
 
 func BenchmarkOutboxPublish(b *testing.B) {
 	downstream := inprocess.NewPublisher()
