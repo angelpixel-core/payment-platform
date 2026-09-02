@@ -108,7 +108,7 @@ Elevar `payment-sandbox` al Nivel 3 sin perder los contratos ya cerrados.
 - [ ] `refactor(payment-sandbox): extend outbox to external delivery`
   - [x] Prereq: la base de outbox ya existe. [Evidence](./IMPLEMENTATION_CHECKLIST.md)
   - [x] Prereq: las metricas de outbox ya existen. [Evidence](./OBSERVABILITY_METRICS.md)
-  - [ ] Integrar bus externo solo cuando exista una integracion real que lo justifique.
+  - [ ] Integrar bus externo solo cuando exista una integracion real que lo justifique (por ejemplo `Kafka`, `SQS`, `RabbitMQ` o un partner externo custom con contrato real).
   - [ ] Agregar consumidores asincronos solo cuando el trabajo cross-process sea necesario.
 
 ## 7. Acceptance

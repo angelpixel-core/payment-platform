@@ -41,7 +41,7 @@ Objetivo: maximizar aislamiento y formalidad.
 - DDD formal con agregados y eventos de dominio.
 - CQRS completo con read models o proyecciones.
 - Unit of Work para operaciones multi-repositorio.
-- Outbox, bus externo y consumidores asincronos si hay integraciones reales.
+- Outbox, bus externo y consumidores asincronos si hay integraciones reales (por ejemplo `Kafka`, `SQS`, `RabbitMQ` o un partner externo custom).
 
 Cuando elegirlo:
 - la complejidad del dominio lo justifica.
