@@ -31,23 +31,23 @@ func (s *Server) routes() {
 }
 
 func (s *Server) handleHealth(w http.ResponseWriter, r *http.Request) {
-	writeJSON(w, http.StatusOK, map[string]string{"status": "ok"})
+	WriteJSON(w, http.StatusOK, map[string]string{"status": "ok"})
 }
 
 func (s *Server) handleCreatePaymentIntent(w http.ResponseWriter, r *http.Request) {
 	var req sandbox.CreatePaymentIntentRequest
-	payload, err := readJSON(r, &req)
+	payload, err := ReadJSON(r, &req)
 	if err != nil {
 		writeError(w, err)
 		return
 	}
-	idem := requestIdempotencyKey(r, req.IdempotencyKey)
+	idem := RequestIdempotencyKey(r, req.IdempotencyKey)
 	result, err := s.svc.CreatePaymentIntent(req, idem, fingerprint(payload))
 	if err != nil {
 		writeError(w, err)
 		return
 	}
-	writeJSON(w, http.StatusCreated, sandbox.CreatePaymentIntentResponse{PaymentIntent: result})
+	WriteJSON(w, http.StatusCreated, sandbox.CreatePaymentIntentResponse{PaymentIntent: result})
 }
 
 func (s *Server) handleGetPaymentIntent(w http.ResponseWriter, r *http.Request) {
@@ -56,7 +56,7 @@ func (s *Server) handleGetPaymentIntent(w http.ResponseWriter, r *http.Request) 
 		writeError(w, err)
 		return
 	}
-	writeJSON(w, http.StatusOK, map[string]any{"payment_intent": intent})
+	WriteJSON(w, http.StatusOK, map[string]any{"payment_intent": intent})
 }
 
 func (s *Server) handleGetPaymentAttempt(w http.ResponseWriter, r *http.Request) {
@@ -65,7 +65,7 @@ func (s *Server) handleGetPaymentAttempt(w http.ResponseWriter, r *http.Request)
 		writeError(w, err)
 		return
 	}
-	writeJSON(w, http.StatusOK, map[string]any{"payment_attempt": attempt})
+	WriteJSON(w, http.StatusOK, map[string]any{"payment_attempt": attempt})
 }
 
 func (s *Server) handleGetCharge(w http.ResponseWriter, r *http.Request) {
@@ -74,7 +74,7 @@ func (s *Server) handleGetCharge(w http.ResponseWriter, r *http.Request) {
 		writeError(w, err)
 		return
 	}
-	writeJSON(w, http.StatusOK, map[string]any{"charge": charge})
+	WriteJSON(w, http.StatusOK, map[string]any{"charge": charge})
 }
 
 func (s *Server) handleGetRefund(w http.ResponseWriter, r *http.Request) {
@@ -83,31 +83,31 @@ func (s *Server) handleGetRefund(w http.ResponseWriter, r *http.Request) {
 		writeError(w, err)
 		return
 	}
-	writeJSON(w, http.StatusOK, map[string]any{"refund": refund})
+	WriteJSON(w, http.StatusOK, map[string]any{"refund": refund})
 }
 
 func (s *Server) handleConfirmPaymentIntent(w http.ResponseWriter, r *http.Request) {
 	var req sandbox.ConfirmPaymentIntentRequest
-	payload, err := readJSON(r, &req)
+	payload, err := ReadJSON(r, &req)
 	if err != nil {
 		writeError(w, err)
 		return
 	}
 	intentID := r.PathValue("id")
 	scenarioHeader := strings.TrimSpace(r.Header.Get("X-Sandbox-Scenario"))
-	idem := requestIdempotencyKey(r, req.IdempotencyKey)
+	idem := RequestIdempotencyKey(r, req.IdempotencyKey)
 	fingerprint := fingerprintString(string(payload) + "|scenario=" + scenarioHeader + "|token=" + req.PaymentMethodToken)
 	result, err := s.svc.ConfirmPaymentIntent(intentID, req, scenarioHeader, idem, fingerprint)
 	if err != nil {
 		writeError(w, err)
 		return
 	}
-	writeJSON(w, http.StatusOK, result)
+	WriteJSON(w, http.StatusOK, result)
 }
 
 func (s *Server) handleCapturePaymentIntent(w http.ResponseWriter, r *http.Request) {
 	var req sandbox.CapturePaymentIntentRequest
-	if err := readJSONBody(r, &req); err != nil {
+	if err := ReadJSONBody(r, &req); err != nil {
 		writeError(w, err)
 		return
 	}
@@ -117,21 +117,21 @@ func (s *Server) handleCapturePaymentIntent(w http.ResponseWriter, r *http.Reque
 		writeError(w, err)
 		return
 	}
-	writeJSON(w, http.StatusOK, result)
+	WriteJSON(w, http.StatusOK, result)
 }
 
 func (s *Server) handleCreateRefund(w http.ResponseWriter, r *http.Request) {
 	var req sandbox.RefundRequest
-	payload, err := readJSON(r, &req)
+	payload, err := ReadJSON(r, &req)
 	if err != nil {
 		writeError(w, err)
 		return
 	}
-	idem := requestIdempotencyKey(r, req.IdempotencyKey)
+	idem := RequestIdempotencyKey(r, req.IdempotencyKey)
 	result, err := s.svc.CreateRefund(req, idem, fingerprint(payload))
 	if err != nil {
 		writeError(w, err)
 		return
 	}
-	writeJSON(w, http.StatusCreated, result)
+	WriteJSON(w, http.StatusCreated, result)
 }
