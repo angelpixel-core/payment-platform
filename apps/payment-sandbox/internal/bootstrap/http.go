@@ -1,10 +1,10 @@
-package server
+package bootstrap
 
 import (
 	"log/slog"
+	"net/http"
 
 	nr "github.com/newrelic/go-agent/v3/newrelic"
-	"net/http"
 
 	httpadapter "payment-sandbox/internal/adapters/inbound/http"
 	httpmiddleware "payment-sandbox/internal/adapters/inbound/http/middleware"

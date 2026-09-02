@@ -1,4 +1,4 @@
-package server
+package server_test
 
 import (
 	"bytes"
@@ -7,6 +7,7 @@ import (
 	"net/http/httptest"
 	"testing"
 
+	"payment-sandbox/internal/bootstrap"
 	"payment-sandbox/internal/sandbox"
 )
 
@@ -51,7 +52,7 @@ type errorEnvelope struct {
 }
 
 func TestPaymentLifecycle(t *testing.T) {
-	client := httptest.NewServer(New(sandbox.NewService()))
+	client := httptest.NewServer(bootstrap.New(sandbox.NewService()))
 	defer client.Close()
 
 	_, created := doPost[createEnvelope](t, client.URL+"/v1/payment_intents", map[string]any{
@@ -85,7 +86,7 @@ func TestPaymentLifecycle(t *testing.T) {
 }
 
 func TestQueryEndpoints(t *testing.T) {
-	client := httptest.NewServer(New(sandbox.NewService()))
+	client := httptest.NewServer(bootstrap.New(sandbox.NewService()))
 	defer client.Close()
 
 	_, created := doPost[createEnvelope](t, client.URL+"/v1/payment_intents", map[string]any{
@@ -146,7 +147,7 @@ func TestQueryEndpoints(t *testing.T) {
 }
 
 func TestIdempotency(t *testing.T) {
-	client := httptest.NewServer(New(sandbox.NewService()))
+	client := httptest.NewServer(bootstrap.New(sandbox.NewService()))
 	defer client.Close()
 
 	_, first := doPost[createEnvelope](t, client.URL+"/v1/payment_intents", map[string]any{
@@ -210,7 +211,7 @@ func TestScenarioResponses(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			client := httptest.NewServer(New(sandbox.NewService()))
+			client := httptest.NewServer(bootstrap.New(sandbox.NewService()))
 			defer client.Close()
 
 			_, created := doPost[createEnvelope](t, client.URL+"/v1/payment_intents", map[string]any{
@@ -297,7 +298,7 @@ func TestErrorResponses(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			client := httptest.NewServer(New(sandbox.NewService()))
+			client := httptest.NewServer(bootstrap.New(sandbox.NewService()))
 			defer client.Close()
 
 			resp, body := tt.setup(t, client.URL)
@@ -313,7 +314,7 @@ func TestErrorResponses(t *testing.T) {
 }
 
 func TestHTTPContractShapes(t *testing.T) {
-	client := httptest.NewServer(New(sandbox.NewService()))
+	client := httptest.NewServer(bootstrap.New(sandbox.NewService()))
 	defer client.Close()
 
 	createResp, createBody := doPostRawWithHeaders(t, client.URL+"/v1/payment_intents", map[string]any{
@@ -369,7 +370,7 @@ func TestHTTPContractShapes(t *testing.T) {
 }
 
 func TestHealth(t *testing.T) {
-	client := httptest.NewServer(New(sandbox.NewService()))
+	client := httptest.NewServer(bootstrap.New(sandbox.NewService()))
 	defer client.Close()
 
 	resp, err := http.Get(client.URL + "/health")
