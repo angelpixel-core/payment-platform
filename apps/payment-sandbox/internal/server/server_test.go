@@ -49,6 +49,10 @@ type refundViewEnvelope struct {
 	Refund payments.RefundView `json:"refund"`
 }
 
+type lifecycleEnvelope struct {
+	PaymentLifecycle payments.PaymentLifecycleView `json:"payment_lifecycle"`
+}
+
 type errorEnvelope struct {
 	Error domain.Error `json:"error"`
 }
@@ -84,6 +88,21 @@ func TestPaymentLifecycle(t *testing.T) {
 	}
 	if refunded.Charge.Status != "refunded" {
 		t.Fatalf("expected refunded charge status, got %s", refunded.Charge.Status)
+	}
+
+	resp, body := doGet(t, client.URL+"/v1/payment_intents/"+intentID+"/lifecycle")
+	if resp.StatusCode != http.StatusOK {
+		t.Fatalf("expected 200, got %d", resp.StatusCode)
+	}
+	var gotLifecycle lifecycleEnvelope
+	if err := json.Unmarshal(body, &gotLifecycle); err != nil {
+		t.Fatalf("decode lifecycle failed: %v", err)
+	}
+	if gotLifecycle.PaymentLifecycle.Status != "refunded" {
+		t.Fatalf("expected refunded lifecycle, got %s", gotLifecycle.PaymentLifecycle.Status)
+	}
+	if gotLifecycle.PaymentLifecycle.RefundableAmount != 0 || gotLifecycle.PaymentLifecycle.IsRefundable {
+		t.Fatalf("expected non-refundable lifecycle after full refund, got %+v", gotLifecycle.PaymentLifecycle)
 	}
 }
 
@@ -145,6 +164,18 @@ func TestQueryEndpoints(t *testing.T) {
 	}
 	if gotRefund.Refund.ID != refunded.Refund.ID {
 		t.Fatalf("expected refund %s, got %s", refunded.Refund.ID, gotRefund.Refund.ID)
+	}
+
+	resp, body = doGet(t, client.URL+"/v1/payment_intents/"+created.PaymentIntent.ID+"/lifecycle")
+	if resp.StatusCode != http.StatusOK {
+		t.Fatalf("expected 200, got %d", resp.StatusCode)
+	}
+	var gotLifecycle lifecycleEnvelope
+	if err := json.Unmarshal(body, &gotLifecycle); err != nil {
+		t.Fatalf("decode lifecycle failed: %v", err)
+	}
+	if gotLifecycle.PaymentLifecycle.Status != "refunded" {
+		t.Fatalf("expected refunded lifecycle, got %s", gotLifecycle.PaymentLifecycle.Status)
 	}
 }
 

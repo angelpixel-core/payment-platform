@@ -48,6 +48,7 @@ type PaymentIntentView = payments.PaymentIntentView
 type PaymentAttemptView = payments.PaymentAttemptView
 type ChargeView = payments.ChargeView
 type RefundView = payments.RefundView
+type PaymentLifecycleView = payments.PaymentLifecycleView
 
 type CreatePaymentIntentRequest = domain.CreatePaymentIntentRequest
 type ConfirmPaymentIntentRequest = domain.ConfirmPaymentIntentRequest

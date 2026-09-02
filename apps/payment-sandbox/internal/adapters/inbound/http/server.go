@@ -24,6 +24,7 @@ func (s *Server) routes() {
 	s.mux.HandleFunc("GET /v1/payment_attempts/{id}", s.handleGetPaymentAttempt)
 	s.mux.HandleFunc("GET /v1/charges/{id}", s.handleGetCharge)
 	s.mux.HandleFunc("GET /v1/refunds/{id}", s.handleGetRefund)
+	s.mux.HandleFunc("GET /v1/payment_intents/{id}/lifecycle", s.handleGetPaymentLifecycle)
 	s.mux.HandleFunc("POST /v1/payment_intents", s.handleCreatePaymentIntent)
 	s.mux.HandleFunc("POST /v1/payment_intents/{id}/confirm", s.handleConfirmPaymentIntent)
 	s.mux.HandleFunc("POST /v1/payment_intents/{id}/capture", s.handleCapturePaymentIntent)
@@ -84,6 +85,15 @@ func (s *Server) handleGetRefund(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	WriteJSON(w, http.StatusOK, map[string]any{"refund": refund})
+}
+
+func (s *Server) handleGetPaymentLifecycle(w http.ResponseWriter, r *http.Request) {
+	lifecycle, err := s.svc.GetPaymentLifecycle(r.PathValue("id"))
+	if err != nil {
+		writeError(w, err)
+		return
+	}
+	WriteJSON(w, http.StatusOK, map[string]any{"payment_lifecycle": lifecycle})
 }
 
 func (s *Server) handleConfirmPaymentIntent(w http.ResponseWriter, r *http.Request) {

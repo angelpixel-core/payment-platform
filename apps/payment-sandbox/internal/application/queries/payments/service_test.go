@@ -11,7 +11,7 @@ func TestPaymentQueryService(t *testing.T) {
 	store := memory.NewStore(nil)
 	query := NewPaymentQueryService(store)
 
-	intent := domain.PaymentIntent{ID: "pi_1", Amount: 100, Currency: "USD", Status: domain.PaymentIntentSucceeded}
+	intent := domain.PaymentIntent{ID: "pi_1", Amount: 100, Currency: "USD", Status: domain.PaymentIntentSucceeded, ChargeID: "ch_1", LatestAttemptID: "pa_1"}
 	attempt := domain.PaymentAttempt{ID: "pa_1", PaymentIntentID: "pi_1", Status: domain.PaymentAttemptAuthorized}
 	charge := domain.Charge{ID: "ch_1", PaymentIntentID: "pi_1", Amount: 100, Status: domain.ChargeCaptured}
 	refund := domain.Refund{ID: "re_1", ChargeID: "ch_1", Amount: 100, Status: domain.RefundSucceeded}
@@ -20,6 +20,9 @@ func TestPaymentQueryService(t *testing.T) {
 	store.SavePaymentAttempt(attempt)
 	store.SaveCharge(charge)
 	store.SaveRefund(refund)
+	charge.RefundedAmount = 100
+	charge.Status = domain.ChargeRefunded
+	store.SaveCharge(charge)
 
 	gotIntent, err := query.GetPaymentIntent("pi_1")
 	if err != nil {
@@ -51,5 +54,19 @@ func TestPaymentQueryService(t *testing.T) {
 	}
 	if gotRefund.ID != refund.ID || gotRefund.Status != string(refund.Status) {
 		t.Fatalf("unexpected refund: %+v", gotRefund)
+	}
+
+	lifecycle, err := query.GetPaymentLifecycle("pi_1")
+	if err != nil {
+		t.Fatalf("get lifecycle failed: %v", err)
+	}
+	if lifecycle.Status != "refunded" {
+		t.Fatalf("expected refunded lifecycle, got %s", lifecycle.Status)
+	}
+	if lifecycle.RefundableAmount != 0 || lifecycle.IsRefundable {
+		t.Fatalf("expected non-refundable lifecycle, got %+v", lifecycle)
+	}
+	if lifecycle.LatestAttempt == nil || lifecycle.Charge == nil {
+		t.Fatalf("expected nested attempt and charge in lifecycle: %+v", lifecycle)
 	}
 }
