@@ -30,7 +30,7 @@ func NewService() *Service {
 }
 
 func NewServiceWithMetrics(metricsRecorder metrics.MetricsRecorder) *Service {
-	store := NewMemoryStore(metricsRecorder)
+	store := memory.NewStore(metricsRecorder)
 	dispatcher := inprocess.NewPublisher()
 	eventRecorder := appobs.NewRecorder()
 	appobs.RegisterInternalHandlers(dispatcher, eventRecorder)
