@@ -45,12 +45,3 @@ type RefundView struct {
 	CreatedAt       time.Time `json:"created_at"`
 	UpdatedAt       time.Time `json:"updated_at"`
 }
-
-type PaymentLifecycleView struct {
-	PaymentIntent   PaymentIntentView   `json:"payment_intent"`
-	LatestAttempt   *PaymentAttemptView  `json:"latest_attempt,omitempty"`
-	Charge          *ChargeView         `json:"charge,omitempty"`
-	Status          string              `json:"status"`
-	RefundableAmount int64              `json:"refundable_amount"`
-	IsRefundable    bool                `json:"is_refundable"`
-}
