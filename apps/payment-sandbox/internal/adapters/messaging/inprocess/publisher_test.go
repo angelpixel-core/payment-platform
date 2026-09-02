@@ -9,6 +9,7 @@ import (
 type testEvent struct{}
 
 func (testEvent) EventName() string { return "test.event" }
+func (testEvent) EventVersion() int  { return 1 }
 
 func TestPublisherDispatchesHandlers(t *testing.T) {
 	p := NewPublisher()

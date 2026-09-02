@@ -13,6 +13,7 @@ import (
 type testEvent struct{ name string }
 
 func (e testEvent) EventName() string { return e.name }
+func (e testEvent) EventVersion() int  { return 1 }
 
 func TestPublisherQueuesAndDispatches(t *testing.T) {
 	downstream := inprocess.NewPublisher()

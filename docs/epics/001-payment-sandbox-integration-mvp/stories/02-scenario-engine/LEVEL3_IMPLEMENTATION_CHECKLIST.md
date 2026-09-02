@@ -84,7 +84,7 @@ Elevar `payment-sandbox` al Nivel 3 sin perder los contratos ya cerrados.
 - [ ] `refactor(payment-sandbox): formalize aggregates and domain events`
   - [x] Prereq: `PaymentIntent` ya tiene reglas de agregado. [Evidence](./LEVEL2_DDD_RULES.md)
   - [x] Prereq: los eventos tipados ya salen del flujo in-process. [Evidence](./IMPLEMENTATION_CHECKLIST.md)
-  - [ ] Promover el modelo de eventos a una forma de dominio mas formal.
+  - [x] Promover el modelo de eventos a una forma de dominio mas formal. [Evidence](../../../../../apps/payment-sandbox/internal/domain/events.go)
   - [ ] Endurecer boundaries de agregado y services solo donde haga falta.
 
 ## 4. CQRS Completo
