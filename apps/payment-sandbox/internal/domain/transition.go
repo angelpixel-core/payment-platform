@@ -21,6 +21,12 @@ type CapturePaymentIntentCommand struct {
 	Now    time.Time
 }
 
+type RefundChargeCommand struct {
+	RefundID string
+	Amount   Amount
+	Now      time.Time
+}
+
 type ConfirmPaymentIntentResult struct {
 	PaymentIntent  PaymentIntent
 	PaymentAttempt PaymentAttempt

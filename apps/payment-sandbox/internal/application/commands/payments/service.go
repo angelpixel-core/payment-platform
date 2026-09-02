@@ -146,18 +146,18 @@ func (s *PaymentService) FinalizeProcessingPaymentIntent(intentID string) (domai
 
 func (s *PaymentService) CapturePaymentIntent(intentID string, req domain.CapturePaymentIntentRequest) (domain.CapturePaymentIntentResponse, error) {
 	var response domain.CapturePaymentIntentResponse
-	err := s.uow.Do(func(tx ports.Transaction) error {
-		intent, err := tx.GetPaymentIntent(intentID)
-		if err != nil {
-			return err
-		}
-		if err := intent.CanCapture(); err != nil {
-			return err
-		}
-		charge, err := tx.GetCharge(intent.ChargeID)
-		if err != nil {
-			return err
-		}
+		err := s.uow.Do(func(tx ports.Transaction) error {
+			intent, err := tx.GetPaymentIntent(intentID)
+			if err != nil {
+				return err
+			}
+			if err := intent.CanCapture(); err != nil {
+				return err
+			}
+			charge, err := tx.GetCharge(intent.ChargeID)
+			if err != nil {
+				return err
+			}
 
 		now := s.clock.Now()
 		result, err := intent.Capture(domain.CapturePaymentIntentCommand{Charge: &charge, Amount: domain.Amount(req.Amount), Now: now})

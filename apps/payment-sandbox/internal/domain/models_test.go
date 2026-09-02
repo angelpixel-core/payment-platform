@@ -123,3 +123,49 @@ func TestPaymentIntentAggregateRules(t *testing.T) {
 		}
 	})
 }
+
+func TestChargeRefund(t *testing.T) {
+	now := time.Unix(400, 0)
+
+	t.Run("full refund defaults remaining amount", func(t *testing.T) {
+		charge := Charge{ID: "ch_1", PaymentIntentID: "pi_1", Amount: 100, CapturedAmount: 100, Status: ChargeCaptured}
+		refund, err := charge.Refund(RefundChargeCommand{RefundID: "re_1", Amount: 0, Now: now})
+		if err != nil {
+			t.Fatalf("refund failed: %v", err)
+		}
+		if refund.Amount != 100 {
+			t.Fatalf("expected full refund, got %d", refund.Amount)
+		}
+		if charge.RefundedAmount != 100 || charge.Status != ChargeRefunded {
+			t.Fatalf("expected refunded charge, got %+v", charge)
+		}
+	})
+
+	t.Run("partial refund keeps partially refunded state", func(t *testing.T) {
+		charge := Charge{ID: "ch_1", PaymentIntentID: "pi_1", Amount: 100, CapturedAmount: 100, Status: ChargeCaptured}
+		refund, err := charge.Refund(RefundChargeCommand{RefundID: "re_1", Amount: 40, Now: now})
+		if err != nil {
+			t.Fatalf("refund failed: %v", err)
+		}
+		if refund.Amount != 40 {
+			t.Fatalf("expected partial refund, got %d", refund.Amount)
+		}
+		if charge.RefundedAmount != 40 || charge.Status != ChargePartiallyRefunded {
+			t.Fatalf("expected partially refunded charge, got %+v", charge)
+		}
+	})
+
+	t.Run("rejects non captured charge", func(t *testing.T) {
+		charge := Charge{ID: "ch_1", Amount: 100, Status: ChargeAuthorized}
+		if _, err := charge.Refund(RefundChargeCommand{RefundID: "re_1", Amount: 10, Now: now}); err == nil {
+			t.Fatalf("expected error")
+		}
+	})
+
+	t.Run("rejects over refund", func(t *testing.T) {
+		charge := Charge{ID: "ch_1", Amount: 100, CapturedAmount: 100, Status: ChargeCaptured, RefundedAmount: 80}
+		if _, err := charge.Refund(RefundChargeCommand{RefundID: "re_1", Amount: 30, Now: now}); err == nil {
+			t.Fatalf("expected error")
+		}
+	})
+}

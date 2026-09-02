@@ -238,6 +238,42 @@ type Charge struct {
 	UpdatedAt        time.Time    `json:"updated_at"`
 }
 
+func (c *Charge) CanRefund(amount Amount) error {
+	if c.Status != ChargeCaptured && c.Status != ChargePartiallyRefunded {
+		return NewError(409, "invalid_charge_state", "charge must be captured before refunding")
+	}
+	remaining := c.Amount - c.RefundedAmount
+	if amount == 0 {
+		amount = remaining
+	}
+	if amount <= 0 {
+		return NewError(400, "invalid_amount", "refund amount must be greater than zero")
+	}
+	if amount > remaining {
+		return NewError(400, "invalid_amount", "refund amount cannot exceed remaining captured amount")
+	}
+	return nil
+}
+
+func (c *Charge) Refund(cmd RefundChargeCommand) (Refund, error) {
+	if err := c.CanRefund(cmd.Amount); err != nil {
+		return Refund{}, err
+	}
+	amount := cmd.Amount
+	remaining := c.Amount - c.RefundedAmount
+	if amount == 0 {
+		amount = remaining
+	}
+	if amount == remaining {
+		c.Status = ChargeRefunded
+	} else {
+		c.Status = ChargePartiallyRefunded
+	}
+	c.RefundedAmount += amount
+	c.UpdatedAt = cmd.Now
+	return Refund{ID: cmd.RefundID, ChargeID: c.ID, PaymentIntentID: c.PaymentIntentID, Amount: amount, Status: RefundSucceeded, CreatedAt: cmd.Now, UpdatedAt: cmd.Now}, nil
+}
+
 type Refund struct {
 	ID              string       `json:"id"`
 	ChargeID        string       `json:"charge_id"`
