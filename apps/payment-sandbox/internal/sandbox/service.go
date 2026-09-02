@@ -109,6 +109,10 @@ func (s *Service) GetPaymentAttempt(id string) (PaymentAttemptView, error) {
 func (s *Service) GetCharge(id string) (ChargeView, error) { return s.queries.GetCharge(id) }
 func (s *Service) GetRefund(id string) (RefundView, error) { return s.queries.GetRefund(id) }
 
+func (s *Service) GetPaymentLifecycle(id string) (PaymentLifecycleView, error) {
+	return s.queries.GetPaymentLifecycle(id)
+}
+
 func (s *Service) EventRecorder() *appobs.Recorder { return s.recorder }
 
 func (s *Service) recordFlow(flow string, start time.Time, err *error) {

@@ -92,7 +92,7 @@ Elevar `payment-sandbox` al Nivel 3 sin perder los contratos ya cerrados.
 - [ ] `refactor(payment-sandbox): introduce read models and projections`
   - [x] Prereq: commands y queries ya estan separados. [Evidence](./LEVEL2_MODULE_BOUNDARIES.md)
   - [x] Prereq: existen modelos de lectura para los flujos actuales. [Evidence](./LEVEL2_MODULE_BOUNDARIES.md)
-  - [ ] Agregar read models o proyecciones explicitas donde el modelo actual no alcance.
+  - [x] Agregar read models o proyecciones explicitas donde el modelo actual no alcance. [Evidence](../../../../../apps/payment-sandbox/internal/application/queries/payments/views.go)
   - [ ] Mantener la side write aislada de optimizaciones de lectura.
 
 ## 5. UoW y Atomicidad Multi-Repo
