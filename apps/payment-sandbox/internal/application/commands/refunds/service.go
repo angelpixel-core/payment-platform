@@ -32,31 +32,11 @@ func (s *Service) CreateRefund(req domain.RefundRequest, idempotencyKey, fingerp
 			if err != nil {
 				return nil, err
 			}
-			if charge.CapturedAmount == 0 {
-				return nil, domain.NewError(409, "invalid_charge_state", "charge must be captured before refunding")
-			}
-
-			remaining := charge.CapturedAmount - charge.RefundedAmount
-			amount := domain.Amount(req.Amount)
-			if amount == 0 {
-				amount = remaining
-			}
-			if amount <= 0 {
-				return nil, domain.NewError(400, "invalid_amount", "refund amount must be greater than zero")
-			}
-			if amount > remaining {
-				return nil, domain.NewError(400, "invalid_amount", "refund amount cannot exceed remaining captured amount")
-			}
-
 			now := s.clock.Now()
-			refund := domain.Refund{ID: tx.NextID("re"), ChargeID: charge.ID, PaymentIntentID: charge.PaymentIntentID, Amount: amount, Status: domain.RefundSucceeded, CreatedAt: now, UpdatedAt: now}
-			charge.RefundedAmount += amount
-			if charge.RefundedAmount == charge.CapturedAmount {
-				charge.Status = domain.ChargeRefunded
-			} else {
-				charge.Status = domain.ChargePartiallyRefunded
+			refund, err := charge.Refund(domain.RefundChargeCommand{RefundID: tx.NextID("re"), Amount: domain.Amount(req.Amount), Now: now})
+			if err != nil {
+				return nil, err
 			}
-			charge.UpdatedAt = now
 			tx.SaveRefund(refund)
 			tx.SaveCharge(charge)
 			_ = tx.Publish(domain.RefundCreatedEvent{Refund: refund, Charge: charge})
