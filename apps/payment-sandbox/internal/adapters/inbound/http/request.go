@@ -7,7 +7,7 @@ import (
 	"strings"
 )
 
-func requestIdempotencyKey(r *http.Request, fallback string) string {
+func RequestIdempotencyKey(r *http.Request, fallback string) string {
 	if key := strings.TrimSpace(r.Header.Get("Idempotency-Key")); key != "" {
 		return key
 	}

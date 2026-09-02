@@ -6,7 +6,7 @@ import (
 	"net/http"
 )
 
-func readJSON(r *http.Request, dst any) ([]byte, error) {
+func ReadJSON(r *http.Request, dst any) ([]byte, error) {
 	defer r.Body.Close()
 	body, err := io.ReadAll(io.LimitReader(r.Body, 1<<20))
 	if err != nil {
@@ -21,12 +21,12 @@ func readJSON(r *http.Request, dst any) ([]byte, error) {
 	return body, nil
 }
 
-func readJSONBody(r *http.Request, dst any) error {
-	_, err := readJSON(r, dst)
+func ReadJSONBody(r *http.Request, dst any) error {
+	_, err := ReadJSON(r, dst)
 	return err
 }
 
-func writeJSON(w http.ResponseWriter, status int, v any) {
+func WriteJSON(w http.ResponseWriter, status int, v any) {
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(status)
 	_ = json.NewEncoder(w).Encode(v)
