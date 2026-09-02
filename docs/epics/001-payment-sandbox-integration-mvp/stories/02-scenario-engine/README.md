@@ -44,7 +44,7 @@ Make the sandbox deterministic by driving payment outcomes from named scenarios.
 - [ ] Real fraud or risk scoring
 - [ ] Crypto scenarios
 - [ ] Provider-specific edge cases beyond the shared card flow
-- [ ] Webhook delivery
+- [ ] Webhook delivery (desactualizado: solo aplica cuando exista bus externo real)
 - [ ] Ledger projections
 
 ## System Design
@@ -85,7 +85,7 @@ flowchart LR
 
 ## Dependencies
 
-- [ ] Sandbox API base
+- [x] Sandbox API base
 
 ## Related Docs
 
