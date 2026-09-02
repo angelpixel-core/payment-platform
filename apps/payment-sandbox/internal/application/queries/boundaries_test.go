@@ -1,4 +1,4 @@
-package application_test
+package queries_test
 
 import (
 	"go/parser"
@@ -11,20 +11,14 @@ import (
 	"testing"
 )
 
-func TestApplicationImportBoundaries(t *testing.T) {
+func TestQueryImportBoundaries(t *testing.T) {
 	_, currentFile, _, ok := runtime.Caller(0)
 	if !ok {
 		t.Fatal("failed to resolve caller path")
 	}
 
 	root := filepath.Dir(currentFile)
-	allowed := map[string]struct{}{
-		"payment-sandbox/internal/domain":                      {},
-		"payment-sandbox/internal/ports":                       {},
-		"payment-sandbox/internal/application/queries":         {},
-		"payment-sandbox/internal/application/queries/payments/projections": {},
-		"payment-sandbox/internal/application/support":         {},
-	}
+	forbidden := "payment-sandbox/internal/application/commands"
 
 	err := filepath.WalkDir(root, func(path string, d fs.DirEntry, err error) error {
 		if err != nil {
@@ -48,10 +42,8 @@ func TestApplicationImportBoundaries(t *testing.T) {
 			if unquoteErr != nil {
 				return unquoteErr
 			}
-			if strings.HasPrefix(importPath, "payment-sandbox/internal/") {
-				if _, ok := allowed[importPath]; !ok {
-					return &boundaryError{file: path, importPath: importPath}
-				}
+			if strings.HasPrefix(importPath, forbidden) {
+				return &boundaryError{file: path, importPath: importPath}
 			}
 		}
 		return nil
@@ -68,5 +60,5 @@ type boundaryError struct {
 }
 
 func (e *boundaryError) Error() string {
-	return "forbidden internal import " + e.importPath + " in " + e.file
+	return "forbidden command import " + e.importPath + " in " + e.file
 }

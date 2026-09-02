@@ -50,7 +50,7 @@ type refundViewEnvelope struct {
 }
 
 type lifecycleEnvelope struct {
-	PaymentLifecycle payments.PaymentLifecycleView `json:"payment_lifecycle"`
+	PaymentLifecycle sandbox.PaymentLifecycleView `json:"payment_lifecycle"`
 }
 
 type errorEnvelope struct {

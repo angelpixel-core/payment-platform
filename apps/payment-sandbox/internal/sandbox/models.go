@@ -2,6 +2,7 @@ package sandbox
 
 import (
 	"payment-sandbox/internal/application/queries/payments"
+	paymentsprojections "payment-sandbox/internal/application/queries/payments/projections"
 	"payment-sandbox/internal/domain"
 )
 
@@ -48,7 +49,7 @@ type PaymentIntentView = payments.PaymentIntentView
 type PaymentAttemptView = payments.PaymentAttemptView
 type ChargeView = payments.ChargeView
 type RefundView = payments.RefundView
-type PaymentLifecycleView = payments.PaymentLifecycleView
+type PaymentLifecycleView = paymentsprojections.PaymentLifecycleView
 
 type CreatePaymentIntentRequest = domain.CreatePaymentIntentRequest
 type ConfirmPaymentIntentRequest = domain.ConfirmPaymentIntentRequest

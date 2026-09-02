@@ -1,4 +1,4 @@
-package application_test
+package commands_test
 
 import (
 	"go/parser"
@@ -11,7 +11,7 @@ import (
 	"testing"
 )
 
-func TestApplicationImportBoundaries(t *testing.T) {
+func TestCommandImportBoundaries(t *testing.T) {
 	_, currentFile, _, ok := runtime.Caller(0)
 	if !ok {
 		t.Fatal("failed to resolve caller path")
@@ -19,11 +19,9 @@ func TestApplicationImportBoundaries(t *testing.T) {
 
 	root := filepath.Dir(currentFile)
 	allowed := map[string]struct{}{
-		"payment-sandbox/internal/domain":                      {},
-		"payment-sandbox/internal/ports":                       {},
-		"payment-sandbox/internal/application/queries":         {},
-		"payment-sandbox/internal/application/queries/payments/projections": {},
-		"payment-sandbox/internal/application/support":         {},
+		"payment-sandbox/internal/domain":             {},
+		"payment-sandbox/internal/ports":              {},
+		"payment-sandbox/internal/application/support": {},
 	}
 
 	err := filepath.WalkDir(root, func(path string, d fs.DirEntry, err error) error {
