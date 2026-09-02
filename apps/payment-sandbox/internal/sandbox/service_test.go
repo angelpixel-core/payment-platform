@@ -4,6 +4,8 @@ import (
 	"crypto/sha256"
 	"encoding/hex"
 	"testing"
+
+	"payment-sandbox/internal/domain"
 )
 
 func fingerprintString(value string) string {
@@ -144,11 +146,11 @@ func TestScenarioResolution(t *testing.T) {
 		name           string
 		headerScenario string
 		token          string
-		wantScenario   ScenarioName
+		wantScenario   domain.ScenarioName
 		wantError      bool
 	}{
-		{name: "header priority", headerScenario: "declined_insufficient_funds", token: "pm_card_visa", wantScenario: ScenarioDeclinedInsufficientFunds},
-		{name: "token fallback", headerScenario: "", token: "pm_card_insufficient_funds", wantScenario: ScenarioDeclinedInsufficientFunds},
+		{name: "header priority", headerScenario: "declined_insufficient_funds", token: "pm_card_visa", wantScenario: domain.ScenarioDeclinedInsufficientFunds},
+		{name: "token fallback", headerScenario: "", token: "pm_card_insufficient_funds", wantScenario: domain.ScenarioDeclinedInsufficientFunds},
 		{name: "unknown header", headerScenario: "unknown_scenario", token: "pm_card_visa", wantError: true},
 	}
 

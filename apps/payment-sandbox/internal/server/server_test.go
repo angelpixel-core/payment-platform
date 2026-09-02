@@ -7,6 +7,8 @@ import (
 	"net/http/httptest"
 	"testing"
 
+	"payment-sandbox/internal/application/queries/payments"
+	"payment-sandbox/internal/domain"
 	"payment-sandbox/internal/bootstrap"
 	"payment-sandbox/internal/sandbox"
 )
@@ -32,23 +34,23 @@ type refundEnvelope struct {
 }
 
 type intentViewEnvelope struct {
-	PaymentIntent sandbox.PaymentIntentView `json:"payment_intent"`
+	PaymentIntent payments.PaymentIntentView `json:"payment_intent"`
 }
 
 type attemptViewEnvelope struct {
-	PaymentAttempt sandbox.PaymentAttemptView `json:"payment_attempt"`
+	PaymentAttempt payments.PaymentAttemptView `json:"payment_attempt"`
 }
 
 type chargeViewEnvelope struct {
-	Charge sandbox.ChargeView `json:"charge"`
+	Charge payments.ChargeView `json:"charge"`
 }
 
 type refundViewEnvelope struct {
-	Refund sandbox.RefundView `json:"refund"`
+	Refund payments.RefundView `json:"refund"`
 }
 
 type errorEnvelope struct {
-	Error sandbox.Error `json:"error"`
+	Error domain.Error `json:"error"`
 }
 
 func TestPaymentLifecycle(t *testing.T) {

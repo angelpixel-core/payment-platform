@@ -1,9 +1,13 @@
 package sandbox
 
-import "testing"
+import (
+	"testing"
+
+	"payment-sandbox/internal/adapters/persistence/memory"
+)
 
 func TestMemoryStoreRoundTrip(t *testing.T) {
-	store := NewMemoryStore(nil)
+	store := memory.NewStore(nil)
 
 	intent := PaymentIntent{ID: "pi_1", Amount: 100}
 	store.SavePaymentIntent(intent)
