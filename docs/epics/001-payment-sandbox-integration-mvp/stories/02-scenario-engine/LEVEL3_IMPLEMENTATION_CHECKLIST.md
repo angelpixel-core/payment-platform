@@ -77,7 +77,7 @@ Elevar `payment-sandbox` al Nivel 3 sin perder los contratos ya cerrados.
   - [x] Prereq: ports y adapters ya estan separados. [Evidence](./LEVEL2_MODULE_BOUNDARIES.md)
   - [x] Prereq: los adapters concretos ya implementan IO y tiempo. [Evidence](./ARCHITECTURE_PLAN.md)
   - [x] Auditar fugas entre application y adapters. [Evidence](../../../../../apps/payment-sandbox/internal/application/boundaries_test.go)
-  - [ ] Forzar que toda dependencia inbound y outbound pase por un puerto.
+  - [x] Forzar que toda dependencia inbound y outbound pase por un puerto. [Evidence](./ARCHITECTURE_PLAN.md)
 
 ## 3. DDD Formal
 
