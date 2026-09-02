@@ -84,6 +84,9 @@ Regla: un modulo no importa internals de otro modulo; solo contracts puertos o A
 - Exponer un `EventPublisher` como puerto en Nivel 2.
 - Empezar con dispatcher in-process.
 - Reservar `outbox`, bus externo y consumidores asincronos para una etapa posterior.
+- Gate de entrada: solo integrar bus externo cuando exista una integracion real que lo justifique.
+- Ejemplos de casos que si lo justificarian: `Kafka` para fanout o integracion de eventos, `SQS` para colas durables con reintentos, `RabbitMQ` para ruteo y workers, o un partner externo custom con contrato real de webhook/EDI/API.
+- Si no hay un requerimiento cross-process concreto, mantener el flujo in-process y/o dentro de la base de outbox actual.
 - La meta es evitar una integracion traumática mas adelante sin pagar todavia el costo completo de distribucion.
 
 ## Unit of Work
