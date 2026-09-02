@@ -91,6 +91,8 @@ Regla: un modulo no importa internals de otro modulo; solo contracts puertos o A
 - Probablemente util cuando haya multiples escrituras que deban ser atomicas.
 - Hoy no es estrictamente necesario con el MemoryStore, pero si lo sera cuando aparezca PostgreSQL real o mas de un agregado por caso de uso.
 - Cuando llegue ese punto, la UoW deberia vivir como puerto de aplicacion, no dentro del dominio.
+- Caso futuro tipico: registrar una operacion financiera y su contrapartida contable/ledger en la misma transaccion.
+- Regla practica: si una escritura no puede quedar pendiente para reconciliacion o consistencia eventual, debe entrar en la UoW.
 
 ## Non-Functional Concerns
 

@@ -101,7 +101,7 @@ Elevar `payment-sandbox` al Nivel 3 sin perder los contratos ya cerrados.
   - [x] Prereq: la UoW ya figura como implementada en Nivel 2. [Evidence](./IMPLEMENTATION_CHECKLIST.md)
   - [x] Prereq: existe contrato de metricas para UoW. [Evidence](./OBSERVABILITY_METRICS.md)
   - [x] Prereq: la implementacion memory/postgres ya esta prevista por contrato. [Evidence](./OBSERVABILITY_METRICS.md)
-  - [ ] Extender la UoW a cualquier flujo nuevo que requiera atomicidad multi-repositorio.
+  - [x] Extender la UoW a cualquier flujo nuevo que requiera atomicidad multi-repositorio. [Evidence](./ARCHITECTURE_PLAN.md)
 
 ## 6. Outbox, Bus Externo y Consumidores Asincronos
 
