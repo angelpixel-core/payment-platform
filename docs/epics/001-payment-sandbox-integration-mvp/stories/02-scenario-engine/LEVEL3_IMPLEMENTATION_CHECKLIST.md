@@ -15,6 +15,38 @@ Elevar `payment-sandbox` al Nivel 3 sin perder los contratos ya cerrados.
 - Un commit por paso logico.
 - Antes de trabajar un item de Nivel 3, dejar claros sus prerequisitos y la evidencia que los respalda.
 
+## Regla Arquitectonica
+
+- `cmd/` contiene solo entrypoints.
+- `internal/bootstrap/` ensambla la aplicacion y no contiene reglas de negocio.
+- `internal/domain/` contiene el modelo y las invariantes del negocio.
+- `internal/application/` orquesta casos de uso y depende solo de `domain` y `ports`.
+- `internal/ports/` define contratos, sin dependencias de adaptadores.
+- `internal/adapters/` implementa IO concreto y depende de `domain` y `ports`.
+- `internal/server/` y `internal/sandbox/` no deben ser capas de negocio; si existen, quedan limitadas a wiring temporal o desaparecen a favor de `internal/bootstrap/`.
+- Ningun paquete de produccion debe importar internals de otro paquete hermano fuera de `ports` y contratos publicos.
+
+## Matriz de Dependencias
+
+| Capa | Puede depender de | No puede depender de |
+| --- | --- | --- |
+| `cmd/` | `internal/bootstrap/` | `domain`, `application`, `ports`, `adapters`, `server`, `sandbox` |
+| `internal/bootstrap/` | `application`, `ports`, `adapters`, `server` si solo actua como wiring | `domain` para reglas, `adapter` concretos con logica de negocio |
+| `internal/domain/` | stdlib y si misma | `application`, `ports`, `adapters`, `server`, `sandbox`, `bootstrap` |
+| `internal/application/` | `domain`, `ports`, `application/support` | `adapters`, `server`, `sandbox`, `bootstrap` |
+| `internal/ports/` | `domain` y stdlib | `application`, `adapters`, `server`, `sandbox`, `bootstrap` |
+| `internal/adapters/` | `domain`, `ports`, stdlib, libs externas | `application`, `server`, `sandbox`, `bootstrap` |
+| `internal/server/` | `bootstrap`, `application`, `ports`, `adapters` solo para wiring | reglas de negocio, dependencias ciclicas con `sandbox` |
+| `internal/sandbox/` | `bootstrap`, `application`, `ports`, `adapters` solo para wiring temporal | reglas de negocio, importaciones horizontales entre capas |
+
+## Criterios de Aplicacion
+
+- Si un paquete decide una regla de negocio, pertenece a `internal/domain/`.
+- Si un paquete orquesta un caso de uso, pertenece a `internal/application/`.
+- Si un paquete traduce o conecta IO, pertenece a `internal/adapters/`.
+- Si un paquete solo arma dependencias, pertenece a `internal/bootstrap/` o `cmd/`.
+- Si un paquete existe solo por compatibilidad historica, debe ser eliminado o degradado a wiring sin logica.
+
 ## 0. Prerequisitos Confirmados
 
 - [x] Monolito modular y limites por capacidad de negocio. [Evidence](./LEVEL2_MODULE_BOUNDARIES.md)
@@ -32,7 +64,8 @@ Elevar `payment-sandbox` al Nivel 3 sin perder los contratos ya cerrados.
   - [x] Prereq: el split domain/application/adapters ya existe. [Evidence](./LEVEL2_MODULE_BOUNDARIES.md)
   - [x] Prereq: HTTP ya es un adaptador delgado. [Evidence](./IMPLEMENTATION_CHECKLIST.md)
   - [x] Prereq: los puertos base ya estan definidos. [Evidence](./ARCHITECTURE_PLAN.md)
-  - [ ] Definir reglas de dependencia estrictas para la forma final de Nivel 3.
+  - [x] Definir reglas de dependencia estrictas para la forma final de Nivel 3.
+  - [x] Convertir las reglas en un boundary test automatico. [Evidence](../../../../../apps/payment-sandbox/internal/boundaries_test.go)
   - [ ] Mover cualquier helper restante a la capa correcta.
 
 ## 2. Hexagonal Completa
