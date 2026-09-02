@@ -1,4 +1,4 @@
-package sandbox
+package scenarios
 
 import (
 	"fmt"
@@ -8,10 +8,10 @@ import (
 )
 
 type ScenarioEngine struct {
-	config ScenarioConfig
+	config scenarioConfig
 }
 
-func NewScenarioEngine() *ScenarioEngine { return &ScenarioEngine{config: DefaultScenarioConfig()} }
+func NewScenarioEngine() *ScenarioEngine { return &ScenarioEngine{config: defaultScenarioConfig()} }
 
 func (e *ScenarioEngine) Resolve(headerScenario, paymentMethodToken string) (domain.ScenarioName, error) {
 	if scenario := domain.NormalizeScenarioName(headerScenario); scenario != "" {

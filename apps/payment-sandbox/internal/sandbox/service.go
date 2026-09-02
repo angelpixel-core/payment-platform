@@ -14,6 +14,7 @@ import (
 	commandpayments "payment-sandbox/internal/application/commands/payments"
 	commandrefunds "payment-sandbox/internal/application/commands/refunds"
 	"payment-sandbox/internal/application/queries/payments"
+	scenarios "payment-sandbox/internal/application/support/scenarios"
 	appobs "payment-sandbox/internal/application/support/observability"
 )
 
@@ -37,7 +38,7 @@ func NewServiceWithMetrics(metricsRecorder metrics.MetricsRecorder) *Service {
 	publisher := outbox.NewPublisher(dispatcher, metricsRecorder)
 	uow := memory.NewUnitOfWork(store, publisher)
 	clock := clockadapter.NewClock()
-	return &Service{commands: commandpayments.NewService(uow, clock, NewScenarioEngine()), refunds: commandrefunds.NewService(uow, clock), queries: payments.NewPaymentQueryService(store), recorder: eventRecorder, metrics: metricsRecorder}
+	return &Service{commands: commandpayments.NewService(uow, clock, scenarios.NewScenarioEngine()), refunds: commandrefunds.NewService(uow, clock), queries: payments.NewPaymentQueryService(store), recorder: eventRecorder, metrics: metricsRecorder}
 }
 
 func NewPostgresService(db *sql.DB) *Service {
@@ -51,7 +52,7 @@ func NewPostgresServiceWithMetrics(db *sql.DB, metricsRecorder metrics.MetricsRe
 	appobs.RegisterInternalHandlers(dispatcher, eventRecorder)
 	uow := postgres.NewUnitOfWork(db, dispatcher, metricsRecorder)
 	clock := clockadapter.NewClock()
-	return &Service{commands: commandpayments.NewService(uow, clock, NewScenarioEngine()), refunds: commandrefunds.NewService(uow, clock), queries: payments.NewPaymentQueryService(store), recorder: eventRecorder, metrics: metricsRecorder}
+	return &Service{commands: commandpayments.NewService(uow, clock, scenarios.NewScenarioEngine()), refunds: commandrefunds.NewService(uow, clock), queries: payments.NewPaymentQueryService(store), recorder: eventRecorder, metrics: metricsRecorder}
 }
 
 func (s *Service) CreatePaymentIntent(req CreatePaymentIntentRequest, idempotencyKey, fingerprint string) (PaymentIntent, error) {

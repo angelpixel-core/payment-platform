@@ -1,13 +1,13 @@
-package sandbox
+package scenarios
 
 import "payment-sandbox/internal/domain"
 
-type ScenarioConfig struct {
+type scenarioConfig struct {
 	tokenToScenario map[string]domain.ScenarioName
 }
 
-func DefaultScenarioConfig() ScenarioConfig {
-	return ScenarioConfig{
+func defaultScenarioConfig() scenarioConfig {
+	return scenarioConfig{
 		tokenToScenario: map[string]domain.ScenarioName{
 			"pm_card_visa":                    domain.ScenarioApprovedImmediate,
 			"pm_card_insufficient_funds":      domain.ScenarioDeclinedInsufficientFunds,
@@ -17,7 +17,7 @@ func DefaultScenarioConfig() ScenarioConfig {
 	}
 }
 
-func (c ScenarioConfig) isKnownScenario(name domain.ScenarioName) bool {
+func (c scenarioConfig) isKnownScenario(name domain.ScenarioName) bool {
 	switch domain.NormalizeScenarioName(string(name)) {
 	case domain.ScenarioApprovedImmediate, domain.ScenarioDeclinedInsufficientFunds, domain.ScenarioRequiresAction3DS, domain.ScenarioProcessingThenSucceeded:
 		return true
