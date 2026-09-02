@@ -60,7 +60,7 @@ Elevar `payment-sandbox` al Nivel 3 sin perder los contratos ya cerrados.
 
 ## 1. Clean Architecture Estricta
 
-- [ ] `refactor(payment-sandbox): make boundaries strict`
+- [x] `refactor(payment-sandbox): make boundaries strict`
   - [x] Prereq: el split domain/application/adapters ya existe. [Evidence](./LEVEL2_MODULE_BOUNDARIES.md)
   - [x] Prereq: HTTP ya es un adaptador delgado. [Evidence](./IMPLEMENTATION_CHECKLIST.md)
   - [x] Prereq: los puertos base ya estan definidos. [Evidence](./ARCHITECTURE_PLAN.md)
