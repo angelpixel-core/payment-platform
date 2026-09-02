@@ -113,7 +113,7 @@ Elevar `payment-sandbox` al Nivel 3 sin perder los contratos ya cerrados.
 
 ## 7. Acceptance
 
-- [ ] `test(payment-sandbox): keep level 3 contract stable`
-  - [ ] Verificar que los cambios de Nivel 3 no rompen el contrato HTTP publico.
-  - [ ] Verificar que `go test ./...` sigue verde.
-  - [ ] Verificar que `go test -race ./...` y los comandos de profiling siguen usables.
+- [x] `test(payment-sandbox): keep level 3 contract stable`
+  - [x] Verificar que los cambios de Nivel 3 no rompen el contrato HTTP publico. [Evidence](../../../../../apps/payment-sandbox/internal/server/server_test.go)
+  - [x] Verificar que `go test ./...` sigue verde.
+  - [x] Verificar que `go test -race ./...` y los comandos de profiling siguen usables. [Evidence](../../../../../apps/payment-sandbox/internal/sandbox/bench_test.go)
