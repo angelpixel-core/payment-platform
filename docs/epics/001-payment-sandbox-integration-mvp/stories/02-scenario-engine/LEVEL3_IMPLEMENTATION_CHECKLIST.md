@@ -81,7 +81,7 @@ Elevar `payment-sandbox` al Nivel 3 sin perder los contratos ya cerrados.
 
 ## 3. DDD Formal
 
-- [ ] `refactor(payment-sandbox): formalize aggregates and domain events`
+- [x] `refactor(payment-sandbox): formalize aggregates and domain events`
   - [x] Prereq: `PaymentIntent` ya tiene reglas de agregado. [Evidence](./LEVEL2_DDD_RULES.md)
   - [x] Prereq: los eventos tipados ya salen del flujo in-process. [Evidence](./IMPLEMENTATION_CHECKLIST.md)
   - [x] Promover el modelo de eventos a una forma de dominio mas formal. [Evidence](../../../../../apps/payment-sandbox/internal/domain/events.go)
@@ -89,7 +89,7 @@ Elevar `payment-sandbox` al Nivel 3 sin perder los contratos ya cerrados.
 
 ## 4. CQRS Completo
 
-- [ ] `refactor(payment-sandbox): introduce read models and projections`
+- [x] `refactor(payment-sandbox): introduce read models and projections`
   - [x] Prereq: commands y queries ya estan separados. [Evidence](./LEVEL2_MODULE_BOUNDARIES.md)
   - [x] Prereq: existen modelos de lectura para los flujos actuales. [Evidence](./LEVEL2_MODULE_BOUNDARIES.md)
   - [x] Agregar read models o proyecciones explicitas donde el modelo actual no alcance. [Evidence](../../../../../apps/payment-sandbox/internal/application/queries/payments/views.go)
