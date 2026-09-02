@@ -13,8 +13,8 @@ import (
 	newrelicmetrics "payment-sandbox/internal/adapters/observability/metrics/newrelic"
 	otelmetrics "payment-sandbox/internal/adapters/observability/metrics/otel"
 	"payment-sandbox/internal/adapters/persistence/postgres"
+	"payment-sandbox/internal/bootstrap"
 	"payment-sandbox/internal/sandbox"
-	"payment-sandbox/internal/server"
 )
 
 func main() {
@@ -53,7 +53,7 @@ func main() {
 	} else {
 		svc = sandbox.NewServiceWithMetrics(recorder)
 	}
-	handler := server.New(svc, server.WithLogger(logger), server.WithNewRelic(nrApp), server.WithMetrics(recorder))
+	handler := bootstrap.New(svc, bootstrap.WithLogger(logger), bootstrap.WithNewRelic(nrApp), bootstrap.WithMetrics(recorder))
 
 	server := &http.Server{
 		Addr:              ":" + addr,
