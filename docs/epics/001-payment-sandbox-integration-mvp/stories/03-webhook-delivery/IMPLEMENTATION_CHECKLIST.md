@@ -17,11 +17,11 @@ Implementar la entrega de webhooks con retries e idempotencia entre Go y Rails, 
 
 ## 1. Contrato del Webhook
 
-- [ ] `docs(payment-sandbox): define webhook delivery contract`
-  - [ ] Definir eventos soportados: `payment.succeeded`, `payment.failed`, `payment.processing`.
-  - [ ] Definir payload minimo comun.
-  - [ ] Definir `event_id`, `delivery_id`, `attempt` y metadata de delivery.
-  - [ ] Definir el formato de firma compartida.
+- [x] `docs(payment-sandbox): define webhook delivery contract`
+  - [x] Definir eventos soportados: `payment.succeeded`, `payment.failed`, `payment.processing`. [Evidence](./WEBHOOK_CONTRACT.md)
+  - [x] Definir payload minimo comun. [Evidence](./WEBHOOK_CONTRACT.md)
+  - [x] Definir `event_id`, `delivery_id`, `attempt` y metadata de delivery. [Evidence](./WEBHOOK_CONTRACT.md)
+  - [x] Definir el formato de firma compartida. [Evidence](./WEBHOOK_CONTRACT.md)
 
 ## 2. Firma y Configuracion
 
