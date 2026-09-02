@@ -76,7 +76,7 @@ Elevar `payment-sandbox` al Nivel 3 sin perder los contratos ya cerrados.
 - [ ] `refactor(payment-sandbox): harden hexagonal boundaries`
   - [x] Prereq: ports y adapters ya estan separados. [Evidence](./LEVEL2_MODULE_BOUNDARIES.md)
   - [x] Prereq: los adapters concretos ya implementan IO y tiempo. [Evidence](./ARCHITECTURE_PLAN.md)
-  - [ ] Auditar fugas entre application y adapters.
+  - [x] Auditar fugas entre application y adapters. [Evidence](../../../../../apps/payment-sandbox/internal/application/boundaries_test.go)
   - [ ] Forzar que toda dependencia inbound y outbound pase por un puerto.
 
 ## 3. DDD Formal
