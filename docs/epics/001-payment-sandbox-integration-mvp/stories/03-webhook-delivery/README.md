@@ -5,6 +5,7 @@ tags:
   - payments
   - sandbox
   - webhooks
+status: pending
 epic: 001-payment-sandbox-integration-mvp
 ---
 
@@ -69,5 +70,11 @@ flowchart LR
 
 ## Dependencies
 
-- [ ] Sandbox API base
-- [ ] Scenario engine
+- [x] Sandbox API base
+- [x] Scenario engine
+
+## Related Docs
+
+- [Implementation Checklist](./IMPLEMENTATION_CHECKLIST.md)
+- [Sandbox API Base](../01-sandbox-api-base/README.md)
+- [Scenario Engine](../02-scenario-engine/README.md)
