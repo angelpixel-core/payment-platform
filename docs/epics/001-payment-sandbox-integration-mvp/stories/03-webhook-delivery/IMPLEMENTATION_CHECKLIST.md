@@ -25,10 +25,10 @@ Implementar la entrega de webhooks con retries e idempotencia entre Go y Rails, 
 
 ## 2. Firma y Configuracion
 
-- [ ] `docs(payment-sandbox): define webhook signature configuration`
-  - [ ] Definir `shared secret` y su fuente de configuracion.
-  - [ ] Definir como se calcula y valida la firma.
-  - [ ] Acordar el comportamiento ante firma invalida.
+- [x] `docs(payment-sandbox): define webhook signature configuration`
+  - [x] Definir `shared secret` y su fuente de configuracion. [Evidence](./WEBHOOK_SIGNATURE.md)
+  - [x] Definir como se calcula y valida la firma. [Evidence](./WEBHOOK_SIGNATURE.md)
+  - [x] Acordar el comportamiento ante firma invalida. [Evidence](./WEBHOOK_SIGNATURE.md)
 
 ## 3. Emisor Go con Retries
 
