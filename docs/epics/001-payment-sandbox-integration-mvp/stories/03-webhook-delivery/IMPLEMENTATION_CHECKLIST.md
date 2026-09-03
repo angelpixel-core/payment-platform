@@ -32,11 +32,32 @@ Implementar la entrega de webhooks con retries e idempotencia entre Go y Rails, 
 
 ## 3. Emisor Go con Retries
 
-- [ ] `refactor(payment-sandbox): add webhook dispatcher with retries`
-  - [ ] Enviar el mismo payload en todos los reintentos.
-  - [ ] Reintentar con backoff simple.
-  - [ ] Registrar historial de intentos y estado final.
-  - [ ] Hacer idempotente el delivery por `delivery_id`.
+- [ ] `refactor(payment-sandbox): add webhook dispatcher skeleton`
+  - [ ] Crear `WebhookDispatcher` como componente dedicado.
+  - [ ] Definir la entrada con `event`, `delivery_id`, `attempt` y endpoint.
+  - [ ] Mantener la responsabilidad aislada de la publicacion de webhooks.
+
+- [ ] `refactor(payment-sandbox): reuse immutable webhook payload bytes`
+  - [ ] Serializar el payload una sola vez por delivery.
+  - [ ] Reutilizar exactamente los mismos bytes en todos los reintentos.
+  - [ ] Mantener `event_id` y `delivery_id` estables.
+
+- [ ] `refactor(payment-sandbox): add retry loop with backoff`
+  - [ ] Implementar reintentos sincronos in-process.
+  - [ ] Definir backoff simple.
+  - [ ] Definir limite maximo de intentos.
+  - [ ] Registrar fallo final si se agotan los retries.
+
+- [ ] `refactor(payment-sandbox): record webhook delivery attempts`
+  - [ ] Registrar cada intento.
+  - [ ] Registrar estado final por delivery.
+  - [ ] Dejar trazabilidad para debug y reconciliacion.
+
+- [ ] `test(payment-sandbox): cover webhook dispatcher retry contract`
+  - [ ] Test de payload inmutable entre retries.
+  - [ ] Test de retry por fallo temporal.
+  - [ ] Test de fallo final tras agotar intentos.
+  - [ ] Test de `delivery_id` estable.
 
 ## 4. Inbox Rails
 
