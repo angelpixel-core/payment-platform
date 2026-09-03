@@ -32,10 +32,10 @@ Implementar la entrega de webhooks con retries e idempotencia entre Go y Rails, 
 
 ## 3. Emisor Go con Retries
 
-- [ ] `refactor(payment-sandbox): add webhook dispatcher skeleton`
-  - [ ] Crear `WebhookDispatcher` como componente dedicado.
-  - [ ] Definir la entrada con `event`, `delivery_id`, `attempt` y endpoint.
-  - [ ] Mantener la responsabilidad aislada de la publicacion de webhooks.
+- [x] `refactor(payment-sandbox): add webhook dispatcher skeleton`
+  - [x] Crear `WebhookDispatcher` como componente dedicado. [Evidence](../../../../../apps/payment-sandbox/internal/adapters/messaging/webhook/dispatcher.go)
+  - [x] Definir la entrada con `event`, `delivery_id`, `attempt` y endpoint. [Evidence](../../../../../apps/payment-sandbox/internal/adapters/messaging/webhook/dispatcher.go)
+  - [x] Mantener la responsabilidad aislada de la publicacion de webhooks. [Evidence](../../../../../apps/payment-sandbox/internal/adapters/messaging/webhook/dispatcher.go)
 
 - [ ] `refactor(payment-sandbox): reuse immutable webhook payload bytes`
   - [ ] Serializar el payload una sola vez por delivery.
