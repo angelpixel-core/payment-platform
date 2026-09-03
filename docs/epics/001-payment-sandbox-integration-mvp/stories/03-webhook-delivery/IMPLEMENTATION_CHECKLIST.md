@@ -43,7 +43,7 @@ Implementar la entrega de webhooks con retries e idempotencia entre Go y Rails, 
   - [x] Mantener `event_id` y `delivery_id` estables. [Evidence](../../../../../apps/payment-sandbox/internal/adapters/messaging/webhook/dispatcher.go)
 
 - [ ] `refactor(payment-sandbox): add retry loop with backoff`
-  - [ ] Implementar reintentos sincronos in-process.
+  - [x] Implementar reintentos sincronos in-process. [Evidence](../../../../../apps/payment-sandbox/internal/adapters/messaging/webhook/dispatcher.go)
   - [ ] Definir backoff simple.
   - [ ] Definir limite maximo de intentos.
   - [ ] Registrar fallo final si se agotan los retries.
