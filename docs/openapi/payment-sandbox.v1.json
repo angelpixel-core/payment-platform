@@ -1,0 +1,38 @@
+{
+  "openapi": "3.1.0",
+  "info": {
+    "title": "Payment Sandbox API",
+    "version": "v1",
+    "description": "Contract for integrating workflow consumers with the payment sandbox."
+  },
+  "servers": [{"url": "/v1"}],
+  "paths": {
+    "/payment_intents": {
+      "post": {"summary": "Create a payment intent", "responses": {"201": {"description": "Created"}}}
+    },
+    "/payment_intents/{id}/confirm": {
+      "post": {
+        "summary": "Confirm a payment intent",
+        "parameters": [{"name": "id", "in": "path", "required": true, "schema": {"type": "string"}}],
+        "responses": {"200": {"description": "Confirmed"}}
+      }
+    },
+    "/payment_intents/{id}/capture": {
+      "post": {
+        "summary": "Capture a payment intent",
+        "parameters": [{"name": "id", "in": "path", "required": true, "schema": {"type": "string"}}],
+        "responses": {"200": {"description": "Captured"}}
+      }
+    },
+    "/refunds": {
+      "post": {"summary": "Create a refund", "responses": {"201": {"description": "Created"}}}
+    },
+    "/payment_intents/{id}": {
+      "get": {
+        "summary": "Fetch payment status",
+        "parameters": [{"name": "id", "in": "path", "required": true, "schema": {"type": "string"}}],
+        "responses": {"200": {"description": "OK"}}
+      }
+    }
+  }
+}
