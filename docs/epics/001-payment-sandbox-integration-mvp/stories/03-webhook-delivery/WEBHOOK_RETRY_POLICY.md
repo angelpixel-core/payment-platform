@@ -12,7 +12,7 @@ Define the simple synchronous retry policy used by the webhook dispatcher.
 - Attempt 1 sends immediately.
 - Attempt 2 sleeps `10ms` before retrying.
 - Attempt 3 sleeps `20ms` before retrying.
-- If the final attempt fails, return the last transport error.
+- If the final attempt fails, return a typed delivery error with the `delivery_id` and attempt count.
 
 ## Notes
 

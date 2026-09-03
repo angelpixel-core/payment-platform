@@ -3,10 +3,12 @@ package webhook
 import (
 	"context"
 	"errors"
+	"fmt"
 	"time"
 )
 
 var ErrNoTransport = errors.New("webhook transport is required")
+var ErrDeliveryFailed = errors.New("webhook delivery failed after retries")
 
 const defaultMaxAttempts = 3
 
@@ -48,6 +50,18 @@ type Dispatcher struct {
 	sleep       func(time.Duration)
 }
 
+type DispatchError struct {
+	DeliveryID string
+	Attempts   int
+	Err        error
+}
+
+func (e DispatchError) Error() string {
+	return fmt.Sprintf("%s: delivery_id=%s attempts=%d: %v", ErrDeliveryFailed.Error(), e.DeliveryID, e.Attempts, e.Err)
+}
+
+func (e DispatchError) Unwrap() error { return e.Err }
+
 func NewDispatcher(transport Transport) *Dispatcher {
 	return &Dispatcher{
 		transport:   transport,
@@ -88,5 +102,5 @@ func (d *Dispatcher) Dispatch(ctx context.Context, delivery Delivery) error {
 		}
 		return nil
 	}
-	return lastErr
+	return DispatchError{DeliveryID: delivery.DeliveryID, Attempts: d.maxAttempts, Err: lastErr}
 }

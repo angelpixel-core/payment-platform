@@ -77,8 +77,19 @@ func TestDispatcherReturnsFinalErrorAfterRetries(t *testing.T) {
 	dispatcher.sleep = func(time.Duration) {}
 
 	delivery := NewDelivery("payment.processing", "evt_3", "del_3", "https://example.test/webhooks", 1, []byte(`{"event_type":"payment.processing"}`))
-	if err := dispatcher.Dispatch(context.Background(), delivery); err == nil {
+	err := dispatcher.Dispatch(context.Background(), delivery)
+	if err == nil {
 		t.Fatalf("expected final error")
+	}
+	var dispatchErr DispatchError
+	if !errors.As(err, &dispatchErr) {
+		t.Fatalf("expected DispatchError, got %T: %v", err, err)
+	}
+	if dispatchErr.DeliveryID != delivery.DeliveryID {
+		t.Fatalf("expected delivery id %q, got %q", delivery.DeliveryID, dispatchErr.DeliveryID)
+	}
+	if dispatchErr.Attempts != 2 {
+		t.Fatalf("expected 2 attempts in error, got %d", dispatchErr.Attempts)
 	}
 	if attempts != 2 {
 		t.Fatalf("expected 2 attempts, got %d", attempts)
