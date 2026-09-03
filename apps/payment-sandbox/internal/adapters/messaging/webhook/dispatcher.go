@@ -54,6 +54,7 @@ type Dispatcher struct {
 	backoff     func(attempt int) time.Duration
 	sleep       func(time.Duration)
 	attempts    []AttemptRecord
+	finalState  string
 }
 
 type DispatchError struct {
@@ -108,8 +109,10 @@ func (d *Dispatcher) Dispatch(ctx context.Context, delivery Delivery) error {
 			continue
 		}
 		d.recordAttempt(attempt, "success")
+		d.finalState = "delivered"
 		return nil
 	}
+	d.finalState = "failed"
 	return DispatchError{DeliveryID: delivery.DeliveryID, Attempts: d.maxAttempts, Err: lastErr}
 }
 
@@ -120,6 +123,13 @@ func (d *Dispatcher) AttemptHistory() []AttemptRecord {
 	result := make([]AttemptRecord, len(d.attempts))
 	copy(result, d.attempts)
 	return result
+}
+
+func (d *Dispatcher) FinalState() string {
+	if d == nil {
+		return ""
+	}
+	return d.finalState
 }
 
 func (d *Dispatcher) recordAttempt(attempt int, outcome string) {

@@ -70,6 +70,9 @@ func TestDispatcherRetriesUntilSuccess(t *testing.T) {
 	if history[0] != (AttemptRecord{Attempt: 1, Outcome: "failure"}) || history[1] != (AttemptRecord{Attempt: 2, Outcome: "failure"}) || history[2] != (AttemptRecord{Attempt: 3, Outcome: "success"}) {
 		t.Fatalf("unexpected attempt history: %#v", history)
 	}
+	if dispatcher.FinalState() != "delivered" {
+		t.Fatalf("expected final state delivered, got %q", dispatcher.FinalState())
+	}
 }
 
 func TestDispatcherReturnsFinalErrorAfterRetries(t *testing.T) {
@@ -107,6 +110,9 @@ func TestDispatcherReturnsFinalErrorAfterRetries(t *testing.T) {
 	}
 	if history[0] != (AttemptRecord{Attempt: 1, Outcome: "failure"}) || history[1] != (AttemptRecord{Attempt: 2, Outcome: "failure"}) {
 		t.Fatalf("unexpected attempt history: %#v", history)
+	}
+	if dispatcher.FinalState() != "failed" {
+		t.Fatalf("expected final state failed, got %q", dispatcher.FinalState())
 	}
 }
 
