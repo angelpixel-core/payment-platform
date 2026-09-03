@@ -3,11 +3,16 @@ info:
   title: Payment Sandbox API
   version: v1
   description: Contract for integrating workflow consumers with the payment sandbox.
+  license:
+    name: UNLICENSED
+    identifier: UNLICENSED
+security: []
 servers:
   - url: /v1
 paths:
   /payment_intents:
     post:
+      operationId: createPaymentIntentV1
       summary: Create a payment intent
       requestBody:
         required: true
@@ -23,10 +28,17 @@ paths:
               capture_method: manual
               idempotency_key: create-123
       responses:
+        '400':
+          description: Bad Request
         '201':
           description: Created
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CreatePaymentIntentResponse'
   /payment_intents/{id}/confirm:
     post:
+      operationId: confirmPaymentIntentV1
       summary: Confirm a payment intent
       parameters:
         - name: id
@@ -34,11 +46,41 @@ paths:
           required: true
           schema:
             type: string
+        - name: X-Sandbox-Scenario
+          in: header
+          required: false
+          schema:
+            type: string
+          description: Optional sandbox scenario override for deterministic behavior.
+        - name: Idempotency-Key
+          in: header
+          required: false
+          schema:
+            type: string
+          description: Optional idempotency key. The body field is also accepted as a fallback.
+      requestBody:
+        required: false
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ConfirmPaymentIntentRequest'
+            example:
+              payment_method_token: pm_card_visa
+              idempotency_key: confirm-123
       responses:
+        '400':
+          description: Bad Request
+        '409':
+          description: Conflict
         '200':
           description: Confirmed
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ConfirmPaymentIntentResponse'
   /payment_intents/{id}/capture:
     post:
+      operationId: capturePaymentIntentV1
       summary: Capture a payment intent
       parameters:
         - name: id
@@ -46,17 +88,51 @@ paths:
           required: true
           schema:
             type: string
+      requestBody:
+        required: false
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CapturePaymentIntentRequest'
+            example:
+              amount: 1000
       responses:
+        '400':
+          description: Bad Request
+        '409':
+          description: Conflict
         '200':
           description: Captured
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CapturePaymentIntentResponse'
   /refunds:
     post:
+      operationId: createRefundV1
       summary: Create a refund
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/RefundRequest'
+            example:
+              charge_id: ch_123
+              amount: 1000
+              idempotency_key: refund-123
       responses:
+        '400':
+          description: Bad Request
         '201':
           description: Created
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/RefundResponse'
   /payment_intents/{id}:
     get:
+      operationId: getPaymentIntentV1
       summary: Fetch payment status
       parameters:
         - name: id
@@ -65,8 +141,14 @@ paths:
           schema:
             type: string
       responses:
+        '404':
+          description: Not Found
         '200':
           description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PaymentIntentViewEnvelope'
 components:
   schemas:
     CreatePaymentIntentRequest:
@@ -98,3 +180,233 @@ components:
         idempotency_key:
           type: string
           description: Optional request idempotency key.
+    ConfirmPaymentIntentRequest:
+      type: object
+      additionalProperties: false
+      properties:
+        payment_method_token:
+          type: string
+          description: Optional payment method token to drive the scenario.
+        idempotency_key:
+          type: string
+          description: Optional request idempotency key fallback.
+    CapturePaymentIntentRequest:
+      type: object
+      additionalProperties: false
+      properties:
+        amount:
+          type: integer
+          format: int64
+          minimum: 1
+          description: Optional capture amount override.
+    RefundRequest:
+      type: object
+      additionalProperties: false
+      required: [charge_id]
+      properties:
+        charge_id:
+          type: string
+        amount:
+          type: integer
+          format: int64
+          minimum: 1
+          description: Optional refund amount override.
+        idempotency_key:
+          type: string
+          description: Optional request idempotency key.
+    PaymentIntentViewEnvelope:
+      type: object
+      additionalProperties: false
+      required: [payment_intent]
+      properties:
+        payment_intent:
+          $ref: '#/components/schemas/PaymentIntentView'
+    PaymentAttemptViewEnvelope:
+      type: object
+      additionalProperties: false
+      required: [payment_attempt]
+      properties:
+        payment_attempt:
+          $ref: '#/components/schemas/PaymentAttemptView'
+    ChargeViewEnvelope:
+      type: object
+      additionalProperties: false
+      required: [charge]
+      properties:
+        charge:
+          $ref: '#/components/schemas/ChargeView'
+    RefundViewEnvelope:
+      type: object
+      additionalProperties: false
+      required: [refund]
+      properties:
+        refund:
+          $ref: '#/components/schemas/RefundView'
+    PaymentLifecycleViewEnvelope:
+      type: object
+      additionalProperties: false
+      required: [payment_lifecycle]
+      properties:
+        payment_lifecycle:
+          $ref: '#/components/schemas/PaymentLifecycleView'
+    CreatePaymentIntentResponse:
+      type: object
+      additionalProperties: false
+      required: [payment_intent]
+      properties:
+        payment_intent:
+          $ref: '#/components/schemas/PaymentIntentView'
+    ConfirmPaymentIntentResponse:
+      type: object
+      additionalProperties: false
+      required: [payment_intent, payment_attempt]
+      properties:
+        payment_intent:
+          $ref: '#/components/schemas/PaymentIntentView'
+        payment_attempt:
+          $ref: '#/components/schemas/PaymentAttemptView'
+        charge:
+          $ref: '#/components/schemas/ChargeView'
+    CapturePaymentIntentResponse:
+      type: object
+      additionalProperties: false
+      required: [payment_intent, charge]
+      properties:
+        payment_intent:
+          $ref: '#/components/schemas/PaymentIntentView'
+        charge:
+          $ref: '#/components/schemas/ChargeView'
+    RefundResponse:
+      type: object
+      additionalProperties: false
+      required: [refund, charge]
+      properties:
+        refund:
+          $ref: '#/components/schemas/RefundView'
+        charge:
+          $ref: '#/components/schemas/ChargeView'
+    PaymentIntentView:
+      type: object
+      additionalProperties: false
+      required: [id, status, amount, currency, created_at, updated_at]
+      properties:
+        id:
+          type: string
+        merchant_id:
+          type: string
+        customer_id:
+          type: string
+        status:
+          type: string
+        amount:
+          type: integer
+          format: int64
+        currency:
+          type: string
+        capture_method:
+          type: string
+        scenario:
+          type: string
+        idempotency_key:
+          type: string
+        charge_id:
+          type: string
+        latest_attempt_id:
+          type: string
+        created_at:
+          type: string
+          format: date-time
+        updated_at:
+          type: string
+          format: date-time
+    PaymentAttemptView:
+      type: object
+      additionalProperties: false
+      required: [id, payment_intent_id, status, requested_at, responded_at]
+      properties:
+        id:
+          type: string
+        payment_intent_id:
+          type: string
+        payment_method_token:
+          type: string
+        status:
+          type: string
+        decline_code:
+          type: string
+        processor_reference:
+          type: string
+        requested_at:
+          type: string
+          format: date-time
+        responded_at:
+          type: string
+          format: date-time
+    ChargeView:
+      type: object
+      additionalProperties: false
+      required: [id, payment_intent_id, amount, captured_amount, refunded_amount, status, created_at, updated_at]
+      properties:
+        id:
+          type: string
+        payment_intent_id:
+          type: string
+        payment_attempt_id:
+          type: string
+        amount:
+          type: integer
+          format: int64
+        captured_amount:
+          type: integer
+          format: int64
+        refunded_amount:
+          type: integer
+          format: int64
+        status:
+          type: string
+        created_at:
+          type: string
+          format: date-time
+        updated_at:
+          type: string
+          format: date-time
+    RefundView:
+      type: object
+      additionalProperties: false
+      required: [id, charge_id, payment_intent_id, amount, status, created_at, updated_at]
+      properties:
+        id:
+          type: string
+        charge_id:
+          type: string
+        payment_intent_id:
+          type: string
+        amount:
+          type: integer
+          format: int64
+        status:
+          type: string
+        created_at:
+          type: string
+          format: date-time
+        updated_at:
+          type: string
+          format: date-time
+    PaymentLifecycleView:
+      type: object
+      additionalProperties: false
+      required: [payment_intent, status, refundable_amount, is_refundable]
+      properties:
+        payment_intent:
+          $ref: '#/components/schemas/PaymentIntentView'
+        latest_attempt:
+          $ref: '#/components/schemas/PaymentAttemptView'
+        charge:
+          $ref: '#/components/schemas/ChargeView'
+        status:
+          type: string
+        refundable_amount:
+          type: integer
+          format: int64
+        is_refundable:
+          type: boolean

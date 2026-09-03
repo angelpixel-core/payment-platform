@@ -29,6 +29,7 @@ var landing = template.Must(template.New("landing").Parse(`<!doctype html>
     <a href="/openapi/swagger-ui.html">Swagger UI</a>
     <a href="/openapi/redoc.html">Redoc</a>
     <a href="/openapi/payment-sandbox.v1.yaml">payment-sandbox.v1.yaml</a>
+    <a href="/openapi/payment-sandbox.v1.json">payment-sandbox.v1.json</a>
     <h2>Stories</h2>
     <a href="/epics/001-payment-sandbox-integration-mvp/README.md">Epic README</a>
     <a href="/epics/001-payment-sandbox-integration-mvp/stories/03-webhook-delivery/README.md">03 Webhook Delivery</a>
