@@ -3,6 +3,7 @@ package webhook
 import (
 	"context"
 	"errors"
+	"reflect"
 	"testing"
 	"time"
 )
@@ -85,6 +86,43 @@ func TestDispatcherRetriesUntilSuccess(t *testing.T) {
 	}
 	if len(trace.Attempts) != 3 {
 		t.Fatalf("expected trace attempts length 3, got %d", len(trace.Attempts))
+	}
+}
+
+func TestDispatcherKeepsPayloadBytesStableAcrossRetries(t *testing.T) {
+	var attempts int
+	var bodies [][]byte
+	transport := transportFunc(func(ctx context.Context, request Request) error {
+		attempts++
+		bodies = append(bodies, append([]byte(nil), request.Body...))
+		if attempts < 3 {
+			return errors.New("temporary failure")
+		}
+		return nil
+	})
+
+	dispatcher := NewDispatcher(transport)
+	dispatcher.sleep = func(time.Duration) {}
+
+	payload := []byte(`{"event_type":"payment.succeeded","data":{"charge_id":"ch_1"}}`)
+	delivery := NewDelivery("payment.succeeded", "evt_immutable", "del_immutable", "https://example.test/webhooks", 1, payload)
+	if err := dispatcher.Dispatch(context.Background(), delivery); err != nil {
+		t.Fatalf("dispatch failed: %v", err)
+	}
+
+	if attempts != 3 {
+		t.Fatalf("expected 3 attempts, got %d", attempts)
+	}
+	if len(bodies) != 3 {
+		t.Fatalf("expected 3 captured bodies, got %d", len(bodies))
+	}
+	for i, body := range bodies {
+		if !reflect.DeepEqual(body, delivery.Payload) {
+			t.Fatalf("attempt %d body changed: got %q want %q", i+1, string(body), string(delivery.Payload))
+		}
+	}
+	if !reflect.DeepEqual(payload, []byte(`{"event_type":"payment.succeeded","data":{"charge_id":"ch_1"}}`)) {
+		t.Fatalf("expected original payload literal to remain unchanged")
 	}
 }
 
