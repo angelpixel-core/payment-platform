@@ -38,9 +38,9 @@ Implementar la entrega de webhooks con retries e idempotencia entre Go y Rails, 
   - [x] Mantener la responsabilidad aislada de la publicacion de webhooks. [Evidence](../../../../../apps/payment-sandbox/internal/adapters/messaging/webhook/dispatcher.go)
 
 - [ ] `refactor(payment-sandbox): reuse immutable webhook payload bytes`
-  - [ ] Serializar el payload una sola vez por delivery.
-  - [ ] Reutilizar exactamente los mismos bytes en todos los reintentos.
-  - [ ] Mantener `event_id` y `delivery_id` estables.
+  - [x] Serializar el payload una sola vez por delivery. [Evidence](../../../../../apps/payment-sandbox/internal/adapters/messaging/webhook/dispatcher.go)
+  - [x] Reutilizar exactamente los mismos bytes en todos los reintentos. [Evidence](../../../../../apps/payment-sandbox/internal/adapters/messaging/webhook/dispatcher.go)
+  - [x] Mantener `event_id` y `delivery_id` estables. [Evidence](../../../../../apps/payment-sandbox/internal/adapters/messaging/webhook/dispatcher.go)
 
 - [ ] `refactor(payment-sandbox): add retry loop with backoff`
   - [ ] Implementar reintentos sincronos in-process.
