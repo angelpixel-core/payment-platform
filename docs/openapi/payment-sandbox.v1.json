@@ -8,7 +8,26 @@
   "servers": [{"url": "/v1"}],
   "paths": {
     "/payment_intents": {
-      "post": {"summary": "Create a payment intent", "responses": {"201": {"description": "Created"}}}
+      "post": {
+        "summary": "Create a payment intent",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {"$ref": "#/components/schemas/CreatePaymentIntentRequest"},
+              "example": {
+                "amount": 1000,
+                "currency": "usd",
+                "merchant_id": "merchant_123",
+                "customer_id": "cus_123",
+                "capture_method": "manual",
+                "idempotency_key": "create-123"
+              }
+            }
+          }
+        },
+        "responses": {"201": {"description": "Created"}}
+      }
     },
     "/payment_intents/{id}/confirm": {
       "post": {
@@ -32,6 +51,23 @@
         "summary": "Fetch payment status",
         "parameters": [{"name": "id", "in": "path", "required": true, "schema": {"type": "string"}}],
         "responses": {"200": {"description": "OK"}}
+      }
+    }
+  },
+  "components": {
+    "schemas": {
+      "CreatePaymentIntentRequest": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["amount", "currency"],
+        "properties": {
+          "amount": {"type": "integer", "format": "int64", "minimum": 1, "description": "Amount in the smallest currency unit."},
+          "currency": {"type": "string", "minLength": 1, "description": "ISO currency code."},
+          "merchant_id": {"type": "string", "description": "Optional merchant identifier."},
+          "customer_id": {"type": "string", "description": "Optional customer identifier."},
+          "capture_method": {"type": "string", "enum": ["manual", "automatic"], "default": "manual"},
+          "idempotency_key": {"type": "string", "description": "Optional request idempotency key."}
+        }
       }
     }
   }
