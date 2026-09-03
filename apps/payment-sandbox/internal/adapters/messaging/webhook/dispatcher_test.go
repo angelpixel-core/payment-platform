@@ -73,6 +73,19 @@ func TestDispatcherRetriesUntilSuccess(t *testing.T) {
 	if dispatcher.FinalState() != "delivered" {
 		t.Fatalf("expected final state delivered, got %q", dispatcher.FinalState())
 	}
+	trace := dispatcher.Trace(delivery)
+	if trace.DeliveryID != delivery.DeliveryID || trace.EventID != delivery.EventID || trace.EventType != delivery.EventType {
+		t.Fatalf("unexpected trace metadata: %#v", trace)
+	}
+	if trace.Endpoint != delivery.Endpoint {
+		t.Fatalf("expected trace endpoint %q, got %q", delivery.Endpoint, trace.Endpoint)
+	}
+	if trace.FinalState != "delivered" {
+		t.Fatalf("expected trace final state delivered, got %q", trace.FinalState)
+	}
+	if len(trace.Attempts) != 3 {
+		t.Fatalf("expected trace attempts length 3, got %d", len(trace.Attempts))
+	}
 }
 
 func TestDispatcherReturnsFinalErrorAfterRetries(t *testing.T) {
@@ -113,6 +126,13 @@ func TestDispatcherReturnsFinalErrorAfterRetries(t *testing.T) {
 	}
 	if dispatcher.FinalState() != "failed" {
 		t.Fatalf("expected final state failed, got %q", dispatcher.FinalState())
+	}
+	trace := dispatcher.Trace(delivery)
+	if trace.FinalState != "failed" {
+		t.Fatalf("expected trace final state failed, got %q", trace.FinalState)
+	}
+	if len(trace.Attempts) != 2 {
+		t.Fatalf("expected trace attempts length 2, got %d", len(trace.Attempts))
 	}
 }
 

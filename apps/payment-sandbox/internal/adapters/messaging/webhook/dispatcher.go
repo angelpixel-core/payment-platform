@@ -35,6 +35,15 @@ type AttemptRecord struct {
 	Outcome string
 }
 
+type DeliveryTrace struct {
+	DeliveryID string
+	EventID    string
+	EventType  string
+	Endpoint   string
+	Attempts   []AttemptRecord
+	FinalState string
+}
+
 func NewDelivery(eventType, eventID, deliveryID, endpoint string, attempt int, payload []byte) Delivery {
 	return Delivery{
 		EventType:  eventType,
@@ -130,6 +139,22 @@ func (d *Dispatcher) FinalState() string {
 		return ""
 	}
 	return d.finalState
+}
+
+func (d *Dispatcher) Trace(delivery Delivery) DeliveryTrace {
+	if d == nil {
+		return DeliveryTrace{}
+	}
+	attempts := make([]AttemptRecord, len(d.attempts))
+	copy(attempts, d.attempts)
+	return DeliveryTrace{
+		DeliveryID: delivery.DeliveryID,
+		EventID:    delivery.EventID,
+		EventType:  delivery.EventType,
+		Endpoint:   delivery.Endpoint,
+		Attempts:   attempts,
+		FinalState: d.finalState,
+	}
 }
 
 func (d *Dispatcher) recordAttempt(attempt int, outcome string) {
