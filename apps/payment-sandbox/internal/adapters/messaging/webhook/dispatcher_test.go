@@ -63,6 +63,13 @@ func TestDispatcherRetriesUntilSuccess(t *testing.T) {
 	if slept[0] != 10*time.Millisecond || slept[1] != 20*time.Millisecond {
 		t.Fatalf("expected linear backoff [10ms 20ms], got %#v", slept)
 	}
+	history := dispatcher.AttemptHistory()
+	if len(history) != 3 {
+		t.Fatalf("expected 3 attempt records, got %d", len(history))
+	}
+	if history[0] != (AttemptRecord{Attempt: 1, Outcome: "failure"}) || history[1] != (AttemptRecord{Attempt: 2, Outcome: "failure"}) || history[2] != (AttemptRecord{Attempt: 3, Outcome: "success"}) {
+		t.Fatalf("unexpected attempt history: %#v", history)
+	}
 }
 
 func TestDispatcherReturnsFinalErrorAfterRetries(t *testing.T) {
@@ -93,6 +100,13 @@ func TestDispatcherReturnsFinalErrorAfterRetries(t *testing.T) {
 	}
 	if attempts != 2 {
 		t.Fatalf("expected 2 attempts, got %d", attempts)
+	}
+	history := dispatcher.AttemptHistory()
+	if len(history) != 2 {
+		t.Fatalf("expected 2 attempt records, got %d", len(history))
+	}
+	if history[0] != (AttemptRecord{Attempt: 1, Outcome: "failure"}) || history[1] != (AttemptRecord{Attempt: 2, Outcome: "failure"}) {
+		t.Fatalf("unexpected attempt history: %#v", history)
 	}
 }
 
