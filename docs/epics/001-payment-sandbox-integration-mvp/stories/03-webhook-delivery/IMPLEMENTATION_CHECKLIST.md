@@ -55,7 +55,7 @@ Implementar la entrega de webhooks con retries e idempotencia entre Go y Rails, 
 
 - [ ] `test(payment-sandbox): cover webhook dispatcher retry contract`
   - [x] Test de payload inmutable entre retries. [Evidence](../../../../../apps/payment-sandbox/internal/adapters/messaging/webhook/dispatcher_test.go)
-  - [ ] Test de retry por fallo temporal.
+  - [x] Test de retry por fallo temporal. [Evidence](../../../../../apps/payment-sandbox/internal/adapters/messaging/webhook/dispatcher_test.go)
   - [ ] Test de fallo final tras agotar intentos.
   - [ ] Test de `delivery_id` estable.
 
