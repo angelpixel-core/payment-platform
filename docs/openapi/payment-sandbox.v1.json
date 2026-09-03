@@ -1,74 +1,668 @@
 {
-  "openapi": "3.1.0",
-  "info": {
-    "title": "Payment Sandbox API",
-    "version": "v1",
-    "description": "Contract for integrating workflow consumers with the payment sandbox."
+  "components": {
+    "schemas": {
+      "CapturePaymentIntentRequest": {
+        "additionalProperties": false,
+        "properties": {
+          "amount": {
+            "description": "Optional capture amount override.",
+            "format": "int64",
+            "minimum": 1,
+            "type": "integer"
+          }
+        },
+        "type": "object"
+      },
+      "CapturePaymentIntentResponse": {
+        "additionalProperties": false,
+        "properties": {
+          "charge": {
+            "$ref": "#/components/schemas/ChargeView"
+          },
+          "payment_intent": {
+            "$ref": "#/components/schemas/PaymentIntentView"
+          }
+        },
+        "required": [
+          "payment_intent",
+          "charge"
+        ],
+        "type": "object"
+      },
+      "ChargeView": {
+        "additionalProperties": false,
+        "properties": {
+          "amount": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "captured_amount": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "created_at": {
+            "format": "date-time",
+            "type": "string"
+          },
+          "id": {
+            "type": "string"
+          },
+          "payment_attempt_id": {
+            "type": "string"
+          },
+          "payment_intent_id": {
+            "type": "string"
+          },
+          "refunded_amount": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "status": {
+            "type": "string"
+          },
+          "updated_at": {
+            "format": "date-time",
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "payment_intent_id",
+          "amount",
+          "captured_amount",
+          "refunded_amount",
+          "status",
+          "created_at",
+          "updated_at"
+        ],
+        "type": "object"
+      },
+      "ChargeViewEnvelope": {
+        "additionalProperties": false,
+        "properties": {
+          "charge": {
+            "$ref": "#/components/schemas/ChargeView"
+          }
+        },
+        "required": [
+          "charge"
+        ],
+        "type": "object"
+      },
+      "ConfirmPaymentIntentRequest": {
+        "additionalProperties": false,
+        "properties": {
+          "idempotency_key": {
+            "description": "Optional request idempotency key fallback.",
+            "type": "string"
+          },
+          "payment_method_token": {
+            "description": "Optional payment method token to drive the scenario.",
+            "type": "string"
+          }
+        },
+        "type": "object"
+      },
+      "ConfirmPaymentIntentResponse": {
+        "additionalProperties": false,
+        "properties": {
+          "charge": {
+            "$ref": "#/components/schemas/ChargeView"
+          },
+          "payment_attempt": {
+            "$ref": "#/components/schemas/PaymentAttemptView"
+          },
+          "payment_intent": {
+            "$ref": "#/components/schemas/PaymentIntentView"
+          }
+        },
+        "required": [
+          "payment_intent",
+          "payment_attempt"
+        ],
+        "type": "object"
+      },
+      "CreatePaymentIntentRequest": {
+        "additionalProperties": false,
+        "properties": {
+          "amount": {
+            "description": "Amount in the smallest currency unit.",
+            "format": "int64",
+            "minimum": 1,
+            "type": "integer"
+          },
+          "capture_method": {
+            "default": "manual",
+            "enum": [
+              "manual",
+              "automatic"
+            ],
+            "type": "string"
+          },
+          "currency": {
+            "description": "ISO currency code.",
+            "minLength": 1,
+            "type": "string"
+          },
+          "customer_id": {
+            "description": "Optional customer identifier.",
+            "type": "string"
+          },
+          "idempotency_key": {
+            "description": "Optional request idempotency key.",
+            "type": "string"
+          },
+          "merchant_id": {
+            "description": "Optional merchant identifier.",
+            "type": "string"
+          }
+        },
+        "required": [
+          "amount",
+          "currency"
+        ],
+        "type": "object"
+      },
+      "CreatePaymentIntentResponse": {
+        "additionalProperties": false,
+        "properties": {
+          "payment_intent": {
+            "$ref": "#/components/schemas/PaymentIntentView"
+          }
+        },
+        "required": [
+          "payment_intent"
+        ],
+        "type": "object"
+      },
+      "PaymentAttemptView": {
+        "additionalProperties": false,
+        "properties": {
+          "decline_code": {
+            "type": "string"
+          },
+          "id": {
+            "type": "string"
+          },
+          "payment_intent_id": {
+            "type": "string"
+          },
+          "payment_method_token": {
+            "type": "string"
+          },
+          "processor_reference": {
+            "type": "string"
+          },
+          "requested_at": {
+            "format": "date-time",
+            "type": "string"
+          },
+          "responded_at": {
+            "format": "date-time",
+            "type": "string"
+          },
+          "status": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "payment_intent_id",
+          "status",
+          "requested_at",
+          "responded_at"
+        ],
+        "type": "object"
+      },
+      "PaymentAttemptViewEnvelope": {
+        "additionalProperties": false,
+        "properties": {
+          "payment_attempt": {
+            "$ref": "#/components/schemas/PaymentAttemptView"
+          }
+        },
+        "required": [
+          "payment_attempt"
+        ],
+        "type": "object"
+      },
+      "PaymentIntentView": {
+        "additionalProperties": false,
+        "properties": {
+          "amount": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "capture_method": {
+            "type": "string"
+          },
+          "charge_id": {
+            "type": "string"
+          },
+          "created_at": {
+            "format": "date-time",
+            "type": "string"
+          },
+          "currency": {
+            "type": "string"
+          },
+          "customer_id": {
+            "type": "string"
+          },
+          "id": {
+            "type": "string"
+          },
+          "idempotency_key": {
+            "type": "string"
+          },
+          "latest_attempt_id": {
+            "type": "string"
+          },
+          "merchant_id": {
+            "type": "string"
+          },
+          "scenario": {
+            "type": "string"
+          },
+          "status": {
+            "type": "string"
+          },
+          "updated_at": {
+            "format": "date-time",
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "status",
+          "amount",
+          "currency",
+          "created_at",
+          "updated_at"
+        ],
+        "type": "object"
+      },
+      "PaymentIntentViewEnvelope": {
+        "additionalProperties": false,
+        "properties": {
+          "payment_intent": {
+            "$ref": "#/components/schemas/PaymentIntentView"
+          }
+        },
+        "required": [
+          "payment_intent"
+        ],
+        "type": "object"
+      },
+      "PaymentLifecycleView": {
+        "additionalProperties": false,
+        "properties": {
+          "charge": {
+            "$ref": "#/components/schemas/ChargeView"
+          },
+          "is_refundable": {
+            "type": "boolean"
+          },
+          "latest_attempt": {
+            "$ref": "#/components/schemas/PaymentAttemptView"
+          },
+          "payment_intent": {
+            "$ref": "#/components/schemas/PaymentIntentView"
+          },
+          "refundable_amount": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "status": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "payment_intent",
+          "status",
+          "refundable_amount",
+          "is_refundable"
+        ],
+        "type": "object"
+      },
+      "PaymentLifecycleViewEnvelope": {
+        "additionalProperties": false,
+        "properties": {
+          "payment_lifecycle": {
+            "$ref": "#/components/schemas/PaymentLifecycleView"
+          }
+        },
+        "required": [
+          "payment_lifecycle"
+        ],
+        "type": "object"
+      },
+      "RefundRequest": {
+        "additionalProperties": false,
+        "properties": {
+          "amount": {
+            "description": "Optional refund amount override.",
+            "format": "int64",
+            "minimum": 1,
+            "type": "integer"
+          },
+          "charge_id": {
+            "type": "string"
+          },
+          "idempotency_key": {
+            "description": "Optional request idempotency key.",
+            "type": "string"
+          }
+        },
+        "required": [
+          "charge_id"
+        ],
+        "type": "object"
+      },
+      "RefundResponse": {
+        "additionalProperties": false,
+        "properties": {
+          "charge": {
+            "$ref": "#/components/schemas/ChargeView"
+          },
+          "refund": {
+            "$ref": "#/components/schemas/RefundView"
+          }
+        },
+        "required": [
+          "refund",
+          "charge"
+        ],
+        "type": "object"
+      },
+      "RefundView": {
+        "additionalProperties": false,
+        "properties": {
+          "amount": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "charge_id": {
+            "type": "string"
+          },
+          "created_at": {
+            "format": "date-time",
+            "type": "string"
+          },
+          "id": {
+            "type": "string"
+          },
+          "payment_intent_id": {
+            "type": "string"
+          },
+          "status": {
+            "type": "string"
+          },
+          "updated_at": {
+            "format": "date-time",
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "charge_id",
+          "payment_intent_id",
+          "amount",
+          "status",
+          "created_at",
+          "updated_at"
+        ],
+        "type": "object"
+      },
+      "RefundViewEnvelope": {
+        "additionalProperties": false,
+        "properties": {
+          "refund": {
+            "$ref": "#/components/schemas/RefundView"
+          }
+        },
+        "required": [
+          "refund"
+        ],
+        "type": "object"
+      }
+    }
   },
-  "servers": [{"url": "/v1"}],
+  "info": {
+    "description": "Contract for integrating workflow consumers with the payment sandbox.",
+    "license": {
+      "identifier": "UNLICENSED",
+      "name": "UNLICENSED"
+    },
+    "title": "Payment Sandbox API",
+    "version": "v1"
+  },
+  "openapi": "3.1.0",
   "paths": {
     "/payment_intents": {
       "post": {
-        "summary": "Create a payment intent",
+        "operationId": "createPaymentIntentV1",
         "requestBody": {
-          "required": true,
           "content": {
             "application/json": {
-              "schema": {"$ref": "#/components/schemas/CreatePaymentIntentRequest"},
               "example": {
                 "amount": 1000,
-                "currency": "usd",
-                "merchant_id": "merchant_123",
-                "customer_id": "cus_123",
                 "capture_method": "manual",
-                "idempotency_key": "create-123"
+                "currency": "usd",
+                "customer_id": "cus_123",
+                "idempotency_key": "create-123",
+                "merchant_id": "merchant_123"
+              },
+              "schema": {
+                "$ref": "#/components/schemas/CreatePaymentIntentRequest"
               }
             }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CreatePaymentIntentResponse"
+                }
+              }
+            },
+            "description": "Created"
+          },
+          "400": {
+            "description": "Bad Request"
           }
         },
-        "responses": {"201": {"description": "Created"}}
+        "summary": "Create a payment intent"
       }
     },
-    "/payment_intents/{id}/confirm": {
-      "post": {
-        "summary": "Confirm a payment intent",
-        "parameters": [{"name": "id", "in": "path", "required": true, "schema": {"type": "string"}}],
-        "responses": {"200": {"description": "Confirmed"}}
+    "/payment_intents/{id}": {
+      "get": {
+        "operationId": "getPaymentIntentV1",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PaymentIntentViewEnvelope"
+                }
+              }
+            },
+            "description": "OK"
+          },
+          "404": {
+            "description": "Not Found"
+          }
+        },
+        "summary": "Fetch payment status"
       }
     },
     "/payment_intents/{id}/capture": {
       "post": {
-        "summary": "Capture a payment intent",
-        "parameters": [{"name": "id", "in": "path", "required": true, "schema": {"type": "string"}}],
-        "responses": {"200": {"description": "Captured"}}
+        "operationId": "capturePaymentIntentV1",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "example": {
+                "amount": 1000
+              },
+              "schema": {
+                "$ref": "#/components/schemas/CapturePaymentIntentRequest"
+              }
+            }
+          },
+          "required": false
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CapturePaymentIntentResponse"
+                }
+              }
+            },
+            "description": "Captured"
+          },
+          "400": {
+            "description": "Bad Request"
+          },
+          "409": {
+            "description": "Conflict"
+          }
+        },
+        "summary": "Capture a payment intent"
+      }
+    },
+    "/payment_intents/{id}/confirm": {
+      "post": {
+        "operationId": "confirmPaymentIntentV1",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "description": "Optional sandbox scenario override for deterministic behavior.",
+            "in": "header",
+            "name": "X-Sandbox-Scenario",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "description": "Optional idempotency key. The body field is also accepted as a fallback.",
+            "in": "header",
+            "name": "Idempotency-Key",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "example": {
+                "idempotency_key": "confirm-123",
+                "payment_method_token": "pm_card_visa"
+              },
+              "schema": {
+                "$ref": "#/components/schemas/ConfirmPaymentIntentRequest"
+              }
+            }
+          },
+          "required": false
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ConfirmPaymentIntentResponse"
+                }
+              }
+            },
+            "description": "Confirmed"
+          },
+          "400": {
+            "description": "Bad Request"
+          },
+          "409": {
+            "description": "Conflict"
+          }
+        },
+        "summary": "Confirm a payment intent"
       }
     },
     "/refunds": {
-      "post": {"summary": "Create a refund", "responses": {"201": {"description": "Created"}}}
-    },
-    "/payment_intents/{id}": {
-      "get": {
-        "summary": "Fetch payment status",
-        "parameters": [{"name": "id", "in": "path", "required": true, "schema": {"type": "string"}}],
-        "responses": {"200": {"description": "OK"}}
+      "post": {
+        "operationId": "createRefundV1",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "example": {
+                "amount": 1000,
+                "charge_id": "ch_123",
+                "idempotency_key": "refund-123"
+              },
+              "schema": {
+                "$ref": "#/components/schemas/RefundRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RefundResponse"
+                }
+              }
+            },
+            "description": "Created"
+          },
+          "400": {
+            "description": "Bad Request"
+          }
+        },
+        "summary": "Create a refund"
       }
     }
   },
-  "components": {
-    "schemas": {
-      "CreatePaymentIntentRequest": {
-        "type": "object",
-        "additionalProperties": false,
-        "required": ["amount", "currency"],
-        "properties": {
-          "amount": {"type": "integer", "format": "int64", "minimum": 1, "description": "Amount in the smallest currency unit."},
-          "currency": {"type": "string", "minLength": 1, "description": "ISO currency code."},
-          "merchant_id": {"type": "string", "description": "Optional merchant identifier."},
-          "customer_id": {"type": "string", "description": "Optional customer identifier."},
-          "capture_method": {"type": "string", "enum": ["manual", "automatic"], "default": "manual"},
-          "idempotency_key": {"type": "string", "description": "Optional request idempotency key."}
-        }
-      }
+  "security": [],
+  "servers": [
+    {
+      "url": "/v1"
     }
-  }
+  ]
 }
