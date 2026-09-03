@@ -126,6 +126,36 @@ func TestDispatcherKeepsPayloadBytesStableAcrossRetries(t *testing.T) {
 	}
 }
 
+func TestDispatcherKeepsDeliveryIDStableAcrossRetries(t *testing.T) {
+	var attempts int
+	transport := transportFunc(func(ctx context.Context, request Request) error {
+		attempts++
+		if attempts < 3 {
+			return errors.New("temporary failure")
+		}
+		return nil
+	})
+
+	dispatcher := NewDispatcher(transport)
+	dispatcher.sleep = func(time.Duration) {}
+
+	delivery := NewDelivery("payment.failed", "evt_delivery_id", "del_delivery_id", "https://example.test/webhooks", 1, []byte(`{"event_type":"payment.failed"}`))
+	if err := dispatcher.Dispatch(context.Background(), delivery); err != nil {
+		t.Fatalf("dispatch failed: %v", err)
+	}
+
+	trace := dispatcher.Trace(delivery)
+	if trace.DeliveryID != delivery.DeliveryID {
+		t.Fatalf("expected trace delivery id %q, got %q", delivery.DeliveryID, trace.DeliveryID)
+	}
+	if trace.DeliveryID != "del_delivery_id" {
+		t.Fatalf("expected stable delivery id del_delivery_id, got %q", trace.DeliveryID)
+	}
+	if len(trace.Attempts) != 3 {
+		t.Fatalf("expected 3 trace attempts, got %d", len(trace.Attempts))
+	}
+}
+
 func TestDispatcherReturnsFinalErrorAfterRetries(t *testing.T) {
 	var attempts int
 	transport := transportFunc(func(ctx context.Context, request Request) error {
