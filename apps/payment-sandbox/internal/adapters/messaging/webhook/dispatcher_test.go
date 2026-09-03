@@ -60,8 +60,8 @@ func TestDispatcherRetriesUntilSuccess(t *testing.T) {
 	if len(slept) != 2 {
 		t.Fatalf("expected 2 sleep intervals, got %d", len(slept))
 	}
-	if slept[0] <= 0 || slept[1] <= 0 {
-		t.Fatalf("expected positive backoff intervals, got %#v", slept)
+	if slept[0] != 10*time.Millisecond || slept[1] != 20*time.Millisecond {
+		t.Fatalf("expected linear backoff [10ms 20ms], got %#v", slept)
 	}
 }
 
