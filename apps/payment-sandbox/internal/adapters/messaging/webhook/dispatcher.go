@@ -30,6 +30,11 @@ type Delivery struct {
 	Payload    []byte
 }
 
+type AttemptRecord struct {
+	Attempt int
+	Outcome string
+}
+
 func NewDelivery(eventType, eventID, deliveryID, endpoint string, attempt int, payload []byte) Delivery {
 	return Delivery{
 		EventType:  eventType,
@@ -48,6 +53,7 @@ type Dispatcher struct {
 	maxAttempts int
 	backoff     func(attempt int) time.Duration
 	sleep       func(time.Duration)
+	attempts    []AttemptRecord
 }
 
 type DispatchError struct {
@@ -93,6 +99,7 @@ func (d *Dispatcher) Dispatch(ctx context.Context, delivery Delivery) error {
 	request := Request{Endpoint: delivery.Endpoint, Body: delivery.Payload}
 	for attempt := 1; attempt <= d.maxAttempts; attempt++ {
 		if err := d.transport.Send(ctx, request); err != nil {
+			d.recordAttempt(attempt, "failure")
 			lastErr = err
 			if attempt == d.maxAttempts {
 				break
@@ -100,7 +107,24 @@ func (d *Dispatcher) Dispatch(ctx context.Context, delivery Delivery) error {
 			d.sleep(d.backoff(attempt))
 			continue
 		}
+		d.recordAttempt(attempt, "success")
 		return nil
 	}
 	return DispatchError{DeliveryID: delivery.DeliveryID, Attempts: d.maxAttempts, Err: lastErr}
+}
+
+func (d *Dispatcher) AttemptHistory() []AttemptRecord {
+	if d == nil {
+		return nil
+	}
+	result := make([]AttemptRecord, len(d.attempts))
+	copy(result, d.attempts)
+	return result
+}
+
+func (d *Dispatcher) recordAttempt(attempt int, outcome string) {
+	if d == nil {
+		return
+	}
+	d.attempts = append(d.attempts, AttemptRecord{Attempt: attempt, Outcome: outcome})
 }
