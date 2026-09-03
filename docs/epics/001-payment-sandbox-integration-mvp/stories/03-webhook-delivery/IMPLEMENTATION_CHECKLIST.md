@@ -48,7 +48,7 @@ Implementar la entrega de webhooks con retries e idempotencia entre Go y Rails, 
   - [x] Definir limite maximo de intentos. [Evidence](./WEBHOOK_RETRY_POLICY.md)
   - [x] Registrar fallo final si se agotan los retries. [Evidence](../../../../../apps/payment-sandbox/internal/adapters/messaging/webhook/dispatcher.go)
 
-- [ ] `refactor(payment-sandbox): record webhook delivery attempts`
+- [x] `refactor(payment-sandbox): record webhook delivery attempts`
   - [x] Registrar cada intento. [Evidence](../../../../../apps/payment-sandbox/internal/adapters/messaging/webhook/dispatcher.go)
   - [x] Registrar estado final por delivery. [Evidence](../../../../../apps/payment-sandbox/internal/adapters/messaging/webhook/dispatcher.go)
   - [x] Dejar trazabilidad para debug y reconciliacion. [Evidence](../../../../../apps/payment-sandbox/internal/adapters/messaging/webhook/dispatcher.go)
