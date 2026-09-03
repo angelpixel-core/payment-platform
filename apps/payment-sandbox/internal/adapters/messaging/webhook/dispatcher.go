@@ -8,6 +8,8 @@ import (
 
 var ErrNoTransport = errors.New("webhook transport is required")
 
+const defaultMaxAttempts = 3
+
 type Transport interface {
 	Send(ctx context.Context, request Request) error
 }
@@ -49,7 +51,7 @@ type Dispatcher struct {
 func NewDispatcher(transport Transport) *Dispatcher {
 	return &Dispatcher{
 		transport:   transport,
-		maxAttempts: 3,
+		maxAttempts: defaultMaxAttempts,
 		backoff:     simpleBackoff,
 		sleep:       time.Sleep,
 	}

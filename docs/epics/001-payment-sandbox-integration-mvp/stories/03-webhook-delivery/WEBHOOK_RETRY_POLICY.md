@@ -7,6 +7,7 @@ Define the simple synchronous retry policy used by the webhook dispatcher.
 ## Policy
 
 - Max attempts: 3.
+- This is the default limit enforced by the dispatcher.
 - Backoff: linear, `attempt * 10ms`.
 - Attempt 1 sends immediately.
 - Attempt 2 sleeps `10ms` before retrying.
