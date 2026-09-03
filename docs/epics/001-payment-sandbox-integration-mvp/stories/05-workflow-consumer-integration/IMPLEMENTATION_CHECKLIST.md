@@ -14,7 +14,7 @@ Implementar la integracion del consumidor de workflow contra `payment-sandbox` c
 
 - [x] `Sandbox API base` disponible. [Evidence](../01-sandbox-api-base/README.md)
 - [x] `Webhook delivery` disponible. [Evidence](../03-webhook-delivery/README.md)
-- [ ] OpenAPI `v1` validado.
+- [x] OpenAPI `v1` validado. [Evidence](../../../../openapi/payment-sandbox.v1.yaml)
 
 ## 1. Contracto y Cliente
 
@@ -40,10 +40,10 @@ Implementar la integracion del consumidor de workflow contra `payment-sandbox` c
 
 ## 4. OpenAPI y Vistas
 
-- [ ] `docs(payment-sandbox): publish openapi v1 and browser views`
-  - [ ] Validar `docs/openapi/payment-sandbox.v1.yaml`.
-  - [ ] Publicar vista navegable con Swagger UI.
-  - [ ] Publicar vista navegable con Redoc.
+- [x] `docs(payment-sandbox): publish openapi v1 and browser views`
+  - [x] Validar `docs/openapi/payment-sandbox.v1.yaml`.
+  - [x] Publicar vista navegable con Swagger UI.
+  - [x] Publicar vista navegable con Redoc.
 
 ## 5. Tests
 

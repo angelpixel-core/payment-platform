@@ -86,3 +86,4 @@ flowchart LR
 - [Contract](./CONTRACT.md)
 - [Pattern](./PATTERN.md)
 - [OpenAPI Guide](./OPENAPI.md)
+- [SDK Proposal](./SDK_PROPOSAL.md)
