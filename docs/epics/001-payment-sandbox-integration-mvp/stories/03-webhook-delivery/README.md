@@ -57,6 +57,7 @@ flowchart LR
 - Webhooks use a single envelope with `schema_version`, `event_type`, `event_id`, `delivery_id`, `attempt`, `occurred_at`, `payment_intent_id`, and `data`.
 - Supported events are `payment.succeeded`, `payment.failed`, and `payment.processing`.
 - Webhooks are signed with a shared secret via `X-Sandbox-Signature`.
+- The shared secret is read from `WEBHOOK_SIGNING_SECRET` in both Go and Rails.
 - Each delivery needs a unique `delivery_id` for idempotency.
 - Retries must reuse the same payload and only vary the delivery metadata.
 - Rails should accept duplicated events without duplicating business effects.
@@ -79,5 +80,6 @@ flowchart LR
 
 - [Implementation Checklist](./IMPLEMENTATION_CHECKLIST.md)
 - [Webhook Contract](./WEBHOOK_CONTRACT.md)
+- [Webhook Signature Configuration](./WEBHOOK_SIGNATURE.md)
 - [Sandbox API Base](../01-sandbox-api-base/README.md)
 - [Scenario Engine](../02-scenario-engine/README.md)
