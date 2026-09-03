@@ -81,5 +81,6 @@ flowchart LR
 - [Implementation Checklist](./IMPLEMENTATION_CHECKLIST.md)
 - [Webhook Contract](./WEBHOOK_CONTRACT.md)
 - [Webhook Signature Configuration](./WEBHOOK_SIGNATURE.md)
+- [Webhook Retry Policy](./WEBHOOK_RETRY_POLICY.md)
 - [Sandbox API Base](../01-sandbox-api-base/README.md)
 - [Scenario Engine](../02-scenario-engine/README.md)

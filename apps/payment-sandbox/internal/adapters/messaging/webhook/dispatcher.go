@@ -50,11 +50,13 @@ func NewDispatcher(transport Transport) *Dispatcher {
 	return &Dispatcher{
 		transport:   transport,
 		maxAttempts: 3,
-		backoff: func(attempt int) time.Duration {
-			return time.Duration(attempt) * 10 * time.Millisecond
-		},
-		sleep: time.Sleep,
+		backoff:     simpleBackoff,
+		sleep:       time.Sleep,
 	}
+}
+
+func simpleBackoff(attempt int) time.Duration {
+	return time.Duration(attempt) * 10 * time.Millisecond
 }
 
 func (d *Dispatcher) Dispatch(ctx context.Context, delivery Delivery) error {
@@ -65,7 +67,7 @@ func (d *Dispatcher) Dispatch(ctx context.Context, delivery Delivery) error {
 		d.maxAttempts = 1
 	}
 	if d.backoff == nil {
-		d.backoff = func(attempt int) time.Duration { return 0 }
+		d.backoff = simpleBackoff
 	}
 	if d.sleep == nil {
 		d.sleep = func(time.Duration) {}
