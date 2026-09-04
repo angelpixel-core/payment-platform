@@ -36,6 +36,43 @@ func TestNewDeliveryClonesPayloadAndDispatchReusesIt(t *testing.T) {
 	}
 }
 
+func TestDispatcherDeliversSuccessfully(t *testing.T) {
+	var got Request
+	transport := transportFunc(func(ctx context.Context, request Request) error {
+		got = request
+		return nil
+	})
+
+	dispatcher := NewDispatcher(transport)
+	dispatcher.sleep = func(time.Duration) {}
+
+	delivery := NewDelivery("payment.succeeded", "evt_success", "del_success", "https://example.test/webhooks", 1, []byte(`{"event_type":"payment.succeeded"}`))
+	if err := dispatcher.Dispatch(context.Background(), delivery); err != nil {
+		t.Fatalf("dispatch failed: %v", err)
+	}
+
+	if got.Endpoint != delivery.Endpoint {
+		t.Fatalf("expected endpoint %q, got %q", delivery.Endpoint, got.Endpoint)
+	}
+	if string(got.Body) != string(delivery.Payload) {
+		t.Fatalf("expected body %q, got %q", string(delivery.Payload), string(got.Body))
+	}
+	history := dispatcher.AttemptHistory()
+	if len(history) != 1 || history[0] != (AttemptRecord{Attempt: 1, Outcome: "success"}) {
+		t.Fatalf("unexpected attempt history: %#v", history)
+	}
+	if dispatcher.FinalState() != "delivered" {
+		t.Fatalf("expected final state delivered, got %q", dispatcher.FinalState())
+	}
+	trace := dispatcher.Trace(delivery)
+	if trace.DeliveryID != delivery.DeliveryID || trace.EventID != delivery.EventID || trace.EventType != delivery.EventType {
+		t.Fatalf("unexpected trace metadata: %#v", trace)
+	}
+	if trace.FinalState != "delivered" {
+		t.Fatalf("expected trace final state delivered, got %q", trace.FinalState)
+	}
+}
+
 func TestDispatcherRetriesUntilSuccess(t *testing.T) {
 	var attempts int
 	var slept []time.Duration

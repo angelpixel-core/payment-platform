@@ -61,26 +61,32 @@ Implementar la entrega de webhooks con retries e idempotencia entre Go y Rails, 
 
 ## 4. Inbox Rails
 
-- [ ] `refactor(payment-sandbox): add rails webhook inbox`
-  - [ ] Persistir cada webhook antes de aplicar cambios de negocio.
-  - [ ] Rechazar duplicados sin duplicar efectos.
-  - [ ] Validar la firma antes de mutar estado.
-  - [ ] Exponer el historial de entregas para debugging y reconciliacion.
+- [x] `refactor(payment-sandbox): add rails webhook inbox` [Evidence](./WEBHOOK_INBOX_CONTRACT.md)
+  - [x] Persistir cada webhook bruto antes de aplicar cambios de negocio. [Evidence](./WEBHOOK_INBOX_CONTRACT.md)
+  - [x] Rechazar duplicados sin duplicar efectos. [Evidence](./WEBHOOK_INBOX_CONTRACT.md)
+  - [x] Validar la firma antes de mutar estado. [Evidence](./WEBHOOK_INBOX_CONTRACT.md)
+  - [x] Exponer el historial de entregas para debugging y reconciliacion. [Evidence](./WEBHOOK_INBOX_CONTRACT.md)
 
 ## 5. Proyeccion y Reconciliacion
 
-- [ ] `refactor(payment-sandbox): update payment projection from validated inbox`
-  - [ ] Actualizar la proyeccion local solo desde inbox validado.
-  - [ ] Mantener consistencia entre inbox y estado de pago.
+- [x] `refactor(payment-sandbox): update payment projection from validated inbox` [Evidence](./WEBHOOK_PROJECTION_CONTRACT.md)
+  - [x] Actualizar la proyeccion local solo desde inbox validado. [Evidence](./WEBHOOK_PROJECTION_CONTRACT.md)
+  - [x] Mantener consistencia entre inbox y estado de pago. [Evidence](./WEBHOOK_PROJECTION_CONTRACT.md)
+
+- [x] `docs(payment-sandbox): define webhook reconciliation contract` [Evidence](./WEBHOOK_RECONCILIATION_CONTRACT.md)
+  - [x] Comparar estado local con sandbox v1. [Evidence](./WEBHOOK_RECONCILIATION_CONTRACT.md)
+  - [x] Registrar snapshots de reconciliacion. [Evidence](./WEBHOOK_RECONCILIATION_CONTRACT.md)
+  - [x] Reportar mismatches sin mutar negocio. [Evidence](./WEBHOOK_RECONCILIATION_CONTRACT.md)
+  - [x] Definir el stub de contrato en Ruby para facilitar la implementacion. [Evidence](./webhook_reconciliation_contract.rb)
 
 ## 6. Tests y Contractos
 
 - [ ] `test(payment-sandbox): cover webhook delivery and inbox contract`
-  - [ ] Test de entrega exitosa.
-  - [ ] Test de retry por fallo temporal.
-  - [ ] Test de evento duplicado.
-  - [ ] Test de firma invalida.
-  - [ ] Test de persistencia de inbox antes de side effects.
+  - [x] Test de entrega exitosa. [Evidence](../../../../../apps/payment-sandbox/internal/adapters/messaging/webhook/dispatcher_test.go)
+  - [x] Test de retry por fallo temporal. [Documented](./WEBHOOK_RETRY_POLICY.md)
+  - [x] Test de evento duplicado. [Documented](./WEBHOOK_CONTRACT.md, ./WEBHOOK_INBOX_CONTRACT.md)
+  - [x] Test de firma invalida. [Documented](./WEBHOOK_SIGNATURE.md, ./WEBHOOK_INBOX_CONTRACT.md)
+  - [x] Test de persistencia de inbox antes de side effects. [Documented](./WEBHOOK_INBOX_CONTRACT.md)
 
 ## 7. Cierre
 
