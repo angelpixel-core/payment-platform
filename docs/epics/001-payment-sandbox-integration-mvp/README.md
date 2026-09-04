@@ -39,6 +39,7 @@ depending on Stripe or Mercado Pago in development.
 - [ ] [05-workflow-consumer-integration](./stories/05-workflow-consumer-integration/README.md) `pending`
 - [ ] [06-local-dev-setup](./stories/06-local-dev-setup/README.md) `pending`
 - [ ] [07-payment-platform-sdk](./stories/07-payment-platform-sdk/README.md) `pending`
+- [ ] [08-payment-sandbox-operations](./stories/08-payment-sandbox-operations/README.md) `pending`
 
 Each story includes its own system design diagram followed by a numbered explanation.
 
