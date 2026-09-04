@@ -73,6 +73,43 @@ payment-sandbox seed
 - Tests use the in-memory adapter.
 - Docker Compose should include the sandbox, PostgreSQL, Prometheus, and Grafana.
 
+## Flow
+
+```mermaid
+flowchart LR
+    User[Operator / Dev] --> CLI[payment-sandbox]
+    CLI --> Serve[serve]
+    CLI --> Sim[simulate / replay / burst / seed]
+    Serve --> HTTP[Sandbox HTTP API]
+    Sim --> OR[Operations Runner]
+    OR --> APP[Application Use Cases]
+    APP --> DB[(database)]
+    APP --> TEL[telemetry]
+    TEL --> DASH[dashboard]
+    HTTP --> APP
+```
+
+## Call Sequence
+
+```mermaid
+sequenceDiagram
+    participant U as Operator
+    participant C as payment-sandbox
+    participant O as Operations Runner
+    participant A as Application Use Cases
+    participant D as database
+    participant T as telemetry
+
+    U->>C: payment-sandbox simulate approved_immediate
+    C->>O: resolve scenario command
+    O->>A: execute scenario
+    A->>D: persist intent / attempt / charge
+    A->>T: record business + technical metrics
+    A-->>O: scenario result
+    O-->>C: print summary
+    C-->>U: exit status + output
+```
+
 ## Related Docs
 
 - [Implementation Checklist](./IMPLEMENTATION_CHECKLIST.md)

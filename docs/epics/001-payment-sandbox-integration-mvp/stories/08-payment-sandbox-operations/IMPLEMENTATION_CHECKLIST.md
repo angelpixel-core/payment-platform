@@ -1,3 +1,10 @@
+---
+id: IMPLEMENTATION_CHECKLIST
+aliases: []
+tags: []
+status: in_progress
+---
+
 # Checklist de Implementacion por Commits - Payment Sandbox Operations
 
 ## Objetivo
@@ -14,11 +21,11 @@ Crear tooling operativo alrededor de `payment-sandbox` para escenarios, carga, o
 
 ### 1. `docs(payment-sandbox): define operations runtime contract`
 
-- [ ] Alinear la story 08 con el vocabulario de artefactos: `sandbox`, `database`, `telemetry`, `dashboard`, `scenario-runner`.
-- [ ] Fijar la postura del CLI: subcomandos bajo `payment-sandbox`, no binario hermano.
-- [ ] Dejar claro que la app publica métricas, pero Prometheus/Grafana consumen esas métricas por scraping/visualización.
-- [ ] Acordar que desarrollo usa PostgreSQL y tests usan memory.
-- [ ] Archivos objetivo:
+- [x] Alinear la story 08 con el vocabulario de artefactos: `sandbox`, `database`, `telemetry`, `dashboard`, `scenario-runner`. [Evidence](./README.md)
+- [x] Fijar la postura del CLI: subcomandos bajo `payment-sandbox`, no binario hermano. [Evidence](./README.md)
+- [x] Dejar claro que la app publica métricas, pero Prometheus/Grafana consumen esas métricas por scraping/visualización. [Evidence](./README.md)
+- [x] Acordar que desarrollo usa PostgreSQL y tests usan memory. [Evidence](./README.md)
+- [x] Archivos objetivo:
   - `docs/epics/001-payment-sandbox-integration-mvp/stories/08-payment-sandbox-operations/README.md`
   - `docs/epics/001-payment-sandbox-integration-mvp/stories/08-payment-sandbox-operations/IMPLEMENTATION_CHECKLIST.md`
 
