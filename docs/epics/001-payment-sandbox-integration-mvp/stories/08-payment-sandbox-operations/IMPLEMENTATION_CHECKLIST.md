@@ -31,9 +31,9 @@ Crear tooling operativo alrededor de `payment-sandbox` para escenarios, carga, o
 
 ### 2. `feat(payment-sandbox): add cobra-based scenario runner shell`
 
-- [ ] Crear el esqueleto Cobra dentro de `cmd/payment-sandbox`.
-- [ ] Añadir subcomandos `simulate`, `replay`, `burst` y `seed`.
-- [ ] Conectar cada subcomando con una interfaz de caso de uso, sin acoplarlo al transporte HTTP.
+- [x] Crear el esqueleto Cobra dentro de `cmd/payment-sandbox`. [Evidence](../../../../../../apps/payment-sandbox/internal/cli/root.go)
+- [x] Añadir subcomandos `simulate`, `replay`, `burst` y `seed`. [Evidence](../../../../../../apps/payment-sandbox/internal/cli/root.go)
+- [x] Conectar cada subcomando con una interfaz de caso de uso, sin acoplarlo al transporte HTTP. [Evidence](../../../../../../apps/payment-sandbox/internal/application/operations/runner.go)
 - [ ] Archivos objetivo:
   - `apps/payment-sandbox/cmd/payment-sandbox/main.go`
   - `apps/payment-sandbox/internal/bootstrap/*.go` si hace falta wiring
