@@ -12,7 +12,7 @@ func BenchmarkCreatePaymentIntent(b *testing.B) {
 	b.ResetTimer()
 	for i := 0; i < b.N; i++ {
 		_, err := svc.CreatePaymentIntent(CreatePaymentIntentRequest{
-			Amount:  100,
+			Amount:   100,
 			Currency: "usd",
 		}, "bench-create-"+strconv.Itoa(i), fingerprintString("bench-create-"+strconv.Itoa(i)))
 		if err != nil {
@@ -35,7 +35,7 @@ func BenchmarkPaymentLifecycle(b *testing.B) {
 		if err != nil {
 			b.Fatal(err)
 		}
-		if _, err := svc.CapturePaymentIntent(confirmed.PaymentIntent.ID, CapturePaymentIntentRequest{}); err != nil {
+		if _, err := svc.CapturePaymentIntent(confirmed.PaymentIntent.ID, CapturePaymentIntentRequest{}, ""); err != nil {
 			b.Fatal(err)
 		}
 	}

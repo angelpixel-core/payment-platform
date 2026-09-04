@@ -25,6 +25,7 @@ func (s *Server) routes() {
 	s.mux.HandleFunc("GET /v1/charges/{id}", s.handleGetCharge)
 	s.mux.HandleFunc("GET /v1/refunds/{id}", s.handleGetRefund)
 	s.mux.HandleFunc("GET /v1/payment_intents/{id}/lifecycle", s.handleGetPaymentLifecycle)
+	s.mux.HandleFunc("GET /v1/reports/transactions", s.handleGetTransactionReport)
 	s.mux.HandleFunc("POST /v1/payment_intents", s.handleCreatePaymentIntent)
 	s.mux.HandleFunc("POST /v1/payment_intents/{id}/confirm", s.handleConfirmPaymentIntent)
 	s.mux.HandleFunc("POST /v1/payment_intents/{id}/capture", s.handleCapturePaymentIntent)
@@ -96,6 +97,15 @@ func (s *Server) handleGetPaymentLifecycle(w http.ResponseWriter, r *http.Reques
 	WriteJSON(w, http.StatusOK, map[string]any{"payment_lifecycle": lifecycle})
 }
 
+func (s *Server) handleGetTransactionReport(w http.ResponseWriter, r *http.Request) {
+	report, err := s.svc.GetTransactionReport()
+	if err != nil {
+		writeError(w, err)
+		return
+	}
+	WriteJSON(w, http.StatusOK, map[string]any{"transactions_report": report})
+}
+
 func (s *Server) handleConfirmPaymentIntent(w http.ResponseWriter, r *http.Request) {
 	var req sandbox.ConfirmPaymentIntentRequest
 	payload, err := ReadJSON(r, &req)
@@ -117,12 +127,15 @@ func (s *Server) handleConfirmPaymentIntent(w http.ResponseWriter, r *http.Reque
 
 func (s *Server) handleCapturePaymentIntent(w http.ResponseWriter, r *http.Request) {
 	var req sandbox.CapturePaymentIntentRequest
-	if err := ReadJSONBody(r, &req); err != nil {
+	payload, err := ReadJSON(r, &req)
+	if err != nil {
 		writeError(w, err)
 		return
 	}
 	intentID := r.PathValue("id")
-	result, err := s.svc.CapturePaymentIntent(intentID, req)
+	idem := RequestIdempotencyKey(r, req.IdempotencyKey)
+	fingerprint := fingerprintString(string(payload) + "|intent_id=" + intentID + "|idempotency=" + idem)
+	result, err := s.svc.CapturePaymentIntent(intentID, req, fingerprint)
 	if err != nil {
 		writeError(w, err)
 		return

@@ -3,6 +3,7 @@ package memory
 import (
 	"context"
 	"fmt"
+	"sort"
 	"sync"
 	"time"
 
@@ -96,6 +97,22 @@ func (s *MemoryStore) GetPaymentIntent(id string) (domain.PaymentIntent, error) 
 	return intent, err
 }
 
+func (s *MemoryStore) ListPaymentIntents() []domain.PaymentIntent {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	out := make([]domain.PaymentIntent, 0, len(s.intents))
+	for _, intent := range s.intents {
+		out = append(out, intent)
+	}
+	sort.Slice(out, func(i, j int) bool {
+		if out[i].CreatedAt.Equal(out[j].CreatedAt) {
+			return out[i].ID < out[j].ID
+		}
+		return out[i].CreatedAt.Before(out[j].CreatedAt)
+	})
+	return out
+}
+
 func (s *MemoryStore) getPaymentIntent(id string) (domain.PaymentIntent, error) {
 	s.mu.Lock()
 	defer s.mu.Unlock()
@@ -124,6 +141,22 @@ func (s *MemoryStore) GetPaymentAttempt(id string) (domain.PaymentAttempt, error
 	attempt, err := s.getPaymentAttempt(id)
 	s.recordPersistence("payment_attempt", "get", err, start)
 	return attempt, err
+}
+
+func (s *MemoryStore) ListPaymentAttempts() []domain.PaymentAttempt {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	out := make([]domain.PaymentAttempt, 0, len(s.attempts))
+	for _, attempt := range s.attempts {
+		out = append(out, attempt)
+	}
+	sort.Slice(out, func(i, j int) bool {
+		if out[i].RequestedAt.Equal(out[j].RequestedAt) {
+			return out[i].ID < out[j].ID
+		}
+		return out[i].RequestedAt.Before(out[j].RequestedAt)
+	})
+	return out
 }
 
 func (s *MemoryStore) getPaymentAttempt(id string) (domain.PaymentAttempt, error) {
@@ -156,6 +189,22 @@ func (s *MemoryStore) GetCharge(id string) (domain.Charge, error) {
 	return charge, err
 }
 
+func (s *MemoryStore) ListCharges() []domain.Charge {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	out := make([]domain.Charge, 0, len(s.charges))
+	for _, charge := range s.charges {
+		out = append(out, charge)
+	}
+	sort.Slice(out, func(i, j int) bool {
+		if out[i].CreatedAt.Equal(out[j].CreatedAt) {
+			return out[i].ID < out[j].ID
+		}
+		return out[i].CreatedAt.Before(out[j].CreatedAt)
+	})
+	return out
+}
+
 func (s *MemoryStore) getCharge(id string) (domain.Charge, error) {
 	s.mu.Lock()
 	defer s.mu.Unlock()
@@ -184,6 +233,22 @@ func (s *MemoryStore) GetRefund(id string) (domain.Refund, error) {
 	refund, err := s.getRefund(id)
 	s.recordPersistence("refund", "get", err, start)
 	return refund, err
+}
+
+func (s *MemoryStore) ListRefunds() []domain.Refund {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	out := make([]domain.Refund, 0, len(s.refunds))
+	for _, refund := range s.refunds {
+		out = append(out, refund)
+	}
+	sort.Slice(out, func(i, j int) bool {
+		if out[i].CreatedAt.Equal(out[j].CreatedAt) {
+			return out[i].ID < out[j].ID
+		}
+		return out[i].CreatedAt.Before(out[j].CreatedAt)
+	})
+	return out
 }
 
 func (s *MemoryStore) getRefund(id string) (domain.Refund, error) {

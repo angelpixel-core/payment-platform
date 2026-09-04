@@ -14,8 +14,8 @@ import (
 	commandpayments "payment-sandbox/internal/application/commands/payments"
 	commandrefunds "payment-sandbox/internal/application/commands/refunds"
 	"payment-sandbox/internal/application/queries/payments"
-	scenarios "payment-sandbox/internal/application/support/scenarios"
 	appobs "payment-sandbox/internal/application/support/observability"
+	scenarios "payment-sandbox/internal/application/support/scenarios"
 )
 
 type Service struct {
@@ -82,12 +82,12 @@ func (s *Service) FinalizeProcessingPaymentIntent(intentID string) (PaymentInten
 	return result, err
 }
 
-func (s *Service) CapturePaymentIntent(intentID string, req CapturePaymentIntentRequest) (CapturePaymentIntentResponse, error) {
+func (s *Service) CapturePaymentIntent(intentID string, req CapturePaymentIntentRequest, fingerprint string) (CapturePaymentIntentResponse, error) {
 	start := time.Now()
 	var err error
 	defer s.recordCommand("payment_intent.capture", start, &err)
 	defer s.recordFlow("payment_intent.capture", start, &err)
-	result, err := s.commands.CapturePaymentIntent(intentID, req)
+	result, err := s.commands.CapturePaymentIntent(intentID, req, fingerprint)
 	return result, err
 }
 
@@ -111,6 +111,10 @@ func (s *Service) GetRefund(id string) (RefundView, error) { return s.queries.Ge
 
 func (s *Service) GetPaymentLifecycle(id string) (PaymentLifecycleView, error) {
 	return s.queries.GetPaymentLifecycle(id)
+}
+
+func (s *Service) GetTransactionReport() (TransactionReportView, error) {
+	return s.queries.GetTransactionReport()
 }
 
 func (s *Service) EventRecorder() *appobs.Recorder { return s.recorder }

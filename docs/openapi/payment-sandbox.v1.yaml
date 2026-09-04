@@ -90,12 +90,14 @@ paths:
             type: string
       requestBody:
         required: false
+        description: Optional capture overrides. Omit the body to capture the full remaining amount.
         content:
           application/json:
             schema:
               $ref: '#/components/schemas/CapturePaymentIntentRequest'
             example:
               amount: 1000
+              idempotency_key: capture-123
       responses:
         '400':
           description: Bad Request
@@ -111,8 +113,16 @@ paths:
     post:
       operationId: createRefundV1
       summary: Create a refund
+      parameters:
+        - name: Idempotency-Key
+          in: header
+          required: false
+          schema:
+            type: string
+          description: Optional request idempotency key. The body field is also accepted as a fallback.
       requestBody:
         required: true
+        description: Refund body. `charge_id` is required; `amount` and `idempotency_key` are optional.
         content:
           application/json:
             schema:
@@ -130,6 +140,82 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/RefundResponse'
+  /payment_attempts/{id}:
+    get:
+      operationId: getPaymentAttemptV1
+      summary: Fetch payment attempt
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '404':
+          description: Not Found
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PaymentAttemptViewEnvelope'
+  /charges/{id}:
+    get:
+      operationId: getChargeV1
+      summary: Fetch charge
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '404':
+          description: Not Found
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ChargeViewEnvelope'
+  /refunds/{id}:
+    get:
+      operationId: getRefundV1
+      summary: Fetch refund
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '404':
+          description: Not Found
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/RefundViewEnvelope'
+  /payment_intents/{id}/lifecycle:
+    get:
+      operationId: getPaymentLifecycleV1
+      summary: Fetch payment lifecycle
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '404':
+          description: Not Found
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PaymentLifecycleViewEnvelope'
   /payment_intents/{id}:
     get:
       operationId: getPaymentIntentV1
@@ -149,6 +235,17 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/PaymentIntentViewEnvelope'
+  /reports/transactions:
+    get:
+      operationId: getTransactionReportV1
+      summary: Fetch transaction report
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TransactionReportEnvelope'
 components:
   schemas:
     CreatePaymentIntentRequest:
@@ -198,7 +295,10 @@ components:
           type: integer
           format: int64
           minimum: 1
-          description: Optional capture amount override.
+          description: Optional capture amount override. Omit to capture the full remaining amount.
+        idempotency_key:
+          type: string
+          description: Optional request idempotency key. If omitted, the `Idempotency-Key` header is used when present.
     RefundRequest:
       type: object
       additionalProperties: false
@@ -206,14 +306,15 @@ components:
       properties:
         charge_id:
           type: string
+          description: Charge to refund.
         amount:
           type: integer
           format: int64
           minimum: 1
-          description: Optional refund amount override.
+          description: Optional refund amount override. Omit to refund the remaining captured amount.
         idempotency_key:
           type: string
-          description: Optional request idempotency key.
+          description: Optional request idempotency key. If omitted, the `Idempotency-Key` header is used when present.
     PaymentIntentViewEnvelope:
       type: object
       additionalProperties: false
@@ -249,6 +350,13 @@ components:
       properties:
         payment_lifecycle:
           $ref: '#/components/schemas/PaymentLifecycleView'
+    TransactionReportEnvelope:
+      type: object
+      additionalProperties: false
+      required: [transactions_report]
+      properties:
+        transactions_report:
+          $ref: '#/components/schemas/TransactionReportView'
     CreatePaymentIntentResponse:
       type: object
       additionalProperties: false
@@ -367,6 +475,9 @@ components:
         created_at:
           type: string
           format: date-time
+        captured_at:
+          type: string
+          format: date-time
         updated_at:
           type: string
           format: date-time
@@ -410,3 +521,144 @@ components:
           format: int64
         is_refundable:
           type: boolean
+    TransactionReportView:
+      type: object
+      additionalProperties: false
+      required: [generated_at, transactions, balance_projection, settlement_projection, count]
+      properties:
+        generated_at:
+          type: string
+          format: date-time
+        transactions:
+          type: array
+          items:
+            $ref: '#/components/schemas/TransactionReportLine'
+        balance_projection:
+          $ref: '#/components/schemas/BalanceProjectionView'
+        settlement_projection:
+          $ref: '#/components/schemas/SettlementProjectionView'
+        count:
+          type: integer
+          format: int64
+    TransactionReportLine:
+      type: object
+      additionalProperties: false
+      required: [payment_intent]
+      properties:
+        payment_intent:
+          $ref: '#/components/schemas/PaymentIntentView'
+        latest_attempt:
+          $ref: '#/components/schemas/PaymentAttemptView'
+        charge:
+          $ref: '#/components/schemas/ChargeView'
+        refunds:
+          type: array
+          items:
+            $ref: '#/components/schemas/RefundView'
+    BalanceProjectionView:
+      type: object
+      additionalProperties: false
+      required: [generated_at, balances, count]
+      properties:
+        generated_at:
+          type: string
+          format: date-time
+        balances:
+          type: array
+          items:
+            $ref: '#/components/schemas/BalanceProjectionLine'
+        count:
+          type: integer
+          format: int64
+    BalanceProjectionLine:
+      type: object
+      additionalProperties: false
+      required: [merchant_id, currency, account_type, amount, updated_at]
+      properties:
+        merchant_id:
+          type: string
+        currency:
+          type: string
+        account_type:
+          type: string
+          enum: [available, reserved, liquidable]
+        amount:
+          type: integer
+          format: int64
+        updated_at:
+          type: string
+          format: date-time
+    SettlementProjectionView:
+      type: object
+      additionalProperties: false
+      required: [generated_at, batches, count]
+      properties:
+        generated_at:
+          type: string
+          format: date-time
+        batches:
+          type: array
+          items:
+            $ref: '#/components/schemas/SettlementBatchLine'
+        count:
+          type: integer
+          format: int64
+    SettlementBatchLine:
+      type: object
+      additionalProperties: false
+      required: [merchant_id, currency, settlement_date, status, gross_amount, refunded_amount, net_amount, charge_count, refund_count, charge_ids, charges, updated_at]
+      properties:
+        merchant_id:
+          type: string
+        currency:
+          type: string
+        settlement_date:
+          type: string
+          format: date
+        status:
+          type: string
+          enum: [pending, ready]
+        gross_amount:
+          type: integer
+          format: int64
+        refunded_amount:
+          type: integer
+          format: int64
+        net_amount:
+          type: integer
+          format: int64
+        charge_count:
+          type: integer
+          format: int64
+        refund_count:
+          type: integer
+          format: int64
+        charge_ids:
+          type: array
+          items:
+            type: string
+        charges:
+          type: array
+          items:
+            $ref: '#/components/schemas/SettlementChargeLine'
+        updated_at:
+          type: string
+          format: date-time
+    SettlementChargeLine:
+      type: object
+      additionalProperties: false
+      required: [charge_id, payment_intent_id, captured_at, amount, refunded_amount]
+      properties:
+        charge_id:
+          type: string
+        payment_intent_id:
+          type: string
+        captured_at:
+          type: string
+          format: date-time
+        amount:
+          type: integer
+          format: int64
+        refunded_amount:
+          type: integer
+          format: int64

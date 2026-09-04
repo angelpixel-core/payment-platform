@@ -27,15 +27,18 @@ func (f *fakeFlowMetricsRecorder) RecordPaymentFlow(_ context.Context, flow, out
 	f.flowCalls = append(f.flowCalls, recordedFlow{flow: flow, outcome: outcome, duration: duration})
 }
 
-func (f *fakeFlowMetricsRecorder) RecordHTTPRequest(context.Context, string, string, int, time.Duration) {}
+func (f *fakeFlowMetricsRecorder) RecordHTTPRequest(context.Context, string, string, int, time.Duration) {
+}
 
 func (f *fakeFlowMetricsRecorder) RecordPaymentCommand(_ context.Context, command, outcome string, duration time.Duration) {
 	f.commandCalls = append(f.commandCalls, recordedCommand{command: command, outcome: outcome, duration: duration})
 }
 
-func (f *fakeFlowMetricsRecorder) RecordPersistenceOperation(context.Context, string, string, string, string, time.Duration) {}
+func (f *fakeFlowMetricsRecorder) RecordPersistenceOperation(context.Context, string, string, string, string, time.Duration) {
+}
 func (f *fakeFlowMetricsRecorder) RecordUnitOfWork(context.Context, string, string, time.Duration) {}
-func (f *fakeFlowMetricsRecorder) RecordOutboxOperation(context.Context, string, string, string, time.Duration) {}
+func (f *fakeFlowMetricsRecorder) RecordOutboxOperation(context.Context, string, string, string, time.Duration) {
+}
 func (f *fakeFlowMetricsRecorder) RecordOutboxPending(context.Context, string, int64) {}
 
 func TestServiceRecordsPaymentFlowMetrics(t *testing.T) {
@@ -76,7 +79,7 @@ func TestServiceRecordsPaymentFlowMetrics(t *testing.T) {
 		t.Fatalf("expected requires_capture, got %s", confirmed.PaymentIntent.Status)
 	}
 
-	captured, err := svc.CapturePaymentIntent(created.ID, CapturePaymentIntentRequest{})
+	captured, err := svc.CapturePaymentIntent(created.ID, CapturePaymentIntentRequest{}, "")
 	if err != nil {
 		t.Fatalf("capture failed: %v", err)
 	}

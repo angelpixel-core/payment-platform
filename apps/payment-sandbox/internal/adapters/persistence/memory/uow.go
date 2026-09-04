@@ -33,7 +33,6 @@ func NewUnitOfWork(store *MemoryStore, publisher ports.EventPublisher) *UnitOfWo
 var _ ports.UnitOfWork = (*UnitOfWork)(nil)
 var _ ports.Transaction = (*transaction)(nil)
 
-
 func (u *UnitOfWork) Do(fn func(tx ports.Transaction) error) (err error) {
 	start := time.Now()
 	outcome := "success"
@@ -107,6 +106,30 @@ func (tx *transaction) GetPaymentIntent(id string) (domain.PaymentIntent, error)
 	return intent, err
 }
 
+func (tx *transaction) ListPaymentIntents() []domain.PaymentIntent {
+	items := tx.store.ListPaymentIntents()
+	if len(tx.intents) == 0 {
+		return items
+	}
+	merged := make([]domain.PaymentIntent, 0, len(items)+len(tx.intents))
+	seen := make(map[string]struct{}, len(tx.intents))
+	for _, item := range items {
+		if pending, ok := tx.intents[item.ID]; ok {
+			merged = append(merged, pending)
+			seen[item.ID] = struct{}{}
+			continue
+		}
+		merged = append(merged, item)
+	}
+	for id, pending := range tx.intents {
+		if _, ok := seen[id]; ok {
+			continue
+		}
+		merged = append(merged, pending)
+	}
+	return merged
+}
+
 func (tx *transaction) SavePaymentAttempt(attempt domain.PaymentAttempt) domain.PaymentAttempt {
 	start := time.Now()
 	tx.mu.Lock()
@@ -131,6 +154,30 @@ func (tx *transaction) GetPaymentAttempt(id string) (domain.PaymentAttempt, erro
 	attempt, err := tx.store.getPaymentAttempt(id)
 	tx.store.recordPersistence("payment_attempt", "get", err, start)
 	return attempt, err
+}
+
+func (tx *transaction) ListPaymentAttempts() []domain.PaymentAttempt {
+	items := tx.store.ListPaymentAttempts()
+	if len(tx.attempts) == 0 {
+		return items
+	}
+	merged := make([]domain.PaymentAttempt, 0, len(items)+len(tx.attempts))
+	seen := make(map[string]struct{}, len(tx.attempts))
+	for _, item := range items {
+		if pending, ok := tx.attempts[item.ID]; ok {
+			merged = append(merged, pending)
+			seen[item.ID] = struct{}{}
+			continue
+		}
+		merged = append(merged, item)
+	}
+	for id, pending := range tx.attempts {
+		if _, ok := seen[id]; ok {
+			continue
+		}
+		merged = append(merged, pending)
+	}
+	return merged
 }
 
 func (tx *transaction) SaveCharge(charge domain.Charge) domain.Charge {
@@ -159,6 +206,30 @@ func (tx *transaction) GetCharge(id string) (domain.Charge, error) {
 	return charge, err
 }
 
+func (tx *transaction) ListCharges() []domain.Charge {
+	items := tx.store.ListCharges()
+	if len(tx.charges) == 0 {
+		return items
+	}
+	merged := make([]domain.Charge, 0, len(items)+len(tx.charges))
+	seen := make(map[string]struct{}, len(tx.charges))
+	for _, item := range items {
+		if pending, ok := tx.charges[item.ID]; ok {
+			merged = append(merged, pending)
+			seen[item.ID] = struct{}{}
+			continue
+		}
+		merged = append(merged, item)
+	}
+	for id, pending := range tx.charges {
+		if _, ok := seen[id]; ok {
+			continue
+		}
+		merged = append(merged, pending)
+	}
+	return merged
+}
+
 func (tx *transaction) SaveRefund(refund domain.Refund) domain.Refund {
 	start := time.Now()
 	tx.mu.Lock()
@@ -183,6 +254,30 @@ func (tx *transaction) GetRefund(id string) (domain.Refund, error) {
 	refund, err := tx.store.getRefund(id)
 	tx.store.recordPersistence("refund", "get", err, start)
 	return refund, err
+}
+
+func (tx *transaction) ListRefunds() []domain.Refund {
+	items := tx.store.ListRefunds()
+	if len(tx.refunds) == 0 {
+		return items
+	}
+	merged := make([]domain.Refund, 0, len(items)+len(tx.refunds))
+	seen := make(map[string]struct{}, len(tx.refunds))
+	for _, item := range items {
+		if pending, ok := tx.refunds[item.ID]; ok {
+			merged = append(merged, pending)
+			seen[item.ID] = struct{}{}
+			continue
+		}
+		merged = append(merged, item)
+	}
+	for id, pending := range tx.refunds {
+		if _, ok := seen[id]; ok {
+			continue
+		}
+		merged = append(merged, pending)
+	}
+	return merged
 }
 
 func (tx *transaction) Publish(event domain.Event) error {

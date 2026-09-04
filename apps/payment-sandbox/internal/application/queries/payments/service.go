@@ -1,8 +1,8 @@
 package payments
 
 import (
-	"payment-sandbox/internal/ports"
 	"payment-sandbox/internal/application/queries/payments/projections"
+	"payment-sandbox/internal/ports"
 )
 
 type PaymentQueryService struct {
@@ -61,6 +61,7 @@ func (s *PaymentQueryService) GetCharge(id string) (ChargeView, error) {
 		RefundedAmount:   charge.RefundedAmount.Int64(),
 		Status:           string(charge.Status),
 		CreatedAt:        charge.CreatedAt,
+		CapturedAt:       charge.CapturedAt,
 		UpdatedAt:        charge.UpdatedAt,
 	}, nil
 }
@@ -83,4 +84,8 @@ func (s *PaymentQueryService) GetRefund(id string) (RefundView, error) {
 
 func (s *PaymentQueryService) GetPaymentLifecycle(id string) (projections.PaymentLifecycleView, error) {
 	return projections.BuildPaymentLifecycle(s.store, id)
+}
+
+func (s *PaymentQueryService) GetTransactionReport() (TransactionReportView, error) {
+	return BuildTransactionReport(s.store.ListPaymentIntents(), s.store.ListPaymentAttempts(), s.store.ListCharges(), s.store.ListRefunds()), nil
 }
