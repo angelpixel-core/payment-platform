@@ -51,4 +51,4 @@ client.get_payment_intent(id)
 
 ## Recommended Next Step
 
-- Add a dedicated `PaymentPlatformSDK` story after the consumer integration story is fully closed.
+- Implement `07-payment-platform-sdk` as a public, versioned Ruby gem.
