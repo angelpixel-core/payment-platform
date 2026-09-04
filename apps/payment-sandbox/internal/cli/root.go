@@ -2,7 +2,6 @@ package cli
 
 import (
 	"context"
-	"errors"
 	"log"
 	"log/slog"
 	"net/http"
@@ -17,6 +16,7 @@ import (
 	otelmetrics "payment-sandbox/internal/adapters/observability/metrics/otel"
 	"payment-sandbox/internal/adapters/persistence/postgres"
 	"payment-sandbox/internal/bootstrap"
+	"payment-sandbox/internal/application/operations"
 	"payment-sandbox/internal/sandbox"
 )
 
@@ -29,6 +29,13 @@ type runtimeConfig struct {
 }
 
 func NewRootCmd() *cobra.Command {
+	return NewRootCmdWithRunner(operations.NoopRunner{})
+}
+
+func NewRootCmdWithRunner(runner operations.ScenarioRunner) *cobra.Command {
+	if runner == nil {
+		runner = operations.NoopRunner{}
+	}
 	cfg := runtimeConfig{
 		port:               envOr("PORT", defaultPort),
 		databaseURL:        os.Getenv("DATABASE_URL"),
@@ -51,10 +58,18 @@ func NewRootCmd() *cobra.Command {
 
 	cmd.AddCommand(
 		newServeCmd(cfg),
-		newScenarioCommand("simulate <scenario>", "Run a deterministic sandbox scenario", "simulate is not implemented yet", cobra.ExactArgs(1)),
-		newScenarioCommand("replay <scenario>", "Replay a sandbox scenario", "replay is not implemented yet", cobra.ExactArgs(1)),
-		newScenarioCommand("burst", "Run a burst of sandbox requests", "burst is not implemented yet", cobra.NoArgs),
-		newScenarioCommand("seed", "Seed local sandbox data", "seed is not implemented yet", cobra.NoArgs),
+		newScenarioCommand("simulate <scenario>", "Run a deterministic sandbox scenario", cobra.ExactArgs(1), func(ctx context.Context, args []string) error {
+			return runner.Simulate(ctx, args[0])
+		}),
+		newScenarioCommand("replay <scenario>", "Replay a sandbox scenario", cobra.ExactArgs(1), func(ctx context.Context, args []string) error {
+			return runner.Replay(ctx, args[0])
+		}),
+		newScenarioCommand("burst", "Run a burst of sandbox requests", cobra.NoArgs, func(ctx context.Context, args []string) error {
+			return runner.Burst(ctx)
+		}),
+		newScenarioCommand("seed", "Seed local sandbox data", cobra.NoArgs, func(ctx context.Context, args []string) error {
+			return runner.Seed(ctx)
+		}),
 	)
 
 	return cmd
@@ -70,13 +85,13 @@ func newServeCmd(cfg runtimeConfig) *cobra.Command {
 	}
 }
 
-func newScenarioCommand(use, short, notImpl string, args cobra.PositionalArgs) *cobra.Command {
+func newScenarioCommand(use, short string, args cobra.PositionalArgs, run func(context.Context, []string) error) *cobra.Command {
 	return &cobra.Command{
 		Use:   use,
 		Short: short,
 		Args:  args,
 		RunE: func(cmd *cobra.Command, args []string) error {
-			return errors.New(notImpl)
+			return run(cmd.Context(), args)
 		},
 	}
 }
