@@ -91,7 +91,7 @@ func TestPaymentLifecycle(t *testing.T) {
 		t.Fatal("expected charge after confirm")
 	}
 
-	captured, err := svc.CapturePaymentIntent(created.ID, CapturePaymentIntentRequest{})
+	captured, err := svc.CapturePaymentIntent(created.ID, CapturePaymentIntentRequest{}, "")
 	if err != nil {
 		t.Fatalf("capture failed: %v", err)
 	}
@@ -122,7 +122,7 @@ func TestInternalEventHandlers(t *testing.T) {
 	if err != nil {
 		t.Fatalf("confirm failed: %v", err)
 	}
-	_, err = svc.CapturePaymentIntent(created.ID, CapturePaymentIntentRequest{})
+	_, err = svc.CapturePaymentIntent(created.ID, CapturePaymentIntentRequest{}, "")
 	if err != nil {
 		t.Fatalf("capture failed: %v", err)
 	}

@@ -122,6 +122,8 @@ func (p *PaymentIntent) Confirm(cmd ConfirmPaymentIntentCommand) (ConfirmPayment
 		charge.Status = outcome.ChargeStatus
 		if p.CaptureMethod == "automatic" {
 			charge.CapturedAmount = p.Amount
+			capturedAt := now
+			charge.CapturedAt = &capturedAt
 			charge.Status = ChargeCaptured
 			p.Status = PaymentIntentSucceeded
 		} else {
@@ -168,6 +170,8 @@ func (p *PaymentIntent) FinalizeProcessing(cmd FinalizeProcessingCommand) (Final
 	charge.UpdatedAt = now
 	if p.CaptureMethod == "automatic" {
 		charge.CapturedAmount = p.Amount
+		capturedAt := now
+		charge.CapturedAt = &capturedAt
 		charge.Status = ChargeCaptured
 		p.Status = PaymentIntentSucceeded
 	} else {
@@ -207,6 +211,8 @@ func (p *PaymentIntent) Capture(cmd CapturePaymentIntentCommand) (CapturePayment
 	}
 
 	charge.CapturedAmount = amount
+	capturedAt := now
+	charge.CapturedAt = &capturedAt
 	charge.Status = ChargeCaptured
 	charge.UpdatedAt = now
 	p.Status = PaymentIntentSucceeded
@@ -235,6 +241,7 @@ type Charge struct {
 	RefundedAmount   Amount       `json:"refunded_amount"`
 	Status           ChargeStatus `json:"status"`
 	CreatedAt        time.Time    `json:"created_at"`
+	CapturedAt       *time.Time   `json:"captured_at,omitempty"`
 	UpdatedAt        time.Time    `json:"updated_at"`
 }
 
@@ -299,7 +306,8 @@ type ConfirmPaymentIntentRequest struct {
 }
 
 type CapturePaymentIntentRequest struct {
-	Amount int64 `json:"amount,omitempty"`
+	Amount         int64  `json:"amount,omitempty"`
+	IdempotencyKey string `json:"idempotency_key,omitempty"`
 }
 
 type RefundRequest struct {

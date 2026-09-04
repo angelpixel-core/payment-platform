@@ -18,7 +18,9 @@ type Store struct {
 	metrics metrics.MetricsRecorder
 }
 
-func NewStore(db *sql.DB, recorder metrics.MetricsRecorder) *Store { return &Store{db: db, metrics: recorder} }
+func NewStore(db *sql.DB, recorder metrics.MetricsRecorder) *Store {
+	return &Store{db: db, metrics: recorder}
+}
 
 var _ ports.Store = (*Store)(nil)
 
@@ -38,8 +40,12 @@ func (s *Store) WithIdempotency(key, fingerprint string, fn func() (any, error))
 	return result, nil
 }
 
-func (s *Store) NextID(prefix string) string { return nextSequenceValue(context.Background(), s.db, prefix) }
-func (s *Store) NextReference(prefix string) string { return nextSequenceValue(context.Background(), s.db, prefix) }
+func (s *Store) NextID(prefix string) string {
+	return nextSequenceValue(context.Background(), s.db, prefix)
+}
+func (s *Store) NextReference(prefix string) string {
+	return nextSequenceValue(context.Background(), s.db, prefix)
+}
 
 func (s *Store) SavePaymentIntent(intent domain.PaymentIntent) domain.PaymentIntent {
 	start := time.Now()
@@ -53,6 +59,16 @@ func (s *Store) GetPaymentIntent(id string) (domain.PaymentIntent, error) {
 	intent, err := getPaymentIntent(context.Background(), s.db, id)
 	s.recordPersistence("payment_intent", "get", err, start)
 	return intent, err
+}
+
+func (s *Store) ListPaymentIntents() []domain.PaymentIntent {
+	start := time.Now()
+	items, err := listPaymentIntents(context.Background(), s.db)
+	s.recordPersistence("payment_intent", "list", err, start)
+	if err != nil {
+		return nil
+	}
+	return items
 }
 
 func (s *Store) SavePaymentAttempt(attempt domain.PaymentAttempt) domain.PaymentAttempt {
@@ -69,6 +85,16 @@ func (s *Store) GetPaymentAttempt(id string) (domain.PaymentAttempt, error) {
 	return attempt, err
 }
 
+func (s *Store) ListPaymentAttempts() []domain.PaymentAttempt {
+	start := time.Now()
+	items, err := listPaymentAttempts(context.Background(), s.db)
+	s.recordPersistence("payment_attempt", "list", err, start)
+	if err != nil {
+		return nil
+	}
+	return items
+}
+
 func (s *Store) SaveCharge(charge domain.Charge) domain.Charge {
 	start := time.Now()
 	_, _ = upsertCharge(context.Background(), s.db, charge)
@@ -83,6 +109,16 @@ func (s *Store) GetCharge(id string) (domain.Charge, error) {
 	return charge, err
 }
 
+func (s *Store) ListCharges() []domain.Charge {
+	start := time.Now()
+	items, err := listCharges(context.Background(), s.db)
+	s.recordPersistence("charge", "list", err, start)
+	if err != nil {
+		return nil
+	}
+	return items
+}
+
 func (s *Store) SaveRefund(refund domain.Refund) domain.Refund {
 	start := time.Now()
 	_, _ = upsertRefund(context.Background(), s.db, refund)
@@ -95,6 +131,16 @@ func (s *Store) GetRefund(id string) (domain.Refund, error) {
 	refund, err := getRefund(context.Background(), s.db, id)
 	s.recordPersistence("refund", "get", err, start)
 	return refund, err
+}
+
+func (s *Store) ListRefunds() []domain.Refund {
+	start := time.Now()
+	items, err := listRefunds(context.Background(), s.db)
+	s.recordPersistence("refund", "list", err, start)
+	if err != nil {
+		return nil
+	}
+	return items
 }
 
 func (s *Store) recordUnitOfWork(outcome string, duration time.Duration) {
@@ -154,8 +200,12 @@ func (tx *transaction) WithIdempotency(key, fingerprint string, fn func() (any, 
 	return value, nil
 }
 
-func (tx *transaction) NextID(prefix string) string { return nextSequenceValue(context.Background(), tx.tx, prefix) }
-func (tx *transaction) NextReference(prefix string) string { return nextSequenceValue(context.Background(), tx.tx, prefix) }
+func (tx *transaction) NextID(prefix string) string {
+	return nextSequenceValue(context.Background(), tx.tx, prefix)
+}
+func (tx *transaction) NextReference(prefix string) string {
+	return nextSequenceValue(context.Background(), tx.tx, prefix)
+}
 
 func (tx *transaction) Publish(event domain.Event) error {
 	start := time.Now()
@@ -188,7 +238,7 @@ func (tx *transaction) commit() error {
 		if tx.publisher != nil {
 			if err := tx.publisher.Publish(record.Event); err != nil {
 				tx.store.recordOutbox("publish", "failure", time.Since(start))
-				tx.store.recordOutboxPending(int64(len(tx.events)-i))
+				tx.store.recordOutboxPending(int64(len(tx.events) - i))
 				return err
 			}
 		}
@@ -229,19 +279,27 @@ func decodeIdempotencyValue(responseType string, payload []byte) (any, error) {
 	switch responseType {
 	case "domain.PaymentIntent":
 		var v domain.PaymentIntent
-		if err := json.Unmarshal(payload, &v); err != nil { return nil, err }
+		if err := json.Unmarshal(payload, &v); err != nil {
+			return nil, err
+		}
 		return v, nil
 	case "domain.ConfirmPaymentIntentResponse":
 		var v domain.ConfirmPaymentIntentResponse
-		if err := json.Unmarshal(payload, &v); err != nil { return nil, err }
+		if err := json.Unmarshal(payload, &v); err != nil {
+			return nil, err
+		}
 		return v, nil
 	case "domain.CapturePaymentIntentResponse":
 		var v domain.CapturePaymentIntentResponse
-		if err := json.Unmarshal(payload, &v); err != nil { return nil, err }
+		if err := json.Unmarshal(payload, &v); err != nil {
+			return nil, err
+		}
 		return v, nil
 	case "domain.RefundResponse":
 		var v domain.RefundResponse
-		if err := json.Unmarshal(payload, &v); err != nil { return nil, err }
+		if err := json.Unmarshal(payload, &v); err != nil {
+			return nil, err
+		}
 		return v, nil
 	default:
 		return nil, domain.NewError(500, "idempotency_corrupt", "unsupported idempotency response type")
@@ -255,7 +313,9 @@ func getPaymentIntent(ctx context.Context, q queryer, id string) (domain.Payment
 	var currency string
 	var createdAt, updatedAt time.Time
 	if err := q.QueryRowContext(ctx, `SELECT id, merchant_id, customer_id, amount, currency, capture_method, status, scenario, idempotency_key, latest_attempt_id, charge_id, created_at, updated_at FROM payment_intents WHERE id = $1`, id).Scan(&intent.ID, &merchantID, &customerID, &amount, &currency, &intent.CaptureMethod, &intent.Status, &scenario, &idempotencyKey, &latestAttemptID, &chargeID, &createdAt, &updatedAt); err != nil {
-		if err == sql.ErrNoRows { return domain.PaymentIntent{}, domain.NewError(404, "payment_intent_not_found", "payment intent not found") }
+		if err == sql.ErrNoRows {
+			return domain.PaymentIntent{}, domain.NewError(404, "payment_intent_not_found", "payment intent not found")
+		}
 		return domain.PaymentIntent{}, err
 	}
 	intent.MerchantID = merchantID.String
@@ -271,6 +331,37 @@ func getPaymentIntent(ctx context.Context, q queryer, id string) (domain.Payment
 	return intent, nil
 }
 
+func listPaymentIntents(ctx context.Context, q queryer) ([]domain.PaymentIntent, error) {
+	rows, err := q.QueryContext(ctx, `SELECT id, merchant_id, customer_id, amount, currency, capture_method, status, scenario, idempotency_key, latest_attempt_id, charge_id, created_at, updated_at FROM payment_intents ORDER BY created_at ASC, id ASC`)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	out := make([]domain.PaymentIntent, 0)
+	for rows.Next() {
+		var intent domain.PaymentIntent
+		var merchantID, customerID, scenario, idempotencyKey, latestAttemptID, chargeID sql.NullString
+		var amount int64
+		var currency string
+		var createdAt, updatedAt time.Time
+		if err := rows.Scan(&intent.ID, &merchantID, &customerID, &amount, &currency, &intent.CaptureMethod, &intent.Status, &scenario, &idempotencyKey, &latestAttemptID, &chargeID, &createdAt, &updatedAt); err != nil {
+			return nil, err
+		}
+		intent.MerchantID = merchantID.String
+		intent.CustomerID = customerID.String
+		intent.Amount = domain.Amount(amount)
+		intent.Currency = domain.Currency(currency)
+		intent.Scenario = scenario.String
+		intent.IdempotencyKey = idempotencyKey.String
+		intent.LatestAttemptID = latestAttemptID.String
+		intent.ChargeID = chargeID.String
+		intent.CreatedAt = createdAt
+		intent.UpdatedAt = updatedAt
+		out = append(out, intent)
+	}
+	return out, rows.Err()
+}
+
 func upsertPaymentIntent(ctx context.Context, e execer, intent domain.PaymentIntent) (domain.PaymentIntent, error) {
 	_, err := exec(e, `INSERT INTO payment_intents(id, merchant_id, customer_id, amount, currency, capture_method, status, scenario, idempotency_key, latest_attempt_id, charge_id, created_at, updated_at)
 VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13)
@@ -284,7 +375,9 @@ func getPaymentAttempt(ctx context.Context, q queryer, id string) (domain.Paymen
 	var paymentMethodToken, declineCode, processorReference sql.NullString
 	var requestedAt, respondedAt time.Time
 	if err := q.QueryRowContext(ctx, `SELECT id, payment_intent_id, payment_method_token, status, decline_code, processor_reference, requested_at, responded_at FROM payment_attempts WHERE id = $1`, id).Scan(&attempt.ID, &attempt.PaymentIntentID, &paymentMethodToken, &attempt.Status, &declineCode, &processorReference, &requestedAt, &respondedAt); err != nil {
-		if err == sql.ErrNoRows { return domain.PaymentAttempt{}, domain.NewError(404, "payment_attempt_not_found", "payment attempt not found") }
+		if err == sql.ErrNoRows {
+			return domain.PaymentAttempt{}, domain.NewError(404, "payment_attempt_not_found", "payment attempt not found")
+		}
 		return domain.PaymentAttempt{}, err
 	}
 	attempt.PaymentMethodToken = paymentMethodToken.String
@@ -293,6 +386,30 @@ func getPaymentAttempt(ctx context.Context, q queryer, id string) (domain.Paymen
 	attempt.RequestedAt = requestedAt
 	attempt.RespondedAt = respondedAt
 	return attempt, nil
+}
+
+func listPaymentAttempts(ctx context.Context, q queryer) ([]domain.PaymentAttempt, error) {
+	rows, err := q.QueryContext(ctx, `SELECT id, payment_intent_id, payment_method_token, status, decline_code, processor_reference, requested_at, responded_at FROM payment_attempts ORDER BY requested_at ASC, id ASC`)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	out := make([]domain.PaymentAttempt, 0)
+	for rows.Next() {
+		var attempt domain.PaymentAttempt
+		var paymentMethodToken, declineCode, processorReference sql.NullString
+		var requestedAt, respondedAt time.Time
+		if err := rows.Scan(&attempt.ID, &attempt.PaymentIntentID, &paymentMethodToken, &attempt.Status, &declineCode, &processorReference, &requestedAt, &respondedAt); err != nil {
+			return nil, err
+		}
+		attempt.PaymentMethodToken = paymentMethodToken.String
+		attempt.DeclineCode = declineCode.String
+		attempt.ProcessorReference = processorReference.String
+		attempt.RequestedAt = requestedAt
+		attempt.RespondedAt = respondedAt
+		out = append(out, attempt)
+	}
+	return out, rows.Err()
 }
 
 func upsertPaymentAttempt(ctx context.Context, e execer, attempt domain.PaymentAttempt) (domain.PaymentAttempt, error) {
@@ -307,9 +424,12 @@ func getCharge(ctx context.Context, q queryer, id string) (domain.Charge, error)
 	var charge domain.Charge
 	var paymentAttemptID sql.NullString
 	var createdAt, updatedAt time.Time
+	var capturedAt sql.NullTime
 	var amount, capturedAmount, refundedAmount int64
-	if err := q.QueryRowContext(ctx, `SELECT id, payment_intent_id, payment_attempt_id, amount, captured_amount, refunded_amount, status, created_at, updated_at FROM charges WHERE id = $1`, id).Scan(&charge.ID, &charge.PaymentIntentID, &paymentAttemptID, &amount, &capturedAmount, &refundedAmount, &charge.Status, &createdAt, &updatedAt); err != nil {
-		if err == sql.ErrNoRows { return domain.Charge{}, domain.NewError(404, "charge_not_found", "charge not found") }
+	if err := q.QueryRowContext(ctx, `SELECT id, payment_intent_id, payment_attempt_id, amount, captured_amount, refunded_amount, status, created_at, captured_at, updated_at FROM charges WHERE id = $1`, id).Scan(&charge.ID, &charge.PaymentIntentID, &paymentAttemptID, &amount, &capturedAmount, &refundedAmount, &charge.Status, &createdAt, &capturedAt, &updatedAt); err != nil {
+		if err == sql.ErrNoRows {
+			return domain.Charge{}, domain.NewError(404, "charge_not_found", "charge not found")
+		}
 		return domain.Charge{}, err
 	}
 	charge.PaymentAttemptID = paymentAttemptID.String
@@ -317,15 +437,50 @@ func getCharge(ctx context.Context, q queryer, id string) (domain.Charge, error)
 	charge.CapturedAmount = domain.Amount(capturedAmount)
 	charge.RefundedAmount = domain.Amount(refundedAmount)
 	charge.CreatedAt = createdAt
+	if capturedAt.Valid {
+		capturedAtTime := capturedAt.Time
+		charge.CapturedAt = &capturedAtTime
+	}
 	charge.UpdatedAt = updatedAt
 	return charge, nil
 }
 
+func listCharges(ctx context.Context, q queryer) ([]domain.Charge, error) {
+	rows, err := q.QueryContext(ctx, `SELECT id, payment_intent_id, payment_attempt_id, amount, captured_amount, refunded_amount, status, created_at, captured_at, updated_at FROM charges ORDER BY created_at ASC, id ASC`)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	out := make([]domain.Charge, 0)
+	for rows.Next() {
+		var charge domain.Charge
+		var paymentAttemptID sql.NullString
+		var createdAt, updatedAt time.Time
+		var capturedAt sql.NullTime
+		var amount, capturedAmount, refundedAmount int64
+		if err := rows.Scan(&charge.ID, &charge.PaymentIntentID, &paymentAttemptID, &amount, &capturedAmount, &refundedAmount, &charge.Status, &createdAt, &capturedAt, &updatedAt); err != nil {
+			return nil, err
+		}
+		charge.PaymentAttemptID = paymentAttemptID.String
+		charge.Amount = domain.Amount(amount)
+		charge.CapturedAmount = domain.Amount(capturedAmount)
+		charge.RefundedAmount = domain.Amount(refundedAmount)
+		charge.CreatedAt = createdAt
+		if capturedAt.Valid {
+			capturedAtTime := capturedAt.Time
+			charge.CapturedAt = &capturedAtTime
+		}
+		charge.UpdatedAt = updatedAt
+		out = append(out, charge)
+	}
+	return out, rows.Err()
+}
+
 func upsertCharge(ctx context.Context, e execer, charge domain.Charge) (domain.Charge, error) {
-	_, err := exec(e, `INSERT INTO charges(id, payment_intent_id, payment_attempt_id, amount, captured_amount, refunded_amount, status, created_at, updated_at)
-VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9)
-ON CONFLICT (id) DO UPDATE SET payment_intent_id = EXCLUDED.payment_intent_id, payment_attempt_id = EXCLUDED.payment_attempt_id, amount = EXCLUDED.amount, captured_amount = EXCLUDED.captured_amount, refunded_amount = EXCLUDED.refunded_amount, status = EXCLUDED.status, created_at = EXCLUDED.created_at, updated_at = EXCLUDED.updated_at`,
-		charge.ID, charge.PaymentIntentID, nullString(charge.PaymentAttemptID), int64(charge.Amount), int64(charge.CapturedAmount), int64(charge.RefundedAmount), string(charge.Status), charge.CreatedAt, charge.UpdatedAt)
+	_, err := exec(e, `INSERT INTO charges(id, payment_intent_id, payment_attempt_id, amount, captured_amount, refunded_amount, status, created_at, captured_at, updated_at)
+	VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10)
+	ON CONFLICT (id) DO UPDATE SET payment_intent_id = EXCLUDED.payment_intent_id, payment_attempt_id = EXCLUDED.payment_attempt_id, amount = EXCLUDED.amount, captured_amount = EXCLUDED.captured_amount, refunded_amount = EXCLUDED.refunded_amount, status = EXCLUDED.status, created_at = EXCLUDED.created_at, captured_at = EXCLUDED.captured_at, updated_at = EXCLUDED.updated_at`,
+		charge.ID, charge.PaymentIntentID, nullString(charge.PaymentAttemptID), int64(charge.Amount), int64(charge.CapturedAmount), int64(charge.RefundedAmount), string(charge.Status), charge.CreatedAt, nullTime(charge.CapturedAt), charge.UpdatedAt)
 	return charge, err
 }
 
@@ -334,13 +489,37 @@ func getRefund(ctx context.Context, q queryer, id string) (domain.Refund, error)
 	var createdAt, updatedAt time.Time
 	var amount int64
 	if err := q.QueryRowContext(ctx, `SELECT id, charge_id, payment_intent_id, amount, status, created_at, updated_at FROM refunds WHERE id = $1`, id).Scan(&refund.ID, &refund.ChargeID, &refund.PaymentIntentID, &amount, &refund.Status, &createdAt, &updatedAt); err != nil {
-		if err == sql.ErrNoRows { return domain.Refund{}, domain.NewError(404, "refund_not_found", "refund not found") }
+		if err == sql.ErrNoRows {
+			return domain.Refund{}, domain.NewError(404, "refund_not_found", "refund not found")
+		}
 		return domain.Refund{}, err
 	}
 	refund.Amount = domain.Amount(amount)
 	refund.CreatedAt = createdAt
 	refund.UpdatedAt = updatedAt
 	return refund, nil
+}
+
+func listRefunds(ctx context.Context, q queryer) ([]domain.Refund, error) {
+	rows, err := q.QueryContext(ctx, `SELECT id, charge_id, payment_intent_id, amount, status, created_at, updated_at FROM refunds ORDER BY created_at ASC, id ASC`)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	out := make([]domain.Refund, 0)
+	for rows.Next() {
+		var refund domain.Refund
+		var createdAt, updatedAt time.Time
+		var amount int64
+		if err := rows.Scan(&refund.ID, &refund.ChargeID, &refund.PaymentIntentID, &amount, &refund.Status, &createdAt, &updatedAt); err != nil {
+			return nil, err
+		}
+		refund.Amount = domain.Amount(amount)
+		refund.CreatedAt = createdAt
+		refund.UpdatedAt = updatedAt
+		out = append(out, refund)
+	}
+	return out, rows.Err()
 }
 
 func upsertRefund(ctx context.Context, e execer, refund domain.Refund) (domain.Refund, error) {
@@ -384,11 +563,21 @@ func (s *Store) recordOutboxPending(pending int64) {
 }
 
 type queryer interface {
+	QueryContext(context.Context, string, ...any) (*sql.Rows, error)
 	QueryRowContext(context.Context, string, ...any) *sql.Row
 	ExecContext(context.Context, string, ...any) (sql.Result, error)
 }
 
 func nullString(v string) sql.NullString {
-	if v == "" { return sql.NullString{} }
+	if v == "" {
+		return sql.NullString{}
+	}
 	return sql.NullString{String: v, Valid: true}
+}
+
+func nullTime(v *time.Time) any {
+	if v == nil {
+		return nil
+	}
+	return *v
 }

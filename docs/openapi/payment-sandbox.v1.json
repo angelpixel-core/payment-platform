@@ -1,14 +1,78 @@
 {
   "components": {
     "schemas": {
+      "BalanceProjectionLine": {
+        "additionalProperties": false,
+        "properties": {
+          "account_type": {
+            "enum": [
+              "available",
+              "reserved",
+              "liquidable"
+            ],
+            "type": "string"
+          },
+          "amount": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "currency": {
+            "type": "string"
+          },
+          "merchant_id": {
+            "type": "string"
+          },
+          "updated_at": {
+            "format": "date-time",
+            "type": "string"
+          }
+        },
+        "required": [
+          "merchant_id",
+          "currency",
+          "account_type",
+          "amount",
+          "updated_at"
+        ],
+        "type": "object"
+      },
+      "BalanceProjectionView": {
+        "additionalProperties": false,
+        "properties": {
+          "balances": {
+            "items": {
+              "$ref": "#/components/schemas/BalanceProjectionLine"
+            },
+            "type": "array"
+          },
+          "count": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "generated_at": {
+            "format": "date-time",
+            "type": "string"
+          }
+        },
+        "required": [
+          "generated_at",
+          "balances",
+          "count"
+        ],
+        "type": "object"
+      },
       "CapturePaymentIntentRequest": {
         "additionalProperties": false,
         "properties": {
           "amount": {
-            "description": "Optional capture amount override.",
+            "description": "Optional capture amount override. Omit to capture the full remaining amount.",
             "format": "int64",
             "minimum": 1,
             "type": "integer"
+          },
+          "idempotency_key": {
+            "description": "Optional request idempotency key. If omitted, the `Idempotency-Key` header is used when present.",
+            "type": "string"
           }
         },
         "type": "object"
@@ -39,6 +103,10 @@
           "captured_amount": {
             "format": "int64",
             "type": "integer"
+          },
+          "captured_at": {
+            "format": "date-time",
+            "type": "string"
           },
           "created_at": {
             "format": "date-time",
@@ -341,16 +409,17 @@
         "additionalProperties": false,
         "properties": {
           "amount": {
-            "description": "Optional refund amount override.",
+            "description": "Optional refund amount override. Omit to refund the remaining captured amount.",
             "format": "int64",
             "minimum": 1,
             "type": "integer"
           },
           "charge_id": {
+            "description": "Charge to refund.",
             "type": "string"
           },
           "idempotency_key": {
-            "description": "Optional request idempotency key.",
+            "description": "Optional request idempotency key. If omitted, the `Idempotency-Key` header is used when present.",
             "type": "string"
           }
         },
@@ -425,6 +494,204 @@
           "refund"
         ],
         "type": "object"
+      },
+      "SettlementBatchLine": {
+        "additionalProperties": false,
+        "properties": {
+          "charge_count": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "charge_ids": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array"
+          },
+          "charges": {
+            "items": {
+              "$ref": "#/components/schemas/SettlementChargeLine"
+            },
+            "type": "array"
+          },
+          "currency": {
+            "type": "string"
+          },
+          "gross_amount": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "merchant_id": {
+            "type": "string"
+          },
+          "net_amount": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "refund_count": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "refunded_amount": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "settlement_date": {
+            "format": "date",
+            "type": "string"
+          },
+          "status": {
+            "enum": [
+              "pending",
+              "ready"
+            ],
+            "type": "string"
+          },
+          "updated_at": {
+            "format": "date-time",
+            "type": "string"
+          }
+        },
+        "required": [
+          "merchant_id",
+          "currency",
+          "settlement_date",
+          "status",
+          "gross_amount",
+          "refunded_amount",
+          "net_amount",
+          "charge_count",
+          "refund_count",
+          "charge_ids",
+          "charges",
+          "updated_at"
+        ],
+        "type": "object"
+      },
+      "SettlementChargeLine": {
+        "additionalProperties": false,
+        "properties": {
+          "amount": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "captured_at": {
+            "format": "date-time",
+            "type": "string"
+          },
+          "charge_id": {
+            "type": "string"
+          },
+          "payment_intent_id": {
+            "type": "string"
+          },
+          "refunded_amount": {
+            "format": "int64",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "charge_id",
+          "payment_intent_id",
+          "captured_at",
+          "amount",
+          "refunded_amount"
+        ],
+        "type": "object"
+      },
+      "SettlementProjectionView": {
+        "additionalProperties": false,
+        "properties": {
+          "batches": {
+            "items": {
+              "$ref": "#/components/schemas/SettlementBatchLine"
+            },
+            "type": "array"
+          },
+          "count": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "generated_at": {
+            "format": "date-time",
+            "type": "string"
+          }
+        },
+        "required": [
+          "generated_at",
+          "batches",
+          "count"
+        ],
+        "type": "object"
+      },
+      "TransactionReportEnvelope": {
+        "additionalProperties": false,
+        "properties": {
+          "transactions_report": {
+            "$ref": "#/components/schemas/TransactionReportView"
+          }
+        },
+        "required": [
+          "transactions_report"
+        ],
+        "type": "object"
+      },
+      "TransactionReportLine": {
+        "additionalProperties": false,
+        "properties": {
+          "charge": {
+            "$ref": "#/components/schemas/ChargeView"
+          },
+          "latest_attempt": {
+            "$ref": "#/components/schemas/PaymentAttemptView"
+          },
+          "payment_intent": {
+            "$ref": "#/components/schemas/PaymentIntentView"
+          },
+          "refunds": {
+            "items": {
+              "$ref": "#/components/schemas/RefundView"
+            },
+            "type": "array"
+          }
+        },
+        "required": [
+          "payment_intent"
+        ],
+        "type": "object"
+      },
+      "TransactionReportView": {
+        "additionalProperties": false,
+        "properties": {
+          "balance_projection": {
+            "$ref": "#/components/schemas/BalanceProjectionView"
+          },
+          "count": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "generated_at": {
+            "format": "date-time",
+            "type": "string"
+          },
+          "settlement_projection": {
+            "$ref": "#/components/schemas/SettlementProjectionView"
+          },
+          "transactions": {
+            "items": {
+              "$ref": "#/components/schemas/TransactionReportLine"
+            },
+            "type": "array"
+          }
+        },
+        "required": [
+          "generated_at",
+          "transactions",
+          "balance_projection",
+          "settlement_projection",
+          "count"
+        ],
+        "type": "object"
       }
     }
   },
@@ -439,6 +706,68 @@
   },
   "openapi": "3.1.0",
   "paths": {
+    "/charges/{id}": {
+      "get": {
+        "operationId": "getChargeV1",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ChargeViewEnvelope"
+                }
+              }
+            },
+            "description": "OK"
+          },
+          "404": {
+            "description": "Not Found"
+          }
+        },
+        "summary": "Fetch charge"
+      }
+    },
+    "/payment_attempts/{id}": {
+      "get": {
+        "operationId": "getPaymentAttemptV1",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PaymentAttemptViewEnvelope"
+                }
+              }
+            },
+            "description": "OK"
+          },
+          "404": {
+            "description": "Not Found"
+          }
+        },
+        "summary": "Fetch payment attempt"
+      }
+    },
     "/payment_intents": {
       "post": {
         "operationId": "createPaymentIntentV1",
@@ -526,13 +855,15 @@
           "content": {
             "application/json": {
               "example": {
-                "amount": 1000
+                "amount": 1000,
+                "idempotency_key": "capture-123"
               },
               "schema": {
                 "$ref": "#/components/schemas/CapturePaymentIntentRequest"
               }
             }
           },
+          "description": "Optional capture overrides. Omit the body to capture the full remaining amount.",
           "required": false
         },
         "responses": {
@@ -622,9 +953,51 @@
         "summary": "Confirm a payment intent"
       }
     },
+    "/payment_intents/{id}/lifecycle": {
+      "get": {
+        "operationId": "getPaymentLifecycleV1",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PaymentLifecycleViewEnvelope"
+                }
+              }
+            },
+            "description": "OK"
+          },
+          "404": {
+            "description": "Not Found"
+          }
+        },
+        "summary": "Fetch payment lifecycle"
+      }
+    },
     "/refunds": {
       "post": {
         "operationId": "createRefundV1",
+        "parameters": [
+          {
+            "description": "Optional request idempotency key. The body field is also accepted as a fallback.",
+            "in": "header",
+            "name": "Idempotency-Key",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
         "requestBody": {
           "content": {
             "application/json": {
@@ -638,6 +1011,7 @@
               }
             }
           },
+          "description": "Refund body. `charge_id` is required; `amount` and `idempotency_key` are optional.",
           "required": true
         },
         "responses": {
@@ -656,6 +1030,55 @@
           }
         },
         "summary": "Create a refund"
+      }
+    },
+    "/refunds/{id}": {
+      "get": {
+        "operationId": "getRefundV1",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RefundViewEnvelope"
+                }
+              }
+            },
+            "description": "OK"
+          },
+          "404": {
+            "description": "Not Found"
+          }
+        },
+        "summary": "Fetch refund"
+      }
+    },
+    "/reports/transactions": {
+      "get": {
+        "operationId": "getTransactionReportV1",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TransactionReportEnvelope"
+                }
+              }
+            },
+            "description": "OK"
+          }
+        },
+        "summary": "Fetch transaction report"
       }
     }
   },

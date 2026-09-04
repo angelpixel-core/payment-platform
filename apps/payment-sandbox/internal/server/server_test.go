@@ -8,8 +8,8 @@ import (
 	"testing"
 
 	"payment-sandbox/internal/application/queries/payments"
-	"payment-sandbox/internal/domain"
 	"payment-sandbox/internal/bootstrap"
+	"payment-sandbox/internal/domain"
 	"payment-sandbox/internal/sandbox"
 )
 
@@ -51,6 +51,10 @@ type refundViewEnvelope struct {
 
 type lifecycleEnvelope struct {
 	PaymentLifecycle sandbox.PaymentLifecycleView `json:"payment_lifecycle"`
+}
+
+type reportEnvelope struct {
+	TransactionsReport sandbox.TransactionReportView `json:"transactions_report"`
 }
 
 type errorEnvelope struct {
@@ -103,6 +107,24 @@ func TestPaymentLifecycle(t *testing.T) {
 	}
 	if gotLifecycle.PaymentLifecycle.RefundableAmount != 0 || gotLifecycle.PaymentLifecycle.IsRefundable {
 		t.Fatalf("expected non-refundable lifecycle after full refund, got %+v", gotLifecycle.PaymentLifecycle)
+	}
+
+	resp, body = doGet(t, client.URL+"/v1/reports/transactions")
+	if resp.StatusCode != http.StatusOK {
+		t.Fatalf("expected 200, got %d", resp.StatusCode)
+	}
+	var gotReport reportEnvelope
+	if err := json.Unmarshal(body, &gotReport); err != nil {
+		t.Fatalf("decode report failed: %v", err)
+	}
+	if gotReport.TransactionsReport.Count != 1 || len(gotReport.TransactionsReport.Transactions) != 1 {
+		t.Fatalf("expected one transaction report line, got %+v", gotReport.TransactionsReport)
+	}
+	if gotReport.TransactionsReport.BalanceProjection.Count != 3 || len(gotReport.TransactionsReport.BalanceProjection.Balances) != 3 {
+		t.Fatalf("expected three balance projection lines, got %+v", gotReport.TransactionsReport.BalanceProjection)
+	}
+	if gotReport.TransactionsReport.SettlementProjection.Count != 1 || len(gotReport.TransactionsReport.SettlementProjection.Batches) != 1 {
+		t.Fatalf("expected one settlement projection batch, got %+v", gotReport.TransactionsReport.SettlementProjection)
 	}
 }
 
@@ -177,6 +199,24 @@ func TestQueryEndpoints(t *testing.T) {
 	if gotLifecycle.PaymentLifecycle.Status != "refunded" {
 		t.Fatalf("expected refunded lifecycle, got %s", gotLifecycle.PaymentLifecycle.Status)
 	}
+
+	resp, body = doGet(t, client.URL+"/v1/reports/transactions")
+	if resp.StatusCode != http.StatusOK {
+		t.Fatalf("expected 200, got %d", resp.StatusCode)
+	}
+	var gotReport reportEnvelope
+	if err := json.Unmarshal(body, &gotReport); err != nil {
+		t.Fatalf("decode report failed: %v", err)
+	}
+	if gotReport.TransactionsReport.Count != 1 || len(gotReport.TransactionsReport.Transactions) != 1 {
+		t.Fatalf("expected one transaction report line, got %+v", gotReport.TransactionsReport)
+	}
+	if gotReport.TransactionsReport.BalanceProjection.Count != 3 || len(gotReport.TransactionsReport.BalanceProjection.Balances) != 3 {
+		t.Fatalf("expected three balance projection lines, got %+v", gotReport.TransactionsReport.BalanceProjection)
+	}
+	if gotReport.TransactionsReport.SettlementProjection.Count != 1 || len(gotReport.TransactionsReport.SettlementProjection.Batches) != 1 {
+		t.Fatalf("expected one settlement projection batch, got %+v", gotReport.TransactionsReport.SettlementProjection)
+	}
 }
 
 func TestIdempotency(t *testing.T) {
@@ -200,6 +240,12 @@ func TestIdempotency(t *testing.T) {
 	_, confirm2 := doPost[confirmEnvelope](t, client.URL+"/v1/payment_intents/"+intentID+"/confirm", map[string]any{}, "idem-confirm", nil)
 	if confirm1.PaymentAttempt.ID != confirm2.PaymentAttempt.ID {
 		t.Fatalf("expected same attempt on idempotent confirm")
+	}
+
+	_, capture1 := doPost[captureEnvelope](t, client.URL+"/v1/payment_intents/"+intentID+"/capture", map[string]any{"idempotency_key": "idem-capture"}, "", nil)
+	_, capture2 := doPost[captureEnvelope](t, client.URL+"/v1/payment_intents/"+intentID+"/capture", map[string]any{"idempotency_key": "idem-capture"}, "", nil)
+	if capture1.Charge.ID != capture2.Charge.ID {
+		t.Fatalf("expected same charge on idempotent capture")
 	}
 }
 
@@ -386,7 +432,7 @@ func TestHTTPContractShapes(t *testing.T) {
 	}
 	assertJSONHasKeys(t, captureBody, "payment_intent", "charge")
 	assertNestedJSONHasKeys(t, captureBody, "payment_intent", "id", "status", "charge_id")
-	assertNestedJSONHasKeys(t, captureBody, "charge", "id", "status", "captured_amount")
+	assertNestedJSONHasKeys(t, captureBody, "charge", "id", "status", "captured_amount", "captured_at")
 
 	var captured captureEnvelope
 	if err := json.Unmarshal(captureBody, &captured); err != nil {

@@ -45,6 +45,7 @@ CREATE TABLE IF NOT EXISTS charges (
 	refunded_amount bigint NOT NULL,
 	status text NOT NULL,
 	created_at timestamptz NOT NULL,
+	captured_at timestamptz NULL,
 	updated_at timestamptz NOT NULL
 );
 

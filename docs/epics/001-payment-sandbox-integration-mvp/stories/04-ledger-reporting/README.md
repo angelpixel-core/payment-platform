@@ -19,8 +19,9 @@ Add a simple ledger and reporting layer so Rails can reconcile local records aga
 ### In Scope
 
 - [ ] Double-entry ledger entries
-- [ ] Transaction report endpoint
-- [ ] Balance projection
+- [x] Transaction report endpoint [Evidence](./TRANSACTION_REPORT_CONTRACT.md)
+- [x] Balance projection [Evidence](./BALANCE_PROJECTION_CONTRACT.md)
+- [x] Daily settlement projection [Evidence](./SETTLEMENT_PROJECTION_CONTRACT.md)
 - [ ] Reconciliation snapshot export
 - [ ] Immutable financial movements
 - [ ] Reportable fees and refunds
@@ -63,7 +64,7 @@ flowchart LR
 ## Acceptance Criteria
 
 - [ ] Every financial movement is reflected in the ledger.
-- [ ] The report can be consumed by Rails for reconciliation.
+- [x] The report can be consumed by Rails for reconciliation.
 - [ ] Balances can be derived from entries.
 - [ ] Ledger entries remain immutable.
 - [ ] Fees and refunds are represented in the report.
@@ -72,3 +73,9 @@ flowchart LR
 
 - [ ] Sandbox API base
 - [ ] Rails adapter
+
+## Related Docs
+
+- [Transaction Report Contract](./TRANSACTION_REPORT_CONTRACT.md)
+- [Balance Projection Contract](./BALANCE_PROJECTION_CONTRACT.md)
+- [Settlement Projection Contract](./SETTLEMENT_PROJECTION_CONTRACT.md)

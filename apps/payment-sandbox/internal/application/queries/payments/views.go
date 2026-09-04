@@ -25,15 +25,16 @@ type PaymentAttemptView struct {
 }
 
 type ChargeView struct {
-	ID               string    `json:"id"`
-	PaymentIntentID  string    `json:"payment_intent_id"`
-	PaymentAttemptID string    `json:"payment_attempt_id,omitempty"`
-	Amount           int64     `json:"amount"`
-	CapturedAmount   int64     `json:"captured_amount"`
-	RefundedAmount   int64     `json:"refunded_amount"`
-	Status           string    `json:"status"`
-	CreatedAt        time.Time `json:"created_at"`
-	UpdatedAt        time.Time `json:"updated_at"`
+	ID               string     `json:"id"`
+	PaymentIntentID  string     `json:"payment_intent_id"`
+	PaymentAttemptID string     `json:"payment_attempt_id,omitempty"`
+	Amount           int64      `json:"amount"`
+	CapturedAmount   int64      `json:"captured_amount"`
+	RefundedAmount   int64      `json:"refunded_amount"`
+	Status           string     `json:"status"`
+	CreatedAt        time.Time  `json:"created_at"`
+	CapturedAt       *time.Time `json:"captured_at,omitempty"`
+	UpdatedAt        time.Time  `json:"updated_at"`
 }
 
 type RefundView struct {

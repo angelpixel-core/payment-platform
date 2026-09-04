@@ -144,30 +144,37 @@ func (s *PaymentService) FinalizeProcessingPaymentIntent(intentID string) (domai
 	return intentResult, nil
 }
 
-func (s *PaymentService) CapturePaymentIntent(intentID string, req domain.CapturePaymentIntentRequest) (domain.CapturePaymentIntentResponse, error) {
+func (s *PaymentService) CapturePaymentIntent(intentID string, req domain.CapturePaymentIntentRequest, fingerprint string) (domain.CapturePaymentIntentResponse, error) {
 	var response domain.CapturePaymentIntentResponse
-		err := s.uow.Do(func(tx ports.Transaction) error {
+	err := s.uow.Do(func(tx ports.Transaction) error {
+		key := "capture_payment_intent:" + intentID + ":" + strings.TrimSpace(req.IdempotencyKey)
+		result, err := tx.WithIdempotency(key, fingerprint, func() (any, error) {
 			intent, err := tx.GetPaymentIntent(intentID)
 			if err != nil {
-				return err
+				return nil, err
 			}
 			if err := intent.CanCapture(); err != nil {
-				return err
+				return nil, err
 			}
 			charge, err := tx.GetCharge(intent.ChargeID)
 			if err != nil {
-				return err
+				return nil, err
 			}
 
-		now := s.clock.Now()
-		result, err := intent.Capture(domain.CapturePaymentIntentCommand{Charge: &charge, Amount: domain.Amount(req.Amount), Now: now})
+			now := s.clock.Now()
+			result, err := intent.Capture(domain.CapturePaymentIntentCommand{Charge: &charge, Amount: domain.Amount(req.Amount), Now: now})
+			if err != nil {
+				return nil, err
+			}
+			tx.SaveCharge(result.Charge)
+			tx.SavePaymentIntent(result.PaymentIntent)
+			_ = tx.Publish(domain.PaymentIntentCapturedEvent{PaymentIntent: result.PaymentIntent, Charge: result.Charge})
+			return domain.CapturePaymentIntentResponse{PaymentIntent: result.PaymentIntent, Charge: result.Charge}, nil
+		})
 		if err != nil {
 			return err
 		}
-		tx.SaveCharge(result.Charge)
-		tx.SavePaymentIntent(result.PaymentIntent)
-		_ = tx.Publish(domain.PaymentIntentCapturedEvent{PaymentIntent: result.PaymentIntent, Charge: result.Charge})
-		response = domain.CapturePaymentIntentResponse{PaymentIntent: result.PaymentIntent, Charge: result.Charge}
+		response = result.(domain.CapturePaymentIntentResponse)
 		return nil
 	})
 	if err != nil {

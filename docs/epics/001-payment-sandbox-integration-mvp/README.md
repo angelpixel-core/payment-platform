@@ -38,6 +38,7 @@ depending on Stripe or Mercado Pago in development.
 - [ ] [04-ledger-reporting](./stories/04-ledger-reporting/README.md) `pending`
 - [ ] [05-workflow-consumer-integration](./stories/05-workflow-consumer-integration/README.md) `pending`
 - [ ] [06-local-dev-setup](./stories/06-local-dev-setup/README.md) `pending`
+- [ ] [07-payment-platform-sdk](./stories/07-payment-platform-sdk/README.md) `pending`
 
 Each story includes its own system design diagram followed by a numbered explanation.
 

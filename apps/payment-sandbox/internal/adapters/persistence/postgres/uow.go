@@ -66,6 +66,14 @@ func (tx *transaction) GetPaymentIntent(id string) (domain.PaymentIntent, error)
 	return intent, err
 }
 
+func (tx *transaction) ListPaymentIntents() []domain.PaymentIntent {
+	items, err := listPaymentIntents(context.Background(), tx.tx)
+	if err != nil {
+		return nil
+	}
+	return items
+}
+
 func (tx *transaction) SavePaymentAttempt(attempt domain.PaymentAttempt) domain.PaymentAttempt {
 	start := time.Now()
 	_, _ = upsertPaymentAttempt(context.Background(), tx.tx, attempt)
@@ -78,6 +86,14 @@ func (tx *transaction) GetPaymentAttempt(id string) (domain.PaymentAttempt, erro
 	attempt, err := getPaymentAttempt(context.Background(), tx.tx, id)
 	tx.store.recordPersistence("payment_attempt", "get", err, start)
 	return attempt, err
+}
+
+func (tx *transaction) ListPaymentAttempts() []domain.PaymentAttempt {
+	items, err := listPaymentAttempts(context.Background(), tx.tx)
+	if err != nil {
+		return nil
+	}
+	return items
 }
 
 func (tx *transaction) SaveCharge(charge domain.Charge) domain.Charge {
@@ -94,6 +110,14 @@ func (tx *transaction) GetCharge(id string) (domain.Charge, error) {
 	return charge, err
 }
 
+func (tx *transaction) ListCharges() []domain.Charge {
+	items, err := listCharges(context.Background(), tx.tx)
+	if err != nil {
+		return nil
+	}
+	return items
+}
+
 func (tx *transaction) SaveRefund(refund domain.Refund) domain.Refund {
 	start := time.Now()
 	_, _ = upsertRefund(context.Background(), tx.tx, refund)
@@ -106,4 +130,12 @@ func (tx *transaction) GetRefund(id string) (domain.Refund, error) {
 	refund, err := getRefund(context.Background(), tx.tx, id)
 	tx.store.recordPersistence("refund", "get", err, start)
 	return refund, err
+}
+
+func (tx *transaction) ListRefunds() []domain.Refund {
+	items, err := listRefunds(context.Background(), tx.tx)
+	if err != nil {
+		return nil
+	}
+	return items
 }

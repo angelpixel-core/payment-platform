@@ -31,16 +31,20 @@ type fakePersistenceMetricsRecorder struct {
 	calls []persistenceMetricCall
 }
 
-func (f *fakePersistenceMetricsRecorder) RecordHTTPRequest(context.Context, string, string, int, time.Duration) {}
-func (f *fakePersistenceMetricsRecorder) RecordPaymentFlow(context.Context, string, string, time.Duration) {}
-func (f *fakePersistenceMetricsRecorder) RecordPaymentCommand(context.Context, string, string, time.Duration) {}
+func (f *fakePersistenceMetricsRecorder) RecordHTTPRequest(context.Context, string, string, int, time.Duration) {
+}
+func (f *fakePersistenceMetricsRecorder) RecordPaymentFlow(context.Context, string, string, time.Duration) {
+}
+func (f *fakePersistenceMetricsRecorder) RecordPaymentCommand(context.Context, string, string, time.Duration) {
+}
 func (f *fakePersistenceMetricsRecorder) RecordPersistenceOperation(_ context.Context, backend, resource, operation, outcome string, duration time.Duration) {
 	f.calls = append(f.calls, persistenceMetricCall{backend: backend, resource: resource, operation: operation, outcome: outcome, duration: duration})
 }
 func (f *fakePersistenceMetricsRecorder) RecordUnitOfWork(_ context.Context, backend, outcome string, duration time.Duration) {
 	f.calls = append(f.calls, persistenceMetricCall{backend: backend, resource: "uow", operation: "do", outcome: outcome, duration: duration})
 }
-func (f *fakePersistenceMetricsRecorder) RecordOutboxOperation(context.Context, string, string, string, time.Duration) {}
+func (f *fakePersistenceMetricsRecorder) RecordOutboxOperation(context.Context, string, string, string, time.Duration) {
+}
 func (f *fakePersistenceMetricsRecorder) RecordOutboxPending(context.Context, string, int64) {}
 
 func TestStoreContractAgainstPostgres(t *testing.T) {
@@ -206,7 +210,7 @@ func contractStoreCRUD(t *testing.T, store *Store) {
 	now := time.Now().UTC().Truncate(time.Microsecond)
 	intent := domain.PaymentIntent{ID: "pi_1", MerchantID: "m_1", CustomerID: "c_1", Amount: 100, Currency: "USD", CaptureMethod: "manual", Status: domain.PaymentIntentRequiresPaymentMethod, CreatedAt: now, UpdatedAt: now}
 	attempt := domain.PaymentAttempt{ID: "pa_1", PaymentIntentID: "pi_1", Status: domain.PaymentAttemptAuthorized, RequestedAt: now, RespondedAt: now}
-	charge := domain.Charge{ID: "ch_1", PaymentIntentID: "pi_1", PaymentAttemptID: "pa_1", Amount: 100, CapturedAmount: 100, Status: domain.ChargeCaptured, CreatedAt: now, UpdatedAt: now}
+	charge := domain.Charge{ID: "ch_1", PaymentIntentID: "pi_1", PaymentAttemptID: "pa_1", Amount: 100, CapturedAmount: 100, Status: domain.ChargeCaptured, CreatedAt: now, CapturedAt: &now, UpdatedAt: now}
 	refund := domain.Refund{ID: "re_1", ChargeID: "ch_1", PaymentIntentID: "pi_1", Amount: 100, Status: domain.RefundSucceeded, CreatedAt: now, UpdatedAt: now}
 
 	store.SavePaymentIntent(intent)
@@ -223,7 +227,7 @@ func contractStoreCRUD(t *testing.T, store *Store) {
 		t.Fatalf("unexpected attempt: %+v err=%v", gotAttempt, err)
 	}
 	gotCharge, err := store.GetCharge("ch_1")
-	if err != nil || gotCharge.ID != charge.ID || gotCharge.CapturedAmount != charge.CapturedAmount {
+	if err != nil || gotCharge.ID != charge.ID || gotCharge.CapturedAmount != charge.CapturedAmount || gotCharge.CapturedAt == nil || !gotCharge.CapturedAt.Equal(*charge.CapturedAt) {
 		t.Fatalf("unexpected charge: %+v err=%v", gotCharge, err)
 	}
 	gotRefund, err := store.GetRefund("re_1")

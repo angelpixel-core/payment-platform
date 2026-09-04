@@ -117,8 +117,11 @@ func TestPaymentServicePublishesEvents(t *testing.T) {
 				if confirmed.PaymentIntent.Status != domain.PaymentIntentRequiresCapture {
 					t.Fatalf("expected requires_capture, got %s", confirmed.PaymentIntent.Status)
 				}
-				if _, err := svc.CapturePaymentIntent(created.ID, domain.CapturePaymentIntentRequest{}); err != nil {
+				if _, err := svc.CapturePaymentIntent(created.ID, domain.CapturePaymentIntentRequest{IdempotencyKey: "capture-1"}, fingerprintString("capture-1|amount=100")); err != nil {
 					t.Fatalf("capture failed: %v", err)
+				}
+				if _, err := svc.CapturePaymentIntent(created.ID, domain.CapturePaymentIntentRequest{IdempotencyKey: "capture-1"}, fingerprintString("capture-1|amount=100")); err != nil {
+					t.Fatalf("capture retry failed: %v", err)
 				}
 			},
 			wantEvents: []string{"payment_intent.created", "payment_intent.confirmed", "payment_intent.captured"},

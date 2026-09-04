@@ -46,8 +46,26 @@ func TestOpenAPIContract(t *testing.T) {
 		"charge_id": captured.Charge.ID,
 	}, "refund-contract", nil, &refunded)
 
+	var gotAttempt paymentAttemptEnvelope
+	callContract(t, h, server, http.MethodGet, "/v1/payment_attempts/"+confirmed.PaymentAttempt.ID, nil, "", nil, &gotAttempt)
+
+	var gotCharge chargeEnvelope
+	callContract(t, h, server, http.MethodGet, "/v1/charges/"+captured.Charge.ID, nil, "", nil, &gotCharge)
+
+	var gotRefund refundEnvelope
+	callContract(t, h, server, http.MethodGet, "/v1/refunds/"+refunded.Refund.ID, nil, "", nil, &gotRefund)
+
+	var gotLifecycle paymentLifecycleEnvelope
+	callContract(t, h, server, http.MethodGet, "/v1/payment_intents/"+created.PaymentIntent.ID+"/lifecycle", nil, "", nil, &gotLifecycle)
+
 	var gotIntent paymentIntentEnvelope
 	callContract(t, h, server, http.MethodGet, "/v1/payment_intents/"+created.PaymentIntent.ID, nil, "", nil, &gotIntent)
+
+	var gotReport transactionReportEnvelope
+	callContract(t, h, server, http.MethodGet, "/v1/reports/transactions", nil, "", nil, &gotReport)
+	if gotReport.TransactionsReport.BalanceProjection.Count != 3 || len(gotReport.TransactionsReport.BalanceProjection.Balances) != 3 {
+		t.Fatalf("expected three balance projection lines, got %+v", gotReport.TransactionsReport.BalanceProjection)
+	}
 }
 
 type contractHarness struct {
@@ -74,8 +92,33 @@ type refundEnvelope struct {
 	Charge chargeView `json:"charge"`
 }
 
+type paymentAttemptEnvelope struct {
+	PaymentAttempt paymentAttemptView `json:"payment_attempt"`
+}
+
+type chargeEnvelope struct {
+	Charge chargeView `json:"charge"`
+}
+
+type paymentLifecycleEnvelope struct {
+	PaymentLifecycle paymentLifecycleView `json:"payment_lifecycle"`
+}
+
+type transactionReportEnvelope struct {
+	TransactionsReport transactionReportView `json:"transactions_report"`
+}
+
 type paymentIntentEnvelope struct {
 	PaymentIntent paymentIntentView `json:"payment_intent"`
+}
+
+type paymentLifecycleView struct {
+	PaymentIntent    paymentIntentView   `json:"payment_intent"`
+	LatestAttempt    *paymentAttemptView `json:"latest_attempt"`
+	Charge           *chargeView         `json:"charge"`
+	Status           string              `json:"status"`
+	RefundableAmount int64               `json:"refundable_amount"`
+	IsRefundable     bool                `json:"is_refundable"`
 }
 
 type paymentIntentView struct {
@@ -120,6 +163,34 @@ type refundView struct {
 	Status          string `json:"status"`
 	CreatedAt       string `json:"created_at"`
 	UpdatedAt       string `json:"updated_at"`
+}
+
+type transactionReportView struct {
+	GeneratedAt       string                  `json:"generated_at"`
+	Transactions      []transactionReportLine `json:"transactions"`
+	BalanceProjection balanceProjectionView   `json:"balance_projection"`
+	Count             int                     `json:"count"`
+}
+
+type transactionReportLine struct {
+	PaymentIntent paymentIntentView   `json:"payment_intent"`
+	LatestAttempt *paymentAttemptView `json:"latest_attempt"`
+	Charge        *chargeView         `json:"charge"`
+	Refunds       []refundView        `json:"refunds"`
+}
+
+type balanceProjectionView struct {
+	GeneratedAt string                  `json:"generated_at"`
+	Balances    []balanceProjectionLine `json:"balances"`
+	Count       int                     `json:"count"`
+}
+
+type balanceProjectionLine struct {
+	MerchantID  string `json:"merchant_id"`
+	Currency    string `json:"currency"`
+	AccountType string `json:"account_type"`
+	Amount      int64  `json:"amount"`
+	UpdatedAt   string `json:"updated_at"`
 }
 
 func newHarness(t *testing.T) *contractHarness {
