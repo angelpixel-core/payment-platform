@@ -24,7 +24,7 @@ Simulate provider webhooks with retries, duplicates, and idempotent processing o
 - [ ] `payment.processing`
 - [ ] Retry delivery
 - [ ] Duplicate delivery
-- [ ] Webhook inbox in Rails
+- [x] Webhook inbox in Rails
 - [ ] Delivery signature verification
 
 ### Out of Scope
@@ -63,9 +63,17 @@ flowchart LR
 - Rails should accept duplicated events without duplicating business effects.
 - Failed deliveries should be visible in the inbox for later inspection.
 
+## Coverage Matrix
+
+- Go delivery success is covered by `dispatcher_test.go`.
+- Retry behavior is documented in `WEBHOOK_RETRY_POLICY.md` and covered by `dispatcher_test.go`.
+- Duplicate delivery behavior is documented in `WEBHOOK_CONTRACT.md` and `WEBHOOK_INBOX_CONTRACT.md`.
+- Invalid signature handling is documented in `WEBHOOK_SIGNATURE.md` and `WEBHOOK_INBOX_CONTRACT.md`.
+- Inbox persistence before side effects is documented in `WEBHOOK_INBOX_CONTRACT.md`.
+
 ## Acceptance Criteria
 
-- [ ] Rails can receive and store webhook deliveries.
+- [x] Rails can receive and store webhook deliveries.
 - [ ] Duplicate events do not duplicate business effects.
 - [ ] Failed deliveries are retried.
 - [ ] Webhook signatures are validated before applying business state changes.
@@ -80,6 +88,11 @@ flowchart LR
 
 - [Implementation Checklist](./IMPLEMENTATION_CHECKLIST.md)
 - [Webhook Contract](./WEBHOOK_CONTRACT.md)
+- [Webhook Inbox Contract](./WEBHOOK_INBOX_CONTRACT.md)
+- [Webhook Projection Contract](./WEBHOOK_PROJECTION_CONTRACT.md)
+- [Webhook Reconciliation Contract](./WEBHOOK_RECONCILIATION_CONTRACT.md)
+- [Webhook Inbox Ruby Stub](./webhook_inbox_contract.rb)
+- [Reconciliation Contract Stub](./webhook_reconciliation_contract.rb)
 - [Webhook Signature Configuration](./WEBHOOK_SIGNATURE.md)
 - [Webhook Retry Policy](./WEBHOOK_RETRY_POLICY.md)
 - [Sandbox API Base](../01-sandbox-api-base/README.md)
