@@ -41,11 +41,14 @@ Crear tooling operativo alrededor de `payment-sandbox` para escenarios, carga, o
 
 ### 3. `docs(payment-sandbox): define load testing strategy`
 
-- [ ] Documentar `k6` como herramienta para secuencias de negocio.
+- [x] Documentar `k6` como herramienta para secuencias de negocio. [Evidence](./README.md)
+- [x] Scaffold de `k6` para secuencias de negocio. [Evidence](../../../../../apps/payment-sandbox/load-tests/k6/business-sequences.js)
 - [ ] Documentar `vegeta` como herramienta para presión HTTP reproducible.
 - [ ] Reservar goroutines Go para escenarios de dominio puntuales, no como reemplazo de load testing.
 - [ ] Archivos objetivo:
   - `docs/epics/001-payment-sandbox-integration-mvp/stories/08-payment-sandbox-operations/README.md`
+  - `apps/payment-sandbox/load-tests/k6/README.md`
+  - `apps/payment-sandbox/load-tests/k6/business-sequences.js`
   - (si se necesita) un documento nuevo de estrategia bajo la story 08
 
 ### 4. `feat(payment-sandbox): expose operational metrics`

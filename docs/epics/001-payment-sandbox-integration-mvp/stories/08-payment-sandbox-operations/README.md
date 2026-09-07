@@ -57,7 +57,7 @@ payment-sandbox seed
 
 ## Load Testing Position
 
-- `k6` for business-sequence scenarios.
+- `k6` for business-sequence scenarios that need deterministic, scripted flows across the public HTTP API.
 - `vegeta` for reproducible HTTP pressure.
 - Go goroutines only when a domain-specific runner is needed.
 
