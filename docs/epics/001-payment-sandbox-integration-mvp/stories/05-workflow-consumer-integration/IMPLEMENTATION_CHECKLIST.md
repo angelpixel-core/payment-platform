@@ -1,3 +1,9 @@
+---
+id: IMPLEMENTATION_CHECKLIST
+aliases: []
+tags: []
+---
+
 # Checklist de Implementacion por Commits - Workflow Consumer Integration
 
 ## Objetivo
@@ -14,6 +20,7 @@ Implementar la integracion del consumidor de workflow contra `payment-sandbox` c
 
 - [x] `Sandbox API base` disponible. [Evidence](../01-sandbox-api-base/README.md)
 - [x] `Webhook delivery` disponible. [Evidence](../03-webhook-delivery/README.md)
+- [x] `Ledger and reporting` disponible. [Evidence](../04-ledger-reporting/README.md)
 - [x] OpenAPI `v1` validado. [Evidence](../../../../openapi/payment-sandbox.v1.yaml)
 
 ## 1. Contracto y Cliente

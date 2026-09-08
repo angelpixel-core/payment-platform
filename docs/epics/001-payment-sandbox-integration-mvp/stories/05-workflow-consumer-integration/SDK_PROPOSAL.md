@@ -9,6 +9,7 @@ Provide a small Ruby SDK for consuming `payment-sandbox` v1 from the Ruby app wi
 - The SDK is a thin client, not a new source of truth.
 - The OpenAPI `v1` spec remains canonical.
 - The SDK should be a separate story from workflow consumer integration.
+- The SDK can call the same `v1` transaction/report endpoints used by reconciliation.
 
 ## Proposed Ruby API
 

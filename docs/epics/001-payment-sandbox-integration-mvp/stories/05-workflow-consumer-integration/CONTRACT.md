@@ -16,6 +16,7 @@ Define the consumer-side contract for integrating a workflow owner with `payment
 
 - The consumer may be `OrderProcessor` or any workflow owner with a local payment projection.
 - The consumer should depend on a small gateway interface and webhook inbox.
+- The consumer should be able to reconcile its local projection against `GET /v1/reports/transactions` and `GET /v1/reports/transactions?view=snapshot`.
 
 ## Data Expectations
 
