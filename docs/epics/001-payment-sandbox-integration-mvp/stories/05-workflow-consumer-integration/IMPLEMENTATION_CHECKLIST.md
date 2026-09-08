@@ -29,7 +29,7 @@ Implementar la integracion del consumidor de workflow contra `payment-sandbox` c
   - [x] Definir el consumidor agnostico como un workflow owner generico. [Evidence](./CONTRACT.md)
   - [x] Definir los endpoints `v1` consumidos. [Evidence](./CONTRACT.md)
   - [ ] Definir reglas de idempotencia y versionado.
-  - [ ] Definir errores estables de integracion.
+  - [x] Definir errores estables de integracion. [Evidence](./CONTRACT.md)
 
 ## 2. Inbox y Estado Local
 

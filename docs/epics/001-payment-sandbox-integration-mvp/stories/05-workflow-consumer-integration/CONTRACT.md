@@ -86,6 +86,27 @@ The consumer should map sandbox failures into stable domain-level errors such as
 - duplicate request
 - reconciliation mismatch
 
+### Error Mapping
+
+Suggested mapping from sandbox codes to consumer errors:
+
+- `invalid_amount` -> `invalid_request`
+- `invalid_currency` -> `invalid_request`
+- `missing_idempotency_key` -> `invalid_request`
+- `invalid_intent_state` -> `invalid_request`
+- `invalid_attempt_state` -> `invalid_request`
+- `invalid_charge_state` -> `invalid_request`
+- `payment_intent_not_found` -> `payment_not_found`
+- `payment_attempt_not_found` -> `payment_not_found`
+- `charge_not_found` -> `payment_not_found`
+- `refund_not_found` -> `payment_not_found`
+- `idempotency_conflict` -> `duplicate_request`
+- `invalid_scenario` -> `payment_declined` when triggered by business scenario resolution, otherwise `invalid_request`
+- `internal_error` -> `upstream_error`
+- `panic` -> `upstream_error`
+
+The consumer may preserve the original sandbox code as debug metadata, but the public consumer contract should expose only the normalized error shape.
+
 ## Reconciliation Contract
 
 Reconciliation should:
