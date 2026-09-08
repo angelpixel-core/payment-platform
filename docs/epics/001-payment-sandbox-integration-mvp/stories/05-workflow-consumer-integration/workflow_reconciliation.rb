@@ -2,6 +2,24 @@
 
 module PaymentSandbox
   module WorkflowConsumer
+    class InMemoryReconciliationSnapshotStore
+      def initialize
+        @snapshots = {}
+      end
+
+      def save(snapshot)
+        @snapshots[snapshot.fetch(:id)] ||= snapshot.dup
+      end
+
+      def all
+        @snapshots.values.sort_by { |snapshot| snapshot.fetch(:id) }
+      end
+
+      def find(id)
+        @snapshots[id]
+      end
+    end
+
     class Reconciliation
       COMPARABLE_FIELDS = %i[
         payment_intent_id
@@ -14,8 +32,9 @@ module PaymentSandbox
         currency
       ].freeze
 
-      def initialize(snapshot_client:)
+      def initialize(snapshot_client:, snapshot_store: nil)
         @snapshot_client = snapshot_client
+        @snapshot_store = snapshot_store || InMemoryReconciliationSnapshotStore.new
       end
 
       # Compare local consumer projections with the sandbox snapshot without mutating either side.
@@ -24,12 +43,16 @@ module PaymentSandbox
         remote_lines = index_lines(sandbox_snapshot.fetch(:transactions, []))
         local_lines = index_lines(projections)
 
-        (local_lines.keys | remote_lines.keys).sort.map do |payment_intent_id|
+        results = (local_lines.keys | remote_lines.keys).sort.map do |payment_intent_id|
           local = local_lines[payment_intent_id]
           remote = remote_lines[payment_intent_id]
           build_result(local:, remote:, run_id:, payment_intent_id:, now:)
         end
+        results.each { |result| @snapshot_store.save(result) }
+        results
       end
+
+      attr_reader :snapshot_store
 
       private
 
