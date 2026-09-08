@@ -72,6 +72,30 @@ The consumer should persist at least:
 - idempotency keys
 - reconciliation snapshots
 
+## Inbox Model
+
+The consumer should model webhook persistence as `payment_webhook_inbox` composed on top of a generic `webhook_inbox` boundary.
+
+The inbox entry should include at least:
+
+- `delivery_id`
+- `event_id`
+- `event_type`
+- `payload`
+- `status`
+- `received_at`
+- `processed_at`
+
+Suggested inbox statuses:
+
+- `received`
+- `validated`
+- `processed`
+- `duplicate`
+- `failed`
+
+The inbox should persist before any business mutation, and duplicate `delivery_id` values must not reapply side effects.
+
 ## Idempotency Rules
 
 - All mutating operations must include a non-empty `Idempotency-Key` header.

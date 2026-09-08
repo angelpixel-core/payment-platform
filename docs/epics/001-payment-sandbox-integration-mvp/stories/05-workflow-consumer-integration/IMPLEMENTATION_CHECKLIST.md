@@ -34,7 +34,7 @@ Implementar la integracion del consumidor de workflow contra `payment-sandbox` c
 ## 2. Inbox y Estado Local
 
 - [ ] `refactor(payment-sandbox): add workflow consumer inbox`
-  - [ ] Persistir cada webhook antes de aplicar cambios de negocio.
+  - [x] Persistir cada webhook antes de aplicar cambios de negocio. [Evidence](./CONTRACT.md)
   - [ ] Rechazar duplicados sin duplicar efectos.
   - [ ] Mantener trazabilidad de delivery e inbox.
 
