@@ -39,6 +39,21 @@ class WorkflowReconciliationTest < Minitest::Test
     assert_equal %i[missing_local missing_remote], results.map { |result| result[:status] }.sort
   end
 
+  def test_persists_results_and_does_not_duplicate_a_retry
+    line = line_for("pi_1")
+    store = PaymentSandbox::WorkflowConsumer::InMemoryReconciliationSnapshotStore.new
+    reconciliation = PaymentSandbox::WorkflowConsumer::Reconciliation.new(
+      snapshot_client: SnapshotClient.new({ transactions: [line] }),
+      snapshot_store: store
+    )
+
+    reconciliation.call(projections: [line], run_id: "run_1", now: Time.utc(2026, 9, 8))
+    reconciliation.call(projections: [line], run_id: "run_1", now: Time.utc(2026, 9, 8, 0, 1))
+
+    assert_equal 1, store.all.size
+    assert_equal Time.utc(2026, 9, 8), store.find("run_1:pi_1")[:created_at]
+  end
+
   private
 
   def reconciliation(snapshot_lines)
