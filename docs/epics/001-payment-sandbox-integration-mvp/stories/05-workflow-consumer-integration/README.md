@@ -15,6 +15,11 @@ status: pending
 
 Create the consumer-side integration, local persistence, and reconciliation loop that talks to the sandbox.
 
+## Current Status
+
+- Story 04 is complete, so the consumer can rely on the sandbox transaction report and reconciliation snapshot export.
+- The consumer integration itself is still pending.
+
 ## Scope
 
 ### In Scope
@@ -77,7 +82,7 @@ flowchart LR
 
 - [x] Sandbox API base
 - [x] Webhook delivery
-- [ ] Ledger and reporting
+- [x] Ledger and reporting
 - [x] OpenAPI v1 contract
 
 ## Related Docs

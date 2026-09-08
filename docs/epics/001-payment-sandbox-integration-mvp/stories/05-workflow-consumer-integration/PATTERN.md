@@ -10,7 +10,7 @@ Use an inbox-first consumer pattern.
 2. Persist delivery/inbox entry immediately.
 3. Validate signature and idempotency.
 4. Apply business mutation only after validation.
-5. Emit reconciliation snapshot if needed.
+5. Emit reconciliation snapshot if needed, using the sandbox transaction report or snapshot export as the comparison source.
 
 ## Benefits
 

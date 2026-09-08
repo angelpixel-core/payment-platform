@@ -15,7 +15,7 @@ Describe how to use the versioned OpenAPI contract for `payment-sandbox` v1.
 
 - The YAML spec is the source of truth.
 - The JSON export is generated from the YAML and exists for tooling compatibility.
-- Use `scripts/generate-openapi-json.sh` to refresh the JSON mirror.
+- From `apps/payment-sandbox`, run `go run ./cmd/openapi-export -in ./docs/openapi/payment-sandbox.v1.yaml -out ./docs/openapi/payment-sandbox.v1.json` to refresh the JSON mirror.
 - Swagger UI and Redoc can coexist while evaluating the best browsing experience.
 
 ## Local Preview
