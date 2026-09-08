@@ -56,7 +56,7 @@ Implementar la integracion del consumidor de workflow contra `payment-sandbox` c
 ## 5. Tests
 
 - [ ] `test(payment-sandbox): cover workflow consumer integration contract`
-  - [ ] Test de inbox antes de side effects.
+  - [x] Test de inbox antes de side effects. [Evidence](./workflow_inbox_test.rb)
   - [ ] Test de idempotencia por delivery.
   - [ ] Test de reconciliacion.
 
