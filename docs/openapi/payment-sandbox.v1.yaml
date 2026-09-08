@@ -239,13 +239,23 @@ paths:
     get:
       operationId: getTransactionReportV1
       summary: Fetch transaction report
+      parameters:
+        - name: view
+          in: query
+          required: false
+          schema:
+            type: string
+            enum: [report, snapshot]
+          description: Optional export mode. `snapshot` returns the reconciliation export envelope.
       responses:
         '200':
           description: OK
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/TransactionReportEnvelope'
+                oneOf:
+                  - $ref: '#/components/schemas/TransactionReportEnvelope'
+                  - $ref: '#/components/schemas/TransactionSnapshotEnvelope'
 components:
   schemas:
     CreatePaymentIntentRequest:
@@ -356,6 +366,13 @@ components:
       required: [transactions_report]
       properties:
         transactions_report:
+          $ref: '#/components/schemas/TransactionReportView'
+    TransactionSnapshotEnvelope:
+      type: object
+      additionalProperties: false
+      required: [transactions_snapshot]
+      properties:
+        transactions_snapshot:
           $ref: '#/components/schemas/TransactionReportView'
     CreatePaymentIntentResponse:
       type: object
@@ -478,7 +495,25 @@ components:
         captured_at:
           type: string
           format: date-time
+          nullable: true
         updated_at:
+          type: string
+          format: date-time
+    FeeView:
+      type: object
+      additionalProperties: false
+      required: [type, charge_id, amount, currency, created_at]
+      properties:
+        type:
+          type: string
+        charge_id:
+          type: string
+        amount:
+          type: integer
+          format: int64
+        currency:
+          type: string
+        created_at:
           type: string
           format: date-time
     RefundView:
@@ -551,6 +586,10 @@ components:
           $ref: '#/components/schemas/PaymentAttemptView'
         charge:
           $ref: '#/components/schemas/ChargeView'
+        fees:
+          type: array
+          items:
+            $ref: '#/components/schemas/FeeView'
         refunds:
           type: array
           items:

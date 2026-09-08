@@ -57,9 +57,10 @@ func (s *eventSpy) Subscribe(string, ports.EventHandler) {}
 
 func TestPaymentServicePublishesEvents(t *testing.T) {
 	tests := []struct {
-		name       string
-		setup      func(t *testing.T, svc *PaymentService)
-		wantEvents []string
+		name             string
+		setup            func(t *testing.T, svc *PaymentService)
+		wantEvents       []string
+		wantLedgerEvents []string
 	}{
 		{
 			name: "create emits created",
@@ -68,7 +69,8 @@ func TestPaymentServicePublishesEvents(t *testing.T) {
 					t.Fatalf("create failed: %v", err)
 				}
 			},
-			wantEvents: []string{"payment_intent.created"},
+			wantEvents:       []string{"payment_intent.created"},
+			wantLedgerEvents: []string{"payment_intent.created"},
 		},
 		{
 			name: "confirm emits confirmed",
@@ -81,7 +83,8 @@ func TestPaymentServicePublishesEvents(t *testing.T) {
 					t.Fatalf("confirm failed: %v", err)
 				}
 			},
-			wantEvents: []string{"payment_intent.created", "payment_intent.confirmed"},
+			wantEvents:       []string{"payment_intent.created", "payment_intent.confirmed"},
+			wantLedgerEvents: []string{"payment_intent.created", "payment_intent.confirmed"},
 		},
 		{
 			name: "finalize emits finalized",
@@ -101,7 +104,8 @@ func TestPaymentServicePublishesEvents(t *testing.T) {
 					t.Fatalf("finalize failed: %v", err)
 				}
 			},
-			wantEvents: []string{"payment_intent.created", "payment_intent.confirmed", "payment_intent.finalized"},
+			wantEvents:       []string{"payment_intent.created", "payment_intent.confirmed", "payment_intent.finalized"},
+			wantLedgerEvents: []string{"payment_intent.created", "payment_intent.confirmed"},
 		},
 		{
 			name: "capture emits captured",
@@ -124,14 +128,16 @@ func TestPaymentServicePublishesEvents(t *testing.T) {
 					t.Fatalf("capture retry failed: %v", err)
 				}
 			},
-			wantEvents: []string{"payment_intent.created", "payment_intent.confirmed", "payment_intent.captured"},
+			wantEvents:       []string{"payment_intent.created", "payment_intent.confirmed", "payment_intent.captured"},
+			wantLedgerEvents: []string{"payment_intent.created", "payment_intent.confirmed", "payment_intent.captured", "payment_intent.captured"},
 		},
 	}
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
+			store := memory.NewStore(nil)
 			spy := &eventSpy{}
-			uow := memory.NewUnitOfWork(memory.NewStore(nil), spy)
+			uow := memory.NewUnitOfWork(store, spy)
 			svc := NewService(uow, staticClock{}, fakeScenarioResolver{})
 			tt.setup(t, svc)
 			if len(spy.events) != len(tt.wantEvents) {
@@ -140,6 +146,15 @@ func TestPaymentServicePublishesEvents(t *testing.T) {
 			for i, want := range tt.wantEvents {
 				if spy.events[i] != want {
 					t.Fatalf("event %d: expected %s, got %s", i, want, spy.events[i])
+				}
+			}
+			ledger := store.ListLedgerEntries()
+			if len(ledger) != len(tt.wantLedgerEvents) {
+				t.Fatalf("expected %d ledger entries, got %d: %#v", len(tt.wantLedgerEvents), len(ledger), ledger)
+			}
+			for i, want := range tt.wantLedgerEvents {
+				if ledger[i].EventName != want {
+					t.Fatalf("ledger entry %d: expected %s, got %s", i, want, ledger[i].EventName)
 				}
 			}
 		})

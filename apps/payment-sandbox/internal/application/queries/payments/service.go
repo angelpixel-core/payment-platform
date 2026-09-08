@@ -86,6 +86,6 @@ func (s *PaymentQueryService) GetPaymentLifecycle(id string) (projections.Paymen
 	return projections.BuildPaymentLifecycle(s.store, id)
 }
 
-func (s *PaymentQueryService) GetTransactionReport() (TransactionReportView, error) {
-	return BuildTransactionReport(s.store.ListPaymentIntents(), s.store.ListPaymentAttempts(), s.store.ListCharges(), s.store.ListRefunds()), nil
+func (s *PaymentQueryService) GetTransactionReport(mode TransactionReportMode) (TransactionReportView, error) {
+	return BuildTransactionReport(s.store.ListPaymentIntents(), s.store.ListPaymentAttempts(), s.store.ListCharges(), s.store.ListRefunds(), s.store.ListLedgerEntries(), mode), nil
 }

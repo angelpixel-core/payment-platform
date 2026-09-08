@@ -10,16 +10,22 @@ import (
 
 type BalanceAccountType string
 
+type TransactionReportMode string
+
 const (
 	BalanceAccountAvailable  BalanceAccountType = "available"
 	BalanceAccountReserved   BalanceAccountType = "reserved"
 	BalanceAccountLiquidable BalanceAccountType = "liquidable"
+
+	TransactionReportModeCurrent  TransactionReportMode = "current"
+	TransactionReportModeSnapshot TransactionReportMode = "snapshot"
 )
 
 type TransactionReportLine struct {
 	PaymentIntent PaymentIntentView   `json:"payment_intent"`
 	LatestAttempt *PaymentAttemptView `json:"latest_attempt,omitempty"`
 	Charge        *ChargeView         `json:"charge,omitempty"`
+	Fees          []FeeView           `json:"fees,omitempty"`
 	Refunds       []RefundView        `json:"refunds,omitempty"`
 }
 
@@ -81,7 +87,12 @@ type TransactionReportView struct {
 	Count                int                      `json:"count"`
 }
 
-func BuildTransactionReport(intents []domain.PaymentIntent, attempts []domain.PaymentAttempt, charges []domain.Charge, refunds []domain.Refund) TransactionReportView {
+func BuildTransactionReport(intents []domain.PaymentIntent, attempts []domain.PaymentAttempt, charges []domain.Charge, refunds []domain.Refund, ledgerEntries []domain.LedgerEntry, mode TransactionReportMode) TransactionReportView {
+	generatedAt := time.Now().UTC()
+	if mode == TransactionReportModeSnapshot {
+		generatedAt = transactionReportSnapshotAt(intents, attempts, charges, refunds, ledgerEntries)
+	}
+
 	attemptViews := make(map[string]PaymentAttemptView, len(attempts))
 	for _, attempt := range attempts {
 		attemptViews[attempt.ID] = PaymentAttemptView{
@@ -139,6 +150,7 @@ func BuildTransactionReport(intents []domain.PaymentIntent, attempts []domain.Pa
 		if charge, ok := chargeByIntentID[intent.ID]; ok {
 			copyCharge := charge
 			line.Charge = &copyCharge
+			line.Fees = append(line.Fees, feeViewFromCharge(copyCharge, intent.Currency.String()))
 		}
 		if refundLines, ok := refundsByIntentID[intent.ID]; ok {
 			line.Refunds = append([]RefundView(nil), refundLines...)
@@ -153,61 +165,42 @@ func BuildTransactionReport(intents []domain.PaymentIntent, attempts []domain.Pa
 		return lines[i].PaymentIntent.CreatedAt.Before(lines[j].PaymentIntent.CreatedAt)
 	})
 
-	balance := BuildBalanceProjection(intents, charges)
-	settlement := BuildSettlementProjection(intents, charges, refunds)
-	return TransactionReportView{GeneratedAt: time.Now().UTC(), Transactions: lines, BalanceProjection: balance, SettlementProjection: settlement, Count: len(lines)}
+	balance := BuildBalanceProjection(ledgerEntries, generatedAt)
+	settlement := BuildSettlementProjection(intents, charges, refunds, generatedAt)
+	return TransactionReportView{GeneratedAt: generatedAt, Transactions: lines, BalanceProjection: balance, SettlementProjection: settlement, Count: len(lines)}
 }
 
-func BuildBalanceProjection(intents []domain.PaymentIntent, charges []domain.Charge) BalanceProjectionView {
-	now := time.Now().UTC()
-	type bucket struct {
-		line BalanceProjectionLine
-	}
-
-	chargeByIntentID := make(map[string]domain.Charge, len(charges))
-	for _, charge := range charges {
-		chargeByIntentID[charge.PaymentIntentID] = charge
-	}
-
+func BuildBalanceProjection(entries []domain.LedgerEntry, generatedAt time.Time) BalanceProjectionView {
+	type bucket struct{ line BalanceProjectionLine }
 	balances := make(map[string]*bucket)
-	ensure := func(merchantID, currency string, accountType BalanceAccountType) *bucket {
-		key := balanceKey(merchantID, currency, accountType)
-		if existing, ok := balances[key]; ok {
-			return existing
+	seenPairs := make(map[string]struct{})
+	ensure := func(merchantID, currency string) {
+		if currency == "" {
+			return
 		}
-		b := &bucket{line: BalanceProjectionLine{MerchantID: merchantID, Currency: currency, AccountType: accountType, UpdatedAt: now}}
-		balances[key] = b
-		return b
+		pairKey := merchantID + "|" + currency
+		if _, ok := seenPairs[pairKey]; ok {
+			return
+		}
+		seenPairs[pairKey] = struct{}{}
+		for _, accountType := range []BalanceAccountType{BalanceAccountAvailable, BalanceAccountReserved, BalanceAccountLiquidable} {
+			key := balanceKey(merchantID, currency, accountType)
+			balances[key] = &bucket{line: BalanceProjectionLine{MerchantID: merchantID, Currency: currency, AccountType: accountType, UpdatedAt: generatedAt}}
+		}
 	}
 
-	for _, intent := range intents {
-		merchantID := intent.MerchantID
-		currency := intent.Currency.String()
-		ensure(merchantID, currency, BalanceAccountAvailable)
-		ensure(merchantID, currency, BalanceAccountReserved)
-		ensure(merchantID, currency, BalanceAccountLiquidable)
-
-		if intent.Status == domain.PaymentIntentRequiresCapture || intent.Status == domain.PaymentIntentProcessing {
-			b := ensure(merchantID, currency, BalanceAccountReserved)
-			b.line.Amount += intent.Amount.Int64()
-			b.line.UpdatedAt = maxTime(b.line.UpdatedAt, intent.UpdatedAt)
-		}
-
-		charge, ok := chargeByIntentID[intent.ID]
-		if !ok {
+	for _, entry := range entries {
+		if entry.BalanceBucket == "" || entry.BalanceDelta == 0 {
 			continue
 		}
-		net := charge.CapturedAmount.Int64() - charge.RefundedAmount.Int64()
-		if net <= 0 {
+		bucketType := BalanceAccountType(entry.BalanceBucket)
+		ensure(entry.MerchantID, entry.Currency.String())
+		if _, ok := balances[balanceKey(entry.MerchantID, entry.Currency.String(), bucketType)]; !ok {
 			continue
 		}
-		accountType := BalanceAccountLiquidable
-		if strings.EqualFold(intent.CaptureMethod, "automatic") {
-			accountType = BalanceAccountAvailable
-		}
-		b := ensure(merchantID, currency, accountType)
-		b.line.Amount += net
-		b.line.UpdatedAt = maxTime(b.line.UpdatedAt, charge.UpdatedAt)
+		b := balances[balanceKey(entry.MerchantID, entry.Currency.String(), bucketType)]
+		b.line.Amount += entry.BalanceDelta
+		b.line.UpdatedAt = maxTime(b.line.UpdatedAt, entry.CreatedAt)
 	}
 
 	out := make([]BalanceProjectionLine, 0, len(balances))
@@ -224,11 +217,10 @@ func BuildBalanceProjection(intents []domain.PaymentIntent, charges []domain.Cha
 		return out[i].MerchantID < out[j].MerchantID
 	})
 
-	return BalanceProjectionView{GeneratedAt: now, Balances: out, Count: len(out)}
+	return BalanceProjectionView{GeneratedAt: generatedAt, Balances: out, Count: len(out)}
 }
 
-func BuildSettlementProjection(intents []domain.PaymentIntent, charges []domain.Charge, refunds []domain.Refund) SettlementProjectionView {
-	now := time.Now().UTC()
+func BuildSettlementProjection(intents []domain.PaymentIntent, charges []domain.Charge, refunds []domain.Refund, generatedAt time.Time) SettlementProjectionView {
 	day := func(t time.Time) string {
 		return t.UTC().Format("2006-01-02")
 	}
@@ -253,7 +245,7 @@ func BuildSettlementProjection(intents []domain.PaymentIntent, charges []domain.
 		if existing, ok := batches[key]; ok {
 			return existing
 		}
-		b := &batch{line: SettlementBatchLine{MerchantID: merchantID, Currency: currency, SettlementDate: settlementDate, Status: settlementBatchStatusForDate(settlementDate, now), UpdatedAt: now}}
+		b := &batch{line: SettlementBatchLine{MerchantID: merchantID, Currency: currency, SettlementDate: settlementDate, Status: settlementBatchStatusForDate(settlementDate, generatedAt), UpdatedAt: generatedAt}}
 		batches[key] = b
 		return b
 	}
@@ -299,7 +291,43 @@ func BuildSettlementProjection(intents []domain.PaymentIntent, charges []domain.
 		return out[i].MerchantID < out[j].MerchantID
 	})
 
-	return SettlementProjectionView{GeneratedAt: now, Batches: out, Count: len(out)}
+	return SettlementProjectionView{GeneratedAt: generatedAt, Batches: out, Count: len(out)}
+}
+
+func transactionReportSnapshotAt(intents []domain.PaymentIntent, attempts []domain.PaymentAttempt, charges []domain.Charge, refunds []domain.Refund, ledgerEntries []domain.LedgerEntry) time.Time {
+	asOf := time.Unix(0, 0).UTC()
+	update := func(t time.Time) {
+		if t.IsZero() {
+			return
+		}
+		t = t.UTC()
+		if t.After(asOf) {
+			asOf = t
+		}
+	}
+	for _, intent := range intents {
+		update(intent.CreatedAt)
+		update(intent.UpdatedAt)
+	}
+	for _, attempt := range attempts {
+		update(attempt.RequestedAt)
+		update(attempt.RespondedAt)
+	}
+	for _, charge := range charges {
+		update(charge.CreatedAt)
+		if charge.CapturedAt != nil {
+			update(*charge.CapturedAt)
+		}
+		update(charge.UpdatedAt)
+	}
+	for _, refund := range refunds {
+		update(refund.CreatedAt)
+		update(refund.UpdatedAt)
+	}
+	for _, entry := range ledgerEntries {
+		update(entry.CreatedAt)
+	}
+	return asOf
 }
 
 func paymentIntentViewFromDomain(intent domain.PaymentIntent) PaymentIntentView {
@@ -313,6 +341,24 @@ func paymentIntentViewFromDomain(intent domain.PaymentIntent) PaymentIntentView 
 		CreatedAt:       intent.CreatedAt,
 		UpdatedAt:       intent.UpdatedAt,
 	}
+}
+
+func feeViewFromCharge(charge ChargeView, currency string) FeeView {
+	createdAt := charge.CreatedAt
+	if charge.CapturedAt != nil {
+		createdAt = *charge.CapturedAt
+	}
+	return FeeView{
+		Type:      "processing_fee",
+		ChargeID:  charge.ID,
+		Amount:    processingFeeForAmount(charge.CapturedAmount),
+		Currency:  currency,
+		CreatedAt: createdAt,
+	}
+}
+
+func processingFeeForAmount(amount int64) int64 {
+	return (amount*29)/1000 + 30
 }
 
 func balanceKey(merchantID, currency string, accountType BalanceAccountType) string {

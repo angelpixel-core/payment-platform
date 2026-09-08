@@ -66,6 +66,12 @@ func TestOpenAPIContract(t *testing.T) {
 	if gotReport.TransactionsReport.BalanceProjection.Count != 3 || len(gotReport.TransactionsReport.BalanceProjection.Balances) != 3 {
 		t.Fatalf("expected three balance projection lines, got %+v", gotReport.TransactionsReport.BalanceProjection)
 	}
+
+	var gotSnapshot transactionSnapshotEnvelope
+	callContract(t, h, server, http.MethodGet, "/v1/reports/transactions?view=snapshot", nil, "", nil, &gotSnapshot)
+	if gotSnapshot.TransactionsSnapshot.BalanceProjection.Count != 3 || len(gotSnapshot.TransactionsSnapshot.BalanceProjection.Balances) != 3 {
+		t.Fatalf("expected three balance projection lines in snapshot, got %+v", gotSnapshot.TransactionsSnapshot.BalanceProjection)
+	}
 }
 
 type contractHarness struct {
@@ -106,6 +112,10 @@ type paymentLifecycleEnvelope struct {
 
 type transactionReportEnvelope struct {
 	TransactionsReport transactionReportView `json:"transactions_report"`
+}
+
+type transactionSnapshotEnvelope struct {
+	TransactionsSnapshot transactionReportView `json:"transactions_snapshot"`
 }
 
 type paymentIntentEnvelope struct {
@@ -222,7 +232,8 @@ func callContract(t *testing.T, h *contractHarness, server *httptest.Server, met
 	if requestPath == "" {
 		requestPath = "/"
 	}
-	contractPath := resolveOpenAPIPath(h.doc, requestPath)
+	parsedPath, _, _ := strings.Cut(requestPath, "?")
+	contractPath := resolveOpenAPIPath(h.doc, parsedPath)
 
 	validationReq, err := http.NewRequest(method, server.URL+requestPath, bytes.NewReader(body))
 	if err != nil {
@@ -238,7 +249,7 @@ func callContract(t *testing.T, h *contractHarness, server *httptest.Server, met
 		validationReq.Header.Set(key, value)
 	}
 
-	route, pathParams := routeForContract(t, h.doc, method, contractPath, requestPath)
+	route, pathParams := routeForContract(t, h.doc, method, contractPath, parsedPath)
 	requestInput := &openapi3filter.RequestValidationInput{Request: validationReq, PathParams: pathParams, Route: route}
 	if err := openapi3filter.ValidateRequest(context.Background(), requestInput); err != nil {
 		t.Fatalf("validate request for %s %s: %v", method, path, err)

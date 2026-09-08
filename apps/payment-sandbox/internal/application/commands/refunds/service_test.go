@@ -45,4 +45,7 @@ func TestRefundServicePublishesEvents(t *testing.T) {
 	if len(spy.events) != 1 || spy.events[0] != "refund.created" {
 		t.Fatalf("unexpected events: %#v", spy.events)
 	}
+	if ledger := store.ListLedgerEntries(); len(ledger) != 1 || ledger[0].EventName != "refund.created" {
+		t.Fatalf("unexpected ledger entries: %#v", ledger)
+	}
 }

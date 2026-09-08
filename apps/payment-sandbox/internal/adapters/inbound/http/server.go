@@ -4,6 +4,7 @@ import (
 	"net/http"
 	"strings"
 
+	"payment-sandbox/internal/domain"
 	"payment-sandbox/internal/sandbox"
 )
 
@@ -98,12 +99,33 @@ func (s *Server) handleGetPaymentLifecycle(w http.ResponseWriter, r *http.Reques
 }
 
 func (s *Server) handleGetTransactionReport(w http.ResponseWriter, r *http.Request) {
-	report, err := s.svc.GetTransactionReport()
+	mode, err := transactionReportModeFromRequest(r)
 	if err != nil {
 		writeError(w, err)
 		return
 	}
-	WriteJSON(w, http.StatusOK, map[string]any{"transactions_report": report})
+	report, err := s.svc.GetTransactionReport(mode)
+	if err != nil {
+		writeError(w, err)
+		return
+	}
+	response := map[string]any{"transactions_report": report}
+	if mode == sandbox.TransactionReportModeSnapshot {
+		response = map[string]any{"transactions_snapshot": report}
+	}
+	WriteJSON(w, http.StatusOK, response)
+}
+
+func transactionReportModeFromRequest(r *http.Request) (sandbox.TransactionReportMode, error) {
+	view := strings.TrimSpace(r.URL.Query().Get("view"))
+	switch view {
+	case "", "report":
+		return sandbox.TransactionReportModeCurrent, nil
+	case "snapshot":
+		return sandbox.TransactionReportModeSnapshot, nil
+	default:
+		return "", domain.NewError(http.StatusBadRequest, "invalid_request", "invalid view query parameter")
+	}
 }
 
 func (s *Server) handleConfirmPaymentIntent(w http.ResponseWriter, r *http.Request) {

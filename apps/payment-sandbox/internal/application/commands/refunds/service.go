@@ -32,6 +32,10 @@ func (s *Service) CreateRefund(req domain.RefundRequest, idempotencyKey, fingerp
 			if err != nil {
 				return nil, err
 			}
+			intent, err := tx.GetPaymentIntent(charge.PaymentIntentID)
+			if err != nil {
+				return nil, err
+			}
 			now := s.clock.Now()
 			refund, err := charge.Refund(domain.RefundChargeCommand{RefundID: tx.NextID("re"), Amount: domain.Amount(req.Amount), Now: now})
 			if err != nil {
@@ -39,6 +43,7 @@ func (s *Service) CreateRefund(req domain.RefundRequest, idempotencyKey, fingerp
 			}
 			tx.SaveRefund(refund)
 			tx.SaveCharge(charge)
+			tx.AppendLedgerEntry(domain.LedgerEntry{ID: tx.NextID("le"), EventName: "refund.created", EntityType: "refund", EntityID: refund.ID, PaymentIntentID: intent.ID, ChargeID: charge.ID, RefundID: refund.ID, MerchantID: intent.MerchantID, Currency: intent.Currency, BalanceBucket: bucketForCharge(intent.CaptureMethod), BalanceDelta: -int64(refund.Amount), Amount: refund.Amount, CreatedAt: now})
 			_ = tx.Publish(domain.RefundCreatedEvent{Refund: refund, Charge: charge})
 			return domain.RefundResponse{Refund: refund, Charge: charge}, nil
 		})
@@ -52,4 +57,11 @@ func (s *Service) CreateRefund(req domain.RefundRequest, idempotencyKey, fingerp
 		return domain.RefundResponse{}, err
 	}
 	return response, nil
+}
+
+func bucketForCharge(captureMethod string) string {
+	if strings.EqualFold(captureMethod, "automatic") {
+		return "available"
+	}
+	return "liquidable"
 }

@@ -113,8 +113,8 @@ func (s *Service) GetPaymentLifecycle(id string) (PaymentLifecycleView, error) {
 	return s.queries.GetPaymentLifecycle(id)
 }
 
-func (s *Service) GetTransactionReport() (TransactionReportView, error) {
-	return s.queries.GetTransactionReport()
+func (s *Service) GetTransactionReport(mode TransactionReportMode) (TransactionReportView, error) {
+	return s.queries.GetTransactionReport(mode)
 }
 
 func (s *Service) EventRecorder() *appobs.Recorder { return s.recorder }

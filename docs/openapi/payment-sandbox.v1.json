@@ -106,6 +106,7 @@
           },
           "captured_at": {
             "format": "date-time",
+            "nullable": true,
             "type": "string"
           },
           "created_at": {
@@ -240,6 +241,36 @@
         },
         "required": [
           "payment_intent"
+        ],
+        "type": "object"
+      },
+      "FeeView": {
+        "additionalProperties": false,
+        "properties": {
+          "amount": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "charge_id": {
+            "type": "string"
+          },
+          "created_at": {
+            "format": "date-time",
+            "type": "string"
+          },
+          "currency": {
+            "type": "string"
+          },
+          "type": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "type",
+          "charge_id",
+          "amount",
+          "currency",
+          "created_at"
         ],
         "type": "object"
       },
@@ -642,6 +673,12 @@
           "charge": {
             "$ref": "#/components/schemas/ChargeView"
           },
+          "fees": {
+            "items": {
+              "$ref": "#/components/schemas/FeeView"
+            },
+            "type": "array"
+          },
           "latest_attempt": {
             "$ref": "#/components/schemas/PaymentAttemptView"
           },
@@ -690,6 +727,18 @@
           "balance_projection",
           "settlement_projection",
           "count"
+        ],
+        "type": "object"
+      },
+      "TransactionSnapshotEnvelope": {
+        "additionalProperties": false,
+        "properties": {
+          "transactions_snapshot": {
+            "$ref": "#/components/schemas/TransactionReportView"
+          }
+        },
+        "required": [
+          "transactions_snapshot"
         ],
         "type": "object"
       }
@@ -1066,12 +1115,34 @@
     "/reports/transactions": {
       "get": {
         "operationId": "getTransactionReportV1",
+        "parameters": [
+          {
+            "description": "Optional export mode. `snapshot` returns the reconciliation export envelope.",
+            "in": "query",
+            "name": "view",
+            "required": false,
+            "schema": {
+              "enum": [
+                "report",
+                "snapshot"
+              ],
+              "type": "string"
+            }
+          }
+        ],
         "responses": {
           "200": {
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/TransactionReportEnvelope"
+                  "oneOf": [
+                    {
+                      "$ref": "#/components/schemas/TransactionReportEnvelope"
+                    },
+                    {
+                      "$ref": "#/components/schemas/TransactionSnapshotEnvelope"
+                    }
+                  ]
                 }
               }
             },

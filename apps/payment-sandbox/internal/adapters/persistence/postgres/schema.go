@@ -59,6 +59,23 @@ CREATE TABLE IF NOT EXISTS refunds (
 	updated_at timestamptz NOT NULL
 );
 
+CREATE TABLE IF NOT EXISTS ledger_entries (
+	id text PRIMARY KEY,
+	event_name text NOT NULL,
+	entity_type text NOT NULL,
+	entity_id text NOT NULL,
+	payment_intent_id text NULL,
+	payment_attempt_id text NULL,
+	charge_id text NULL,
+	refund_id text NULL,
+	merchant_id text NULL,
+	currency text NULL,
+	balance_bucket text NULL,
+	balance_delta bigint NOT NULL DEFAULT 0,
+	amount bigint NOT NULL,
+	created_at timestamptz NOT NULL
+);
+
 CREATE TABLE IF NOT EXISTS idempotency_keys (
 	key text PRIMARY KEY,
 	fingerprint text NOT NULL,

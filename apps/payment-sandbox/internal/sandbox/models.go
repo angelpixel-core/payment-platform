@@ -51,6 +51,7 @@ type ChargeView = payments.ChargeView
 type RefundView = payments.RefundView
 type PaymentLifecycleView = paymentsprojections.PaymentLifecycleView
 type BalanceAccountType = payments.BalanceAccountType
+type TransactionReportMode = payments.TransactionReportMode
 type BalanceProjectionLine = payments.BalanceProjectionLine
 type BalanceProjectionView = payments.BalanceProjectionView
 type SettlementBatchStatus = payments.SettlementBatchStatus
@@ -59,6 +60,11 @@ type SettlementBatchLine = payments.SettlementBatchLine
 type SettlementProjectionView = payments.SettlementProjectionView
 type TransactionReportLine = payments.TransactionReportLine
 type TransactionReportView = payments.TransactionReportView
+
+const (
+	TransactionReportModeCurrent  TransactionReportMode = payments.TransactionReportModeCurrent
+	TransactionReportModeSnapshot TransactionReportMode = payments.TransactionReportModeSnapshot
+)
 
 type CreatePaymentIntentRequest = domain.CreatePaymentIntentRequest
 type ConfirmPaymentIntentRequest = domain.ConfirmPaymentIntentRequest
