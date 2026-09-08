@@ -1,3 +1,9 @@
+---
+id: CONTRACT
+aliases: []
+tags: []
+---
+
 # Workflow Consumer Contract
 
 ## Goal
@@ -95,6 +101,24 @@ Suggested inbox statuses:
 - `failed`
 
 The inbox should persist before any business mutation, and duplicate `delivery_id` values must not reapply side effects.
+
+## Traceability
+
+The inbox should retain enough information to trace each delivery end-to-end:
+
+- `delivery_id` and `event_id` must remain queryable.
+- The inbox should keep a reference to the affected payment record when mutation succeeds.
+- Duplicate, failed, and rejected deliveries must remain visible in the inbox history.
+- Delivery state should be inspectable independently from business projection state.
+- The consumer should be able to answer which delivery caused which local mutation.
+
+## Deduplication Rules
+
+- The consumer should dedupe primarily by `delivery_id`.
+- `event_id` should be retained for traceability and may be used as an additional protection against accidental event replays.
+- A repeated `delivery_id` must never reapply business effects.
+- A repeated `event_id` with a new `delivery_id` should be treated as a replay unless an explicit manual override exists.
+- Intentional reprocessing must require an explicit replay action or override flag.
 
 ## Idempotency Rules
 

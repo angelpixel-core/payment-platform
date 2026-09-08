@@ -2,6 +2,7 @@
 id: IMPLEMENTATION_CHECKLIST
 aliases: []
 tags: []
+status: in_progress
 ---
 
 # Checklist de Implementacion por Commits - Workflow Consumer Integration
@@ -33,10 +34,10 @@ Implementar la integracion del consumidor de workflow contra `payment-sandbox` c
 
 ## 2. Inbox y Estado Local
 
-- [ ] `refactor(payment-sandbox): add workflow consumer inbox`
+- [x] `refactor(payment-sandbox): add workflow consumer inbox`
   - [x] Persistir cada webhook antes de aplicar cambios de negocio. [Evidence](./CONTRACT.md)
-  - [ ] Rechazar duplicados sin duplicar efectos.
-  - [ ] Mantener trazabilidad de delivery e inbox.
+  - [x] Rechazar duplicados sin duplicar efectos. [Evidence](./CONTRACT.md)
+  - [x] Mantener trazabilidad de delivery e inbox. [Evidence](./CONTRACT.md)
 
 ## 3. Reconciliacion
 
