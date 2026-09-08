@@ -26,7 +26,7 @@ Implementar la integracion del consumidor de workflow contra `payment-sandbox` c
 ## 1. Contracto y Cliente
 
 - [ ] `docs(payment-sandbox): define workflow consumer contract`
-  - [ ] Definir el consumidor agnostico (`OrderProcessor` u otro workflow owner).
+  - [x] Definir el consumidor agnostico como un workflow owner generico. [Evidence](./CONTRACT.md)
   - [ ] Definir los endpoints `v1` consumidos.
   - [ ] Definir reglas de idempotencia y versionado.
   - [ ] Definir errores estables de integracion.
