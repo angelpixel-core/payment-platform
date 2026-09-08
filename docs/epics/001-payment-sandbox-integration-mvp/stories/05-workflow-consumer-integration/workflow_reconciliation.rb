@@ -2,6 +2,18 @@
 
 module PaymentSandbox
   module WorkflowConsumer
+    class InMemoryReconciliationMismatchReporter
+      attr_reader :reports
+
+      def initialize
+        @reports = []
+      end
+
+      def report(snapshot:)
+        @reports << snapshot.dup unless snapshot.fetch(:status) == :match
+      end
+    end
+
     class InMemoryReconciliationSnapshotStore
       def initialize
         @snapshots = {}
@@ -32,9 +44,10 @@ module PaymentSandbox
         currency
       ].freeze
 
-      def initialize(snapshot_client:, snapshot_store: nil)
+      def initialize(snapshot_client:, snapshot_store: nil, mismatch_reporter: nil)
         @snapshot_client = snapshot_client
         @snapshot_store = snapshot_store || InMemoryReconciliationSnapshotStore.new
+        @mismatch_reporter = mismatch_reporter
       end
 
       # Compare local consumer projections with the sandbox snapshot without mutating either side.
@@ -48,7 +61,10 @@ module PaymentSandbox
           remote = remote_lines[payment_intent_id]
           build_result(local:, remote:, run_id:, payment_intent_id:, now:)
         end
-        results.each { |result| @snapshot_store.save(result) }
+        results.each do |result|
+          @snapshot_store.save(result)
+          @mismatch_reporter&.report(snapshot: result)
+        end
         results
       end
 

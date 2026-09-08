@@ -177,3 +177,11 @@ Reconciliation should:
 - use `GET /v1/reports/transactions?view=snapshot` when a stable export is needed for diffing
 - record mismatch context without changing business truth
 - remain queryable by payment intent identifier
+
+## Mismatch Reporting
+
+- `match` results should be persisted but should not be reported as mismatches.
+- `mismatch`, `missing_local`, `missing_remote`, and `stale` results should be sent to a separate mismatch reporter.
+- Reporting must not mutate payment projections, inbox entries, or sandbox state.
+- Snapshots must be persisted before reporting so a reporter failure does not lose reconciliation evidence.
+- Reprocessing the same `run_id` must not create duplicate snapshot or mismatch records.

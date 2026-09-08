@@ -54,6 +54,22 @@ class WorkflowReconciliationTest < Minitest::Test
     assert_equal Time.utc(2026, 9, 8), store.find("run_1:pi_1")[:created_at]
   end
 
+  def test_reports_mismatches_without_mutating_business_projection
+    local = line_for("pi_1", status: "succeeded")
+    remote = line_for("pi_1", status: "refunded", refunded_amount: 100)
+    reporter = PaymentSandbox::WorkflowConsumer::InMemoryReconciliationMismatchReporter.new
+    reconciliation = PaymentSandbox::WorkflowConsumer::Reconciliation.new(
+      snapshot_client: SnapshotClient.new({ transactions: [remote] }),
+      mismatch_reporter: reporter
+    )
+
+    reconciliation.call(projections: [local], run_id: "run_1")
+
+    assert_equal 1, reporter.reports.size
+    assert_equal :mismatch, reporter.reports.first[:status]
+    assert_equal "succeeded", local[:payment_intent][:status]
+  end
+
   private
 
   def reconciliation(snapshot_lines)
