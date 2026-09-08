@@ -63,5 +63,9 @@ Implementar la integracion del consumidor de workflow contra `payment-sandbox` c
 ## 6. Cierre
 
 - [ ] `docs(payment-sandbox): mark workflow consumer integration complete`
-  - [ ] Marcar evidencia en README.
+  - [x] Marcar evidencia en README. [Evidence](./README.md)
   - [ ] Cerrar el checklist cuando el flujo este listo.
+
+## Pendiente
+
+- La integración productiva Rails queda pendiente. Las bases pre-implementadas para el handoff están documentadas en [Implementation Evidence](./README.md#implementation-evidence).

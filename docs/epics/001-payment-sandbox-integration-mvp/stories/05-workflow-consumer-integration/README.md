@@ -18,7 +18,8 @@ Create the consumer-side integration, local persistence, and reconciliation loop
 ## Current Status
 
 - Story 04 is complete, so the consumer can rely on the sandbox transaction report and reconciliation snapshot export.
-- The consumer integration itself is still pending.
+- The consumer integration reference artifacts cover inbox-first processing, delivery idempotency, and reconciliation.
+- Production Rails integration remains pending.
 
 ## Scope
 
@@ -73,10 +74,22 @@ flowchart LR
 
 - [ ] The consumer can drive the sandbox through a gateway interface.
 - [ ] Local payment state is persisted consistently.
-- [ ] Reconciliation can detect mismatches.
-- [ ] Duplicate requests do not duplicate payment side effects.
+- [x] Reconciliation can detect mismatches. [Evidence](./workflow_reconciliation.rb)
+- [x] Duplicate requests do not duplicate payment side effects. [Evidence](./workflow_inbox.rb)
 - [ ] Adapter errors are mapped into stable consumer domain errors.
-- [ ] Payment attempts and reconciliation snapshots can be inspected locally.
+- [x] Payment attempts and reconciliation snapshots can be inspected locally. [Evidence](./workflow_reconciliation.rb)
+
+## Implementation Evidence
+
+The story includes framework-independent Ruby reference artifacts for the Rails handoff:
+
+- [Workflow consumer contract](./CONTRACT.md)
+- [Inbox processor](./workflow_inbox.rb)
+- [Inbox tests](./workflow_inbox_test.rb)
+- [Reconciliation reference](./workflow_reconciliation.rb)
+- [Reconciliation tests](./workflow_reconciliation_test.rb)
+
+These files define and exercise the expected consumer behavior but are not integrated into the production Rails application.
 
 ## Dependencies
 
