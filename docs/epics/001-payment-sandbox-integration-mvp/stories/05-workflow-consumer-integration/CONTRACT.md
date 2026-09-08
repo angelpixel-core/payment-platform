@@ -41,6 +41,21 @@ The consumer gateway should expose a small set of operations:
 
 The gateway should return sandbox errors in a normalized consumer shape, not raw transport errors.
 
+## Consumed Endpoints
+
+The consumer should consume the following `v1` endpoints:
+
+- `POST /v1/payment_intents`
+- `POST /v1/payment_intents/{id}/confirm`
+- `POST /v1/payment_intents/{id}/capture`
+- `POST /v1/refunds`
+- `GET /v1/payment_intents/{id}`
+- `GET /v1/payment_intents/{id}/lifecycle`
+- `GET /v1/reports/transactions`
+- `GET /v1/reports/transactions?view=snapshot`
+
+The inspection endpoints are read-only helpers for debugging and local projection visibility. The report endpoints are the reconciliation source of truth.
+
 ## Local State
 
 The consumer should persist at least:
