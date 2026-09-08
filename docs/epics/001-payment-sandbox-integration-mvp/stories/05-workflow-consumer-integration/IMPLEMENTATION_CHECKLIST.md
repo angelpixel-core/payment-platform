@@ -41,7 +41,7 @@ Implementar la integracion del consumidor de workflow contra `payment-sandbox` c
 
 ## 3. Reconciliacion
 
-- [ ] `refactor(payment-sandbox): add workflow reconciliation loop`
+- [x] `refactor(payment-sandbox): add workflow reconciliation loop`
   - [x] Comparar estado local con sandbox v1. [Evidence](./workflow_reconciliation.rb)
   - [x] Registrar snapshots de reconciliacion. [Evidence](./workflow_reconciliation.rb)
   - [x] Reportar mismatches sin mutar negocio. [Evidence](./workflow_reconciliation.rb)
