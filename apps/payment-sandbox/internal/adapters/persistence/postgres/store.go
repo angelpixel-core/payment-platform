@@ -47,6 +47,23 @@ func (s *Store) NextReference(prefix string) string {
 	return nextSequenceValue(context.Background(), s.db, prefix)
 }
 
+func (s *Store) AppendLedgerEntry(entry domain.LedgerEntry) domain.LedgerEntry {
+	start := time.Now()
+	_, _ = insertLedgerEntry(context.Background(), s.db, entry)
+	s.recordPersistence("ledger_entry", "append", nil, start)
+	return entry
+}
+
+func (s *Store) ListLedgerEntries() []domain.LedgerEntry {
+	start := time.Now()
+	items, err := listLedgerEntries(context.Background(), s.db)
+	s.recordPersistence("ledger_entry", "list", err, start)
+	if err != nil {
+		return nil
+	}
+	return items
+}
+
 func (s *Store) SavePaymentIntent(intent domain.PaymentIntent) domain.PaymentIntent {
 	start := time.Now()
 	_, _ = upsertPaymentIntent(context.Background(), s.db, intent)
@@ -207,6 +224,23 @@ func (tx *transaction) NextReference(prefix string) string {
 	return nextSequenceValue(context.Background(), tx.tx, prefix)
 }
 
+func (tx *transaction) AppendLedgerEntry(entry domain.LedgerEntry) domain.LedgerEntry {
+	start := time.Now()
+	_, _ = insertLedgerEntry(context.Background(), tx.tx, entry)
+	tx.store.recordPersistence("ledger_entry", "append", nil, start)
+	return entry
+}
+
+func (tx *transaction) ListLedgerEntries() []domain.LedgerEntry {
+	start := time.Now()
+	items, err := listLedgerEntries(context.Background(), tx.tx)
+	tx.store.recordPersistence("ledger_entry", "list", err, start)
+	if err != nil {
+		return nil
+	}
+	return items
+}
+
 func (tx *transaction) Publish(event domain.Event) error {
 	start := time.Now()
 	payload, err := json.Marshal(event)
@@ -304,6 +338,39 @@ func decodeIdempotencyValue(responseType string, payload []byte) (any, error) {
 	default:
 		return nil, domain.NewError(500, "idempotency_corrupt", "unsupported idempotency response type")
 	}
+}
+
+func insertLedgerEntry(ctx context.Context, e execer, entry domain.LedgerEntry) (sql.Result, error) {
+	return exec(e, `INSERT INTO ledger_entries(id, event_name, entity_type, entity_id, payment_intent_id, payment_attempt_id, charge_id, refund_id, merchant_id, currency, amount, created_at)
+VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14)`,
+		entry.ID, entry.EventName, entry.EntityType, entry.EntityID, nullString(entry.PaymentIntentID), nullString(entry.PaymentAttemptID), nullString(entry.ChargeID), nullString(entry.RefundID), nullString(entry.MerchantID), nullString(entry.Currency.String()), nullString(entry.BalanceBucket), entry.BalanceDelta, int64(entry.Amount), entry.CreatedAt)
+}
+
+func listLedgerEntries(ctx context.Context, q queryer) ([]domain.LedgerEntry, error) {
+	rows, err := q.QueryContext(ctx, `SELECT id, event_name, entity_type, entity_id, payment_intent_id, payment_attempt_id, charge_id, refund_id, merchant_id, currency, balance_bucket, balance_delta, amount, created_at FROM ledger_entries ORDER BY created_at ASC, id ASC`)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	out := make([]domain.LedgerEntry, 0)
+	for rows.Next() {
+		var entry domain.LedgerEntry
+		var paymentIntentID, paymentAttemptID, chargeID, refundID, merchantID, currency, bucket sql.NullString
+		var amount int64
+		if err := rows.Scan(&entry.ID, &entry.EventName, &entry.EntityType, &entry.EntityID, &paymentIntentID, &paymentAttemptID, &chargeID, &refundID, &merchantID, &currency, &bucket, &entry.BalanceDelta, &amount, &entry.CreatedAt); err != nil {
+			return nil, err
+		}
+		entry.PaymentIntentID = paymentIntentID.String
+		entry.PaymentAttemptID = paymentAttemptID.String
+		entry.ChargeID = chargeID.String
+		entry.RefundID = refundID.String
+		entry.MerchantID = merchantID.String
+		entry.Currency = domain.Currency(currency.String)
+		entry.BalanceBucket = bucket.String
+		entry.Amount = domain.Amount(amount)
+		out = append(out, entry)
+	}
+	return out, rows.Err()
 }
 
 func getPaymentIntent(ctx context.Context, q queryer, id string) (domain.PaymentIntent, error) {

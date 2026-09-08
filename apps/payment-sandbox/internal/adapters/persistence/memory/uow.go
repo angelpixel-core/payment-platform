@@ -2,6 +2,7 @@ package memory
 
 import (
 	"context"
+	"sort"
 	"sync"
 	"time"
 
@@ -17,6 +18,7 @@ type UnitOfWork struct {
 type transaction struct {
 	store     *MemoryStore
 	publisher ports.EventPublisher
+	ledger    []domain.LedgerEntry
 	intents   map[string]domain.PaymentIntent
 	attempts  map[string]domain.PaymentAttempt
 	charges   map[string]domain.Charge
@@ -79,6 +81,35 @@ func (tx *transaction) WithIdempotency(key, fingerprint string, fn func() (any, 
 
 func (tx *transaction) NextID(prefix string) string        { return tx.store.NextID(prefix) }
 func (tx *transaction) NextReference(prefix string) string { return tx.store.NextReference(prefix) }
+
+func (tx *transaction) AppendLedgerEntry(entry domain.LedgerEntry) domain.LedgerEntry {
+	start := time.Now()
+	tx.mu.Lock()
+	defer tx.mu.Unlock()
+	if tx.ledger == nil {
+		tx.ledger = make([]domain.LedgerEntry, 0, 1)
+	}
+	tx.ledger = append(tx.ledger, entry)
+	tx.store.recordPersistence("ledger_entry", "append", nil, start)
+	return entry
+}
+
+func (tx *transaction) ListLedgerEntries() []domain.LedgerEntry {
+	items := tx.store.ListLedgerEntries()
+	if len(tx.ledger) == 0 {
+		return items
+	}
+	merged := make([]domain.LedgerEntry, 0, len(items)+len(tx.ledger))
+	merged = append(merged, items...)
+	merged = append(merged, tx.ledger...)
+	sort.Slice(merged, func(i, j int) bool {
+		if merged[i].CreatedAt.Equal(merged[j].CreatedAt) {
+			return merged[i].ID < merged[j].ID
+		}
+		return merged[i].CreatedAt.Before(merged[j].CreatedAt)
+	})
+	return merged
+}
 
 func (tx *transaction) SavePaymentIntent(intent domain.PaymentIntent) domain.PaymentIntent {
 	start := time.Now()
@@ -315,6 +346,7 @@ func (s *MemoryStore) recordUnitOfWork(outcome string, duration time.Duration) {
 
 type storeSnapshot struct {
 	seq         int64
+	ledger      []domain.LedgerEntry
 	intents     map[string]domain.PaymentIntent
 	attempts    map[string]domain.PaymentAttempt
 	charges     map[string]domain.Charge
@@ -325,6 +357,7 @@ type storeSnapshot struct {
 func snapshotStore(store *MemoryStore) storeSnapshot {
 	return storeSnapshot{
 		seq:         store.seq,
+		ledger:      cloneLedgerEntries(store.ledgerEntries),
 		intents:     cloneIntents(store.intents),
 		attempts:    cloneAttempts(store.attempts),
 		charges:     cloneCharges(store.charges),
@@ -374,10 +407,14 @@ func applyTransactionState(store *MemoryStore, tx *transaction) {
 			store.idempotency[k] = v
 		}
 	}
+	if tx.ledger != nil {
+		store.ledgerEntries = append(store.ledgerEntries, tx.ledger...)
+	}
 }
 
 func restoreStore(store *MemoryStore, snapshot storeSnapshot) {
 	store.seq = snapshot.seq
+	store.ledgerEntries = snapshot.ledger
 	store.intents = snapshot.intents
 	store.attempts = snapshot.attempts
 	store.charges = snapshot.charges
@@ -437,5 +474,14 @@ func cloneIdempotency(src map[string]idempotencyRecord) map[string]idempotencyRe
 	for k, v := range src {
 		dst[k] = v
 	}
+	return dst
+}
+
+func cloneLedgerEntries(src []domain.LedgerEntry) []domain.LedgerEntry {
+	if src == nil {
+		return nil
+	}
+	dst := make([]domain.LedgerEntry, len(src))
+	copy(dst, src)
 	return dst
 }

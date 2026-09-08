@@ -57,6 +57,10 @@ type reportEnvelope struct {
 	TransactionsReport sandbox.TransactionReportView `json:"transactions_report"`
 }
 
+type snapshotReportEnvelope struct {
+	TransactionsSnapshot sandbox.TransactionReportView `json:"transactions_snapshot"`
+}
+
 type errorEnvelope struct {
 	Error domain.Error `json:"error"`
 }
@@ -125,6 +129,18 @@ func TestPaymentLifecycle(t *testing.T) {
 	}
 	if gotReport.TransactionsReport.SettlementProjection.Count != 1 || len(gotReport.TransactionsReport.SettlementProjection.Batches) != 1 {
 		t.Fatalf("expected one settlement projection batch, got %+v", gotReport.TransactionsReport.SettlementProjection)
+	}
+
+	resp, body = doGet(t, client.URL+"/v1/reports/transactions?view=snapshot")
+	if resp.StatusCode != http.StatusOK {
+		t.Fatalf("expected 200, got %d", resp.StatusCode)
+	}
+	var gotSnapshot snapshotReportEnvelope
+	if err := json.Unmarshal(body, &gotSnapshot); err != nil {
+		t.Fatalf("decode snapshot failed: %v", err)
+	}
+	if gotSnapshot.TransactionsSnapshot.Count != 1 || len(gotSnapshot.TransactionsSnapshot.Transactions) != 1 {
+		t.Fatalf("expected one transaction snapshot line, got %+v", gotSnapshot.TransactionsSnapshot)
 	}
 }
 

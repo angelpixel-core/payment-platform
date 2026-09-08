@@ -12,7 +12,7 @@ func TestPaymentQueryService(t *testing.T) {
 	store := memory.NewStore(nil)
 	query := NewPaymentQueryService(store)
 
-	intent := domain.PaymentIntent{ID: "pi_1", Amount: 100, Currency: "USD", CaptureMethod: "manual", Status: domain.PaymentIntentSucceeded, ChargeID: "ch_1", LatestAttemptID: "pa_1"}
+	intent := domain.PaymentIntent{ID: "pi_1", MerchantID: "merchant_1", Amount: 100, Currency: "USD", CaptureMethod: "manual", Status: domain.PaymentIntentSucceeded, ChargeID: "ch_1", LatestAttemptID: "pa_1"}
 	attempt := domain.PaymentAttempt{ID: "pa_1", PaymentIntentID: "pi_1", Status: domain.PaymentAttemptAuthorized}
 	capturedAt := time.Now().UTC().Truncate(time.Second)
 	charge := domain.Charge{ID: "ch_1", PaymentIntentID: "pi_1", Amount: 100, CapturedAmount: 100, CapturedAt: &capturedAt, Status: domain.ChargeCaptured}
@@ -25,6 +25,10 @@ func TestPaymentQueryService(t *testing.T) {
 	charge.RefundedAmount = 100
 	charge.Status = domain.ChargeRefunded
 	store.SaveCharge(charge)
+	store.AppendLedgerEntry(domain.LedgerEntry{ID: "le_1", EventName: "payment_intent.confirmed", EntityType: "payment_intent", EntityID: "pi_1", PaymentIntentID: "pi_1", BalanceBucket: string(BalanceAccountReserved), BalanceDelta: 100, Amount: 100, MerchantID: "merchant_1", Currency: "USD", CreatedAt: capturedAt})
+	store.AppendLedgerEntry(domain.LedgerEntry{ID: "le_2", EventName: "payment_intent.captured", EntityType: "charge", EntityID: "ch_1", PaymentIntentID: "pi_1", ChargeID: "ch_1", BalanceBucket: string(BalanceAccountReserved), BalanceDelta: -100, Amount: 100, MerchantID: "merchant_1", Currency: "USD", CreatedAt: capturedAt})
+	store.AppendLedgerEntry(domain.LedgerEntry{ID: "le_3", EventName: "payment_intent.captured", EntityType: "charge", EntityID: "ch_1", PaymentIntentID: "pi_1", ChargeID: "ch_1", BalanceBucket: string(BalanceAccountLiquidable), BalanceDelta: 100, Amount: 100, MerchantID: "merchant_1", Currency: "USD", CreatedAt: capturedAt})
+	store.AppendLedgerEntry(domain.LedgerEntry{ID: "le_4", EventName: "refund.created", EntityType: "refund", EntityID: "re_1", PaymentIntentID: "pi_1", ChargeID: "ch_1", RefundID: "re_1", BalanceBucket: string(BalanceAccountLiquidable), BalanceDelta: -100, Amount: 100, MerchantID: "merchant_1", Currency: "USD", CreatedAt: capturedAt})
 
 	gotIntent, err := query.GetPaymentIntent("pi_1")
 	if err != nil {
@@ -72,7 +76,7 @@ func TestPaymentQueryService(t *testing.T) {
 		t.Fatalf("expected nested attempt and charge in lifecycle: %+v", lifecycle)
 	}
 
-	report, err := query.GetTransactionReport()
+	report, err := query.GetTransactionReport(TransactionReportModeCurrent)
 	if err != nil {
 		t.Fatalf("get report failed: %v", err)
 	}
@@ -101,6 +105,21 @@ func TestPaymentQueryService(t *testing.T) {
 	}
 	if line.LatestAttempt == nil || line.Charge == nil || len(line.Refunds) != 1 {
 		t.Fatalf("expected report to include attempt, charge, and refund: %+v", line)
+	}
+	if len(line.Fees) != 1 || line.Fees[0].Amount != 32 || line.Fees[0].Type != "processing_fee" {
+		t.Fatalf("expected one processing fee, got %+v", line.Fees)
+	}
+
+	snapshotA, err := query.GetTransactionReport(TransactionReportModeSnapshot)
+	if err != nil {
+		t.Fatalf("get snapshot report failed: %v", err)
+	}
+	snapshotB, err := query.GetTransactionReport(TransactionReportModeSnapshot)
+	if err != nil {
+		t.Fatalf("get snapshot report failed: %v", err)
+	}
+	if !snapshotA.GeneratedAt.Equal(snapshotB.GeneratedAt) || !snapshotA.BalanceProjection.GeneratedAt.Equal(snapshotB.BalanceProjection.GeneratedAt) || !snapshotA.SettlementProjection.GeneratedAt.Equal(snapshotB.SettlementProjection.GeneratedAt) {
+		t.Fatalf("expected snapshot timestamps to be stable, got %+v and %+v", snapshotA, snapshotB)
 	}
 }
 
@@ -132,6 +151,8 @@ func TestTransactionReportBalanceProjection(t *testing.T) {
 		CapturedAt:      func() *time.Time { v := time.Now().UTC().Truncate(time.Second); return &v }(),
 		Status:          domain.ChargeCaptured,
 	})
+	store.AppendLedgerEntry(domain.LedgerEntry{ID: "le_reserved", EventName: "payment_intent.confirmed", EntityType: "payment_intent", EntityID: "pi_reserved", PaymentIntentID: "pi_reserved", BalanceBucket: string(BalanceAccountReserved), BalanceDelta: 100, Amount: 100, MerchantID: "merchant_1", Currency: "usd", CreatedAt: time.Now().UTC().Truncate(time.Second)})
+	store.AppendLedgerEntry(domain.LedgerEntry{ID: "le_available", EventName: "payment_intent.captured", EntityType: "charge", EntityID: "ch_available", PaymentIntentID: "pi_available", ChargeID: "ch_available", BalanceBucket: string(BalanceAccountAvailable), BalanceDelta: 200, Amount: 200, MerchantID: "merchant_1", Currency: "usd", CreatedAt: time.Now().UTC().Truncate(time.Second)})
 	store.SavePaymentIntent(domain.PaymentIntent{
 		ID:            "pi_liquidable",
 		MerchantID:    "merchant_1",
@@ -149,8 +170,11 @@ func TestTransactionReportBalanceProjection(t *testing.T) {
 		CapturedAt:      func() *time.Time { v := time.Now().UTC().Truncate(time.Second); return &v }(),
 		Status:          domain.ChargeCaptured,
 	})
+	store.AppendLedgerEntry(domain.LedgerEntry{ID: "le_liq_reserved", EventName: "payment_intent.confirmed", EntityType: "payment_intent", EntityID: "pi_liquidable", PaymentIntentID: "pi_liquidable", BalanceBucket: string(BalanceAccountReserved), BalanceDelta: 300, Amount: 300, MerchantID: "merchant_1", Currency: "usd", CreatedAt: time.Now().UTC().Truncate(time.Second)})
+	store.AppendLedgerEntry(domain.LedgerEntry{ID: "le_liq_reserved_release", EventName: "payment_intent.captured", EntityType: "charge", EntityID: "ch_liquidable", PaymentIntentID: "pi_liquidable", ChargeID: "ch_liquidable", BalanceBucket: string(BalanceAccountReserved), BalanceDelta: -300, Amount: 300, MerchantID: "merchant_1", Currency: "usd", CreatedAt: time.Now().UTC().Truncate(time.Second)})
+	store.AppendLedgerEntry(domain.LedgerEntry{ID: "le_liq", EventName: "payment_intent.captured", EntityType: "charge", EntityID: "ch_liquidable", PaymentIntentID: "pi_liquidable", ChargeID: "ch_liquidable", BalanceBucket: string(BalanceAccountLiquidable), BalanceDelta: 300, Amount: 300, MerchantID: "merchant_1", Currency: "usd", CreatedAt: time.Now().UTC().Truncate(time.Second)})
 
-	report, err := query.GetTransactionReport()
+	report, err := query.GetTransactionReport(TransactionReportModeCurrent)
 	if err != nil {
 		t.Fatalf("get report failed: %v", err)
 	}
@@ -159,6 +183,17 @@ func TestTransactionReportBalanceProjection(t *testing.T) {
 	}
 	if report.SettlementProjection.Count != 1 || len(report.SettlementProjection.Batches) != 1 {
 		t.Fatalf("expected one settlement batch, got %+v", report.SettlementProjection)
+	}
+	feeCount := 0
+	feeTotal := int64(0)
+	for _, line := range report.Transactions {
+		for _, fee := range line.Fees {
+			feeCount++
+			feeTotal += fee.Amount
+		}
+	}
+	if feeCount != 2 || feeTotal != 73 {
+		t.Fatalf("expected 2 fees totaling 73, got count=%d total=%d", feeCount, feeTotal)
 	}
 
 	balances := make(map[BalanceAccountType]int64)

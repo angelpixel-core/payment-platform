@@ -6,6 +6,8 @@ type Store interface {
 	WithIdempotency(key, fingerprint string, fn func() (any, error)) (any, error)
 	NextID(prefix string) string
 	NextReference(prefix string) string
+	AppendLedgerEntry(entry domain.LedgerEntry) domain.LedgerEntry
+	ListLedgerEntries() []domain.LedgerEntry
 
 	SavePaymentIntent(intent domain.PaymentIntent) domain.PaymentIntent
 	GetPaymentIntent(id string) (domain.PaymentIntent, error)

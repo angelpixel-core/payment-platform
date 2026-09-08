@@ -20,6 +20,7 @@ func TestUnitOfWorkDo(t *testing.T) {
 	uow := NewUnitOfWork(store, publisher)
 	if err := uow.Do(func(tx ports.Transaction) error {
 		tx.SavePaymentIntent(domain.PaymentIntent{ID: "pi_1"})
+		tx.AppendLedgerEntry(domain.LedgerEntry{ID: "le_1", EventName: "payment_intent.created", EntityType: "payment_intent", EntityID: "pi_1", PaymentIntentID: "pi_1"})
 		return tx.Publish(domain.PaymentIntentCreatedEvent{PaymentIntent: domain.PaymentIntent{ID: "pi_1"}})
 	}); err != nil {
 		t.Fatalf("do failed: %v", err)
@@ -34,6 +35,10 @@ func TestUnitOfWorkDo(t *testing.T) {
 	}
 	if got.ID != "pi_1" {
 		t.Fatalf("expected stored payment intent")
+	}
+	entries := store.ListLedgerEntries()
+	if len(entries) != 1 || entries[0].EventName != "payment_intent.created" {
+		t.Fatalf("expected one ledger entry, got %#v", entries)
 	}
 }
 
@@ -50,6 +55,7 @@ func TestUnitOfWorkAtomicityOnError(t *testing.T) {
 	err := uow.Do(func(tx ports.Transaction) error {
 		tx.SavePaymentIntent(domain.PaymentIntent{ID: "pi_1"})
 		tx.SavePaymentAttempt(domain.PaymentAttempt{ID: "pa_1", PaymentIntentID: "pi_1"})
+		tx.AppendLedgerEntry(domain.LedgerEntry{ID: "le_1", EventName: "payment_intent.created", EntityType: "payment_intent", EntityID: "pi_1", PaymentIntentID: "pi_1"})
 		return domain.NewError(500, "boom", "boom")
 	})
 	if err == nil {
@@ -64,6 +70,9 @@ func TestUnitOfWorkAtomicityOnError(t *testing.T) {
 	if _, err := store.GetPaymentAttempt("pa_1"); err == nil {
 		t.Fatal("expected no committed payment attempt")
 	}
+	if entries := store.ListLedgerEntries(); len(entries) != 0 {
+		t.Fatalf("expected no committed ledger entries, got %#v", entries)
+	}
 }
 
 func TestUnitOfWorkRollbackOnPublishFailure(t *testing.T) {
@@ -73,6 +82,7 @@ func TestUnitOfWorkRollbackOnPublishFailure(t *testing.T) {
 	err := uow.Do(func(tx ports.Transaction) error {
 		tx.SavePaymentIntent(domain.PaymentIntent{ID: "pi_1"})
 		tx.SaveCharge(domain.Charge{ID: "ch_1", PaymentIntentID: "pi_1"})
+		tx.AppendLedgerEntry(domain.LedgerEntry{ID: "le_1", EventName: "payment_intent.created", EntityType: "payment_intent", EntityID: "pi_1", PaymentIntentID: "pi_1"})
 		tx.Publish(domain.PaymentIntentCreatedEvent{PaymentIntent: domain.PaymentIntent{ID: "pi_1"}})
 		return nil
 	})
@@ -84,6 +94,9 @@ func TestUnitOfWorkRollbackOnPublishFailure(t *testing.T) {
 	}
 	if _, err := store.GetCharge("ch_1"); err == nil {
 		t.Fatal("expected rollback of charge")
+	}
+	if entries := store.ListLedgerEntries(); len(entries) != 0 {
+		t.Fatalf("expected rollback of ledger entries, got %#v", entries)
 	}
 }
 

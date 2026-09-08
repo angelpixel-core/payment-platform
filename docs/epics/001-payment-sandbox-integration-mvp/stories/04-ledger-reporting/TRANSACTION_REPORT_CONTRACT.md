@@ -8,6 +8,8 @@ Define the `GET /v1/reports/transactions` payload so Rails can reconcile local p
 
 - Expose a stable read model for reconciliation.
 - Surface payment, attempt, charge, and refund state together.
+- Surface fee lines derived from captured charges.
+- Support a snapshot export mode for Rails via `GET /v1/reports/transactions?view=snapshot`.
 - Keep the report traceable back to the underlying payment lifecycle records.
 - Include a balance projection grouped by `merchant_id`, `currency`, and `account_type`.
 - Include a daily settlement projection grouped by `merchant_id`, `currency`, and `settlement_date`.
@@ -77,6 +79,15 @@ Define the `GET /v1/reports/transactions` payload so Rails can reconcile local p
           "id": "ch_1",
           "status": "refunded"
         },
+        "fees": [
+          {
+            "type": "processing_fee",
+            "charge_id": "ch_1",
+            "amount": 38,
+            "currency": "usd",
+            "created_at": "2026-09-04T00:00:00Z"
+          }
+        ],
         "refunds": [
           {
             "id": "re_1",
@@ -98,6 +109,7 @@ Define the `GET /v1/reports/transactions` payload so Rails can reconcile local p
 5. The report should be stable enough to diff against Rails snapshots.
 6. The balance projection must expose `available`, `reserved`, and `liquidable` buckets per merchant and currency.
 7. The settlement projection must include daily manual-capture batches and net refunds against each batch.
+8. The fee line should use the documented processing fee rule (`2.9% + 0.30`) and remain derived from the charge, not persisted separately.
 
 ## Notes
 

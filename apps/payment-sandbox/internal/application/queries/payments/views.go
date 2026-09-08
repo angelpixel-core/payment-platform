@@ -37,6 +37,14 @@ type ChargeView struct {
 	UpdatedAt        time.Time  `json:"updated_at"`
 }
 
+type FeeView struct {
+	Type      string    `json:"type"`
+	ChargeID  string    `json:"charge_id"`
+	Amount    int64     `json:"amount"`
+	Currency  string    `json:"currency"`
+	CreatedAt time.Time `json:"created_at"`
+}
+
 type RefundView struct {
 	ID              string    `json:"id"`
 	ChargeID        string    `json:"charge_id"`

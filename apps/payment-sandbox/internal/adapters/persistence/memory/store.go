@@ -18,14 +18,15 @@ type idempotencyRecord struct {
 }
 
 type MemoryStore struct {
-	mu          sync.Mutex
-	seq         int64
-	intents     map[string]domain.PaymentIntent
-	attempts    map[string]domain.PaymentAttempt
-	charges     map[string]domain.Charge
-	refunds     map[string]domain.Refund
-	idempotency map[string]idempotencyRecord
-	metrics     metrics.MetricsRecorder
+	mu            sync.Mutex
+	seq           int64
+	ledgerEntries []domain.LedgerEntry
+	intents       map[string]domain.PaymentIntent
+	attempts      map[string]domain.PaymentAttempt
+	charges       map[string]domain.Charge
+	refunds       map[string]domain.Refund
+	idempotency   map[string]idempotencyRecord
+	metrics       metrics.MetricsRecorder
 }
 
 func NewStore(recorder metrics.MetricsRecorder) *MemoryStore {
@@ -40,6 +41,33 @@ func NewStore(recorder metrics.MetricsRecorder) *MemoryStore {
 }
 
 var _ ports.Store = (*MemoryStore)(nil)
+
+func (s *MemoryStore) AppendLedgerEntry(entry domain.LedgerEntry) domain.LedgerEntry {
+	start := time.Now()
+	defer s.recordPersistence("ledger_entry", "append", nil, start)
+	return s.appendLedgerEntry(entry)
+}
+
+func (s *MemoryStore) appendLedgerEntry(entry domain.LedgerEntry) domain.LedgerEntry {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	s.ledgerEntries = append(s.ledgerEntries, entry)
+	return entry
+}
+
+func (s *MemoryStore) ListLedgerEntries() []domain.LedgerEntry {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	out := make([]domain.LedgerEntry, len(s.ledgerEntries))
+	copy(out, s.ledgerEntries)
+	sort.Slice(out, func(i, j int) bool {
+		if out[i].CreatedAt.Equal(out[j].CreatedAt) {
+			return out[i].ID < out[j].ID
+		}
+		return out[i].CreatedAt.Before(out[j].CreatedAt)
+	})
+	return out
+}
 
 func (s *MemoryStore) WithIdempotency(key, fingerprint string, fn func() (any, error)) (any, error) {
 	s.mu.Lock()

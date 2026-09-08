@@ -73,6 +73,7 @@ func TestUnitOfWorkContractAgainstPostgres(t *testing.T) {
 	if err := uow.Do(func(tx ports.Transaction) error {
 		tx.SavePaymentIntent(domain.PaymentIntent{ID: "pi_1"})
 		tx.SaveCharge(domain.Charge{ID: "ch_1", PaymentIntentID: "pi_1"})
+		tx.AppendLedgerEntry(domain.LedgerEntry{ID: "le_1", EventName: "payment_intent.created", EntityType: "payment_intent", EntityID: "pi_1", PaymentIntentID: "pi_1"})
 		return tx.Publish(domain.PaymentIntentCreatedEvent{PaymentIntent: domain.PaymentIntent{ID: "pi_1"}})
 	}); err != nil {
 		t.Fatalf("do failed: %v", err)
@@ -87,6 +88,9 @@ func TestUnitOfWorkContractAgainstPostgres(t *testing.T) {
 	if _, err := store.GetCharge("ch_1"); err != nil {
 		t.Fatalf("expected committed charge: %v", err)
 	}
+	if count := queryInt(t, db, `SELECT count(*) FROM ledger_entries WHERE event_name = 'payment_intent.created'`); count != 1 {
+		t.Fatalf("expected 1 ledger row, got %d", count)
+	}
 	if count := queryInt(t, db, `SELECT count(*) FROM outbox_events WHERE event_name = 'payment_intent.created'`); count != 1 {
 		t.Fatalf("expected 1 outbox row, got %d", count)
 	}
@@ -100,6 +104,7 @@ func TestUnitOfWorkRollbackAgainstPostgres(t *testing.T) {
 	err := uow.Do(func(tx ports.Transaction) error {
 		tx.SavePaymentIntent(domain.PaymentIntent{ID: "pi_1"})
 		tx.SavePaymentAttempt(domain.PaymentAttempt{ID: "pa_1", PaymentIntentID: "pi_1"})
+		tx.AppendLedgerEntry(domain.LedgerEntry{ID: "le_1", EventName: "payment_intent.created", EntityType: "payment_intent", EntityID: "pi_1", PaymentIntentID: "pi_1"})
 		_ = tx.Publish(domain.PaymentIntentCreatedEvent{PaymentIntent: domain.PaymentIntent{ID: "pi_1"}})
 		return domain.NewError(500, "boom", "boom")
 	})
@@ -114,6 +119,9 @@ func TestUnitOfWorkRollbackAgainstPostgres(t *testing.T) {
 	}
 	if count := queryInt(t, db, `SELECT count(*) FROM outbox_events WHERE event_name = 'payment_intent.created'`); count != 0 {
 		t.Fatalf("expected rollback of outbox, got %d", count)
+	}
+	if count := queryInt(t, db, `SELECT count(*) FROM ledger_entries WHERE event_name = 'payment_intent.created'`); count != 0 {
+		t.Fatalf("expected rollback of ledger entries, got %d", count)
 	}
 }
 
