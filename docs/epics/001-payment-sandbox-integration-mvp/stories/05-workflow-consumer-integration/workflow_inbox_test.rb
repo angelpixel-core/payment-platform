@@ -60,6 +60,45 @@ class WorkflowInboxTest < Minitest::Test
     assert_equal "projection unavailable", entry[:failure_reason]
   end
 
+  def test_replays_same_delivery_without_reapplying_projection
+    store = PaymentSandbox::WorkflowConsumer::InMemoryWebhookInboxStore.new
+    projection = Projection.new([])
+    processor = PaymentSandbox::WorkflowConsumer::WebhookProcessor.new(
+      inbox_store: store,
+      projection:,
+      verifier: Verifier.new(true)
+    )
+
+    first = processor.call(payload:, headers: {})
+    duplicate = processor.call(payload:, headers: {})
+
+    assert_equal :processed, first[:status]
+    assert_equal :duplicate, duplicate[:status]
+    assert_equal :processed, duplicate[:original_status]
+    assert_equal 1, projection.applied_entries.size
+    assert_equal 1, store.entries.size
+    assert_equal :processed, store.entries.first[:status]
+  end
+
+  def test_rejects_same_delivery_with_different_payload
+    store = PaymentSandbox::WorkflowConsumer::InMemoryWebhookInboxStore.new
+    processor = PaymentSandbox::WorkflowConsumer::WebhookProcessor.new(
+      inbox_store: store,
+      projection: Projection.new([]),
+      verifier: Verifier.new(true)
+    )
+    processor.call(payload:, headers: {})
+
+    conflicting_payload = payload.merge(data: { charge_id: "ch_2" })
+
+    error = assert_raises(ArgumentError) do
+      processor.call(payload: conflicting_payload, headers: {})
+    end
+    assert_equal "delivery_id payload conflict", error.message
+    assert_equal 1, store.entries.size
+    assert_equal :processed, store.entries.first[:status]
+  end
+
   private
 
   class RecordingStore < PaymentSandbox::WorkflowConsumer::InMemoryWebhookInboxStore

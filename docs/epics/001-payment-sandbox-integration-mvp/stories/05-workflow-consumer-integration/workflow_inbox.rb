@@ -37,11 +37,19 @@ module PaymentSandbox
 
       def call(payload:, headers:, received_at: Time.now.utc)
         delivery_id = payload.fetch(:delivery_id)
-        if @inbox_store.find_by_delivery_id(delivery_id)
-          @inbox_store.update(delivery_id, status: :duplicate)
-          return @inbox_store.find_by_delivery_id(delivery_id)
+        existing = @inbox_store.find_by_delivery_id(delivery_id)
+        if existing
+          raise ArgumentError, "delivery_id payload conflict" unless existing[:payload] == payload
+
+          return {
+            delivery_id:,
+            event_id: existing[:event_id],
+            status: :duplicate,
+            original_status: existing[:status]
+          }
         end
 
+        persisted = false
         entry = @inbox_store.persist(
           delivery_id:,
           event_id: payload.fetch(:event_id),
@@ -52,6 +60,7 @@ module PaymentSandbox
           processed_at: nil,
           failure_reason: nil
         )
+        persisted = true
 
         unless @verifier.verify(payload:, signature: headers[:"X-Sandbox-Signature"])
           return @inbox_store.update(delivery_id, status: :rejected_signature, failure_reason: "invalid signature")
@@ -61,7 +70,7 @@ module PaymentSandbox
         @projection.apply!(inbox_entry: entry)
         @inbox_store.update(delivery_id, status: :processed, processed_at: received_at)
       rescue StandardError => error
-        @inbox_store.update(delivery_id, status: :failed, failure_reason: error.message) if delivery_id
+        @inbox_store.update(delivery_id, status: :failed, failure_reason: error.message) if delivery_id && persisted
         raise
       end
     end
