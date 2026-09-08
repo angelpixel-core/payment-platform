@@ -17,7 +17,10 @@ Define the generic consumer-side contract for integrating any workflow owner wit
 - The sandbox owns payment truth.
 - Webhooks are stored before business mutation.
 - Idempotency is enforced by the consumer.
-- Contract changes must go through `v1`.
+- `Idempotency-Key` is required on every mutating request and must be sent as a header.
+- No body fallback is allowed for idempotency keys in the base contract.
+- `v1` is the only supported contract version for this story.
+- Any backward-incompatible request, response, or error-shape change requires a new contract version, not a silent change to `v1`.
 - Reconciliation is read-only.
 - Snapshot comparison must be deterministic and diff-friendly.
 
@@ -26,6 +29,7 @@ Define the generic consumer-side contract for integrating any workflow owner wit
 - The consumer is any workflow owner with a local payment projection.
 - The consumer should depend on a small gateway interface and webhook inbox.
 - The consumer should be able to reconcile its local projection against `GET /v1/reports/transactions` and `GET /v1/reports/transactions?view=snapshot`.
+- All mutating gateway operations must send `Idempotency-Key`.
 
 ## Gateway Interface
 
@@ -68,6 +72,14 @@ The consumer should persist at least:
 - idempotency keys
 - reconciliation snapshots
 
+## Idempotency Rules
+
+- All mutating operations must include a non-empty `Idempotency-Key` header.
+- The consumer should persist the key before applying side effects.
+- A repeated request with the same key and payload must resolve to the original result.
+- A repeated request with the same key and different payload must fail with a stable duplicate/idempotency conflict error.
+- Read-only inspection and reconciliation endpoints do not require idempotency keys.
+
 ## Data Expectations
 
 - Payment intent lifecycle is created, confirmed, captured, refunded, and queried through the sandbox API.
@@ -85,6 +97,7 @@ The consumer should map sandbox failures into stable domain-level errors such as
 - payment not found
 - duplicate request
 - reconciliation mismatch
+- `payment pending` and `reconciliation mismatch` are consumer-side states or errors, not sandbox transport codes.
 
 ### Error Mapping
 
