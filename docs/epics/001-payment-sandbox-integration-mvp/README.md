@@ -25,7 +25,7 @@ depending on Stripe or Mercado Pago in development.
 - [ ] Card-only payment sandbox service in Go.
 - [ ] 5 core endpoints for create, confirm, capture, refund, and reporting.
 - [ ] Webhook simulation with retries and duplicate delivery.
-- [ ] Local ledger-style reporting for reconciliation.
+- [x] Local ledger-style reporting for reconciliation.
 - [ ] Rails adapter contract for payment requests and webhooks.
 - [ ] 6 deterministic scenarios for success, decline, pending, retries, and partial refund.
 - [ ] Docker Compose for local execution.
@@ -35,7 +35,7 @@ depending on Stripe or Mercado Pago in development.
 - [x] [01-sandbox-api-base](./stories/01-sandbox-api-base/README.md) `done`
 - [x] [02-scenario-engine](./stories/02-scenario-engine/README.md) `done`
 - [ ] [03-webhook-delivery](./stories/03-webhook-delivery/README.md) `pending`
-- [ ] [04-ledger-reporting](./stories/04-ledger-reporting/README.md) `pending`
+- [x] [04-ledger-reporting](./stories/04-ledger-reporting/README.md) `done`
 - [ ] [05-workflow-consumer-integration](./stories/05-workflow-consumer-integration/README.md) `pending`
 - [ ] [06-local-dev-setup](./stories/06-local-dev-setup/README.md) `pending`
 - [ ] [07-payment-platform-sdk](./stories/07-payment-platform-sdk/README.md) `pending`
