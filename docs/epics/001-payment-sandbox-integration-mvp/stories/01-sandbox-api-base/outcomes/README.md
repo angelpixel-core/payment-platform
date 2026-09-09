@@ -4,7 +4,7 @@ This folder contains the manual request sequence for the Sandbox API Base story.
 
 ## Shared Variables
 
-- `BASE_URL`: sandbox base URL, usually `http://localhost:8080`
+- `BASE_URL`: sandbox base URL, usually `http://localhost:10201`
 - `IDEMPOTENCY_KEY`: unique key for each operation; reuse it to verify idempotency
 - `PAYMENT_INTENT_ID`: id returned by the create request
 - `CHARGE_ID`: id returned by confirm or capture, used for the refund request

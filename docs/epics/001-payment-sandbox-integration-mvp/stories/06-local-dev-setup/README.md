@@ -22,6 +22,7 @@ Make the sandbox and Rails app runnable locally with Docker Compose, with the AP
 - The Rails application is documented as an external consumer because it is not part of this repository.
 - The host-facing API and documentation URL is `http://localhost:10201`; Compose services use `http://payment-sandbox:8080`.
 - PostgreSQL is exposed to the host at `localhost:10202` and remains available inside Compose at `postgres:5432`.
+- Local host ports use the `10200` base range: API/docs `10201`, PostgreSQL `10202`, and future services continue from `10203`.
 - Swagger UI, Redoc, and the OpenAPI documents are HTTP routes of the sandbox process, not a separate service.
 
 ## Implementation Order
