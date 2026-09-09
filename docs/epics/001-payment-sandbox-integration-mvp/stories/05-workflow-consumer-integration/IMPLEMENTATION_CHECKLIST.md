@@ -49,7 +49,7 @@ Implementar la integracion del consumidor de workflow contra `payment-sandbox` c
 ## 4. OpenAPI y Vistas
 
 - [x] `docs(payment-sandbox): publish openapi v1 and browser views`
-  - [x] Validar `docs/openapi/payment-sandbox.v1.yaml`.
+  - [x] Validar `apps/payment-sandbox/docs/openapi/v1/payment-sandbox.v1.yaml`.
   - [x] Publicar vista navegable con Swagger UI.
   - [x] Publicar vista navegable con Redoc.
 

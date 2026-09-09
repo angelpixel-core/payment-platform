@@ -6,10 +6,10 @@ Describe how to use the versioned OpenAPI contract for `payment-sandbox` v1.
 
 ## Files
 
-- `apps/payment-sandbox/docs/openapi/payment-sandbox.v1.yaml`
-- `apps/payment-sandbox/docs/openapi/payment-sandbox.v1.json`
-- `apps/payment-sandbox/docs/openapi/swagger-ui.html`
-- `apps/payment-sandbox/docs/openapi/redoc.html`
+- `apps/payment-sandbox/docs/openapi/v1/payment-sandbox.v1.yaml`
+- `apps/payment-sandbox/docs/openapi/v1/payment-sandbox.v1.json`
+- `apps/payment-sandbox/docs/swagger/index.html`
+- `apps/payment-sandbox/docs/redoc/index.html`
 
 ## Notes
 

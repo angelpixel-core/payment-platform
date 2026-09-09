@@ -12,8 +12,8 @@ func TestGenerateJSONMatchesCheckedInFile(t *testing.T) {
 	t.Parallel()
 
 	root := repoRoot(t)
-	yamlPath := filepath.Join(root, "apps", "payment-sandbox", "docs", "openapi", "payment-sandbox.v1.yaml")
-	jsonPath := filepath.Join(root, "apps", "payment-sandbox", "docs", "openapi", "payment-sandbox.v1.json")
+	yamlPath := filepath.Join(root, "apps", "payment-sandbox", "docs", "openapi", "v1", "payment-sandbox.v1.yaml")
+	jsonPath := filepath.Join(root, "apps", "payment-sandbox", "docs", "openapi", "v1", "payment-sandbox.v1.json")
 
 	got, err := GenerateJSONFile(yamlPath)
 	if err != nil {

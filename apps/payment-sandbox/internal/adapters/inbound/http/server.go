@@ -21,7 +21,10 @@ func New(svc *sandbox.Service, docsRoot ...string) http.Handler {
 	if len(docsRoot) > 0 {
 		root = docsRoot[0]
 	}
-	s.mux.Handle("GET /openapi/", docsadapter.New(root))
+	docsHandler := docsadapter.New(root)
+	s.mux.Handle("GET /docs", docsHandler)
+	s.mux.Handle("GET /docs/{path...}", docsHandler)
+	s.mux.Handle("GET /openapi/{path...}", docsHandler)
 	return s.mux
 }
 
