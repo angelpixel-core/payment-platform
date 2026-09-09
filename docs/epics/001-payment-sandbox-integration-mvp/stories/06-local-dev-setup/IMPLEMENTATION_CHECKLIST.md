@@ -7,8 +7,8 @@
 - [x] Serve Redoc from the sandbox process. [Evidence](../../../../../../apps/payment-sandbox/internal/adapters/inbound/http/server.go)
 - [x] Serve OpenAPI YAML and JSON from the sandbox process. [Evidence](../../../../../../apps/payment-sandbox/internal/adapters/inbound/http/server.go)
 - [x] Keep `/v1/*` and `/openapi/*` under the same HTTP origin. [Evidence](../../../../../../apps/payment-sandbox/internal/adapters/inbound/http/server.go)
-- [ ] Keep transport concerns in `internal/adapters/inbound/http`.
-- [ ] Keep application and domain layers independent from HTTP and HTML.
+- [x] Keep transport concerns in `internal/adapters/inbound/http`. [Evidence](../../../../../../apps/payment-sandbox/internal/adapters/inbound/http)
+- [x] Keep application and domain layers independent from HTTP and HTML. [Evidence](../../../../../../apps/payment-sandbox/internal/application/boundaries_test.go)
 
 ## Ports
 
