@@ -18,9 +18,10 @@ The local development stack will be defined at the project root and operated thr
 make stack/up
 make stack/seed
 make stack/down
+make stack/reset
 ```
 
-Use `make stack/down` followed by `make stack/up` to restart the stack. A reset target may remove local volumes when a clean database is required.
+Use `make stack/down` followed by `make stack/up` to restart the stack. `make stack/reset` removes local volumes when a clean database is required.
 
 The sandbox is available from the host at `http://localhost:8080`. Services inside Docker Compose should reach it using the service hostname `payment-sandbox`.
 
