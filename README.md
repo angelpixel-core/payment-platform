@@ -15,14 +15,15 @@ make test-load-pressure
 The local development stack will be defined at the project root and operated through these Make targets:
 
 ```bash
-make stack/up
+make stack/up ARGS="--build -d"
 make stack/seed
+make stack/smoke
 make stack/down
 make stack/reset
 ```
 
-Use `make stack/down` followed by `make stack/up` to restart the stack. `make stack/reset` removes local volumes when a clean database is required.
+Use `make stack/down` followed by `make stack/up ARGS="-d"` to restart the stack. Pass Compose options through `ARGS`, for example `make stack/up ARGS="--build -d"` for a force-build and detached startup. `make stack/reset` removes local volumes when a clean database is required.
 
-The sandbox is available from the host at `http://localhost:8080`. Services inside Docker Compose should reach it using the service hostname `payment-sandbox`.
+The sandbox API and its OpenAPI documentation are available from the host at `http://localhost:30001`. Services inside Docker Compose should reach the API using the service hostname `payment-sandbox`.
 
 Local configuration will be documented in `.env.example`; production secrets must not be committed.

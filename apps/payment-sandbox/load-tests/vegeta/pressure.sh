@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-BASE_URL="${BASE_URL:-http://localhost:8080}"
+BASE_URL="${BASE_URL:-http://localhost:30001}"
 TARGETS_FILE="${TARGETS_FILE:-$(dirname "$0")/reports-transactions.txt}"
 DURATION="${DURATION:-30s}"
 RATE="${RATE:-50}"

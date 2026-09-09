@@ -15,8 +15,8 @@ import (
 	newrelicmetrics "payment-sandbox/internal/adapters/observability/metrics/newrelic"
 	otelmetrics "payment-sandbox/internal/adapters/observability/metrics/otel"
 	"payment-sandbox/internal/adapters/persistence/postgres"
-	"payment-sandbox/internal/bootstrap"
 	"payment-sandbox/internal/application/operations"
+	"payment-sandbox/internal/bootstrap"
 	"payment-sandbox/internal/sandbox"
 )
 
@@ -128,7 +128,7 @@ func runServe(ctx context.Context, cfg runtimeConfig) error {
 		svc = sandbox.NewServiceWithMetrics(recorder)
 	}
 
-	handler := bootstrap.New(svc, bootstrap.WithLogger(logger), bootstrap.WithNewRelic(nrApp), bootstrap.WithMetrics(recorder))
+	handler := bootstrap.New(svc, bootstrap.WithLogger(logger), bootstrap.WithNewRelic(nrApp), bootstrap.WithMetrics(recorder), bootstrap.WithDocsRoot(os.Getenv("DOCS_ROOT")))
 
 	server := &http.Server{
 		Addr:              ":" + cfg.port,

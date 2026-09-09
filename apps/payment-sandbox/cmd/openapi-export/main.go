@@ -9,8 +9,8 @@ import (
 )
 
 func main() {
-	in := flag.String("in", "../../docs/openapi/payment-sandbox.v1.yaml", "input OpenAPI YAML path")
-	out := flag.String("out", "../../docs/openapi/payment-sandbox.v1.json", "output OpenAPI JSON path")
+	in := flag.String("in", "./docs/openapi/payment-sandbox.v1.yaml", "input OpenAPI YAML path")
+	out := flag.String("out", "./docs/openapi/payment-sandbox.v1.json", "output OpenAPI JSON path")
 	flag.Parse()
 
 	jsonBytes, err := openapi.GenerateJSONFile(*in)

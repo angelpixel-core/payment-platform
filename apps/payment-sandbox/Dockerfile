@@ -10,6 +10,8 @@ FROM alpine:3.22
 
 RUN adduser -D -H app
 COPY --from=build /out/payment-sandbox /usr/local/bin/payment-sandbox
+COPY docs /app/docs
+WORKDIR /app
 USER app
 EXPOSE 8080
 ENTRYPOINT ["payment-sandbox"]

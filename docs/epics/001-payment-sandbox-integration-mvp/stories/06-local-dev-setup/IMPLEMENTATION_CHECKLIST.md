@@ -2,18 +2,18 @@
 
 ## Architecture
 
-- [ ] Consolidate `docs-server` into the sandbox HTTP process.
-- [ ] Serve Swagger UI from the sandbox process.
-- [ ] Serve Redoc from the sandbox process.
-- [ ] Serve OpenAPI YAML and JSON from the sandbox process.
-- [ ] Keep `/v1/*` and `/openapi/*` under the same HTTP origin.
+- [x] Consolidate `docs-server` into the sandbox HTTP process. [Evidence](../../../../../../apps/payment-sandbox/internal/adapters/inbound/http/docs/handler.go)
+- [x] Serve Swagger UI from the sandbox process. [Evidence](../../../../../../apps/payment-sandbox/internal/adapters/inbound/http/server.go)
+- [x] Serve Redoc from the sandbox process. [Evidence](../../../../../../apps/payment-sandbox/internal/adapters/inbound/http/server.go)
+- [x] Serve OpenAPI YAML and JSON from the sandbox process. [Evidence](../../../../../../apps/payment-sandbox/internal/adapters/inbound/http/server.go)
+- [x] Keep `/v1/*` and `/openapi/*` under the same HTTP origin. [Evidence](../../../../../../apps/payment-sandbox/internal/adapters/inbound/http/server.go)
 - [ ] Keep transport concerns in `internal/adapters/inbound/http`.
 - [ ] Keep application and domain layers independent from HTTP and HTML.
 
 ## Ports
 
-- [ ] Expose API and documentation on host port `30001`.
-- [ ] Expose PostgreSQL on host port `30002`.
+- [x] Expose API and documentation on host port `30001`. [Evidence](../../../../../../docker-compose.yml)
+- [x] Expose PostgreSQL on host port `30002`. [Evidence](../../../../../../docker-compose.yml)
 - [x] Keep API internal container port at `8080`.
 - [x] Keep PostgreSQL internal container port at `5432`.
 - [ ] Remove operational host URL references to ports `8080` and `8081`.
@@ -23,9 +23,9 @@
 
 - [x] Define PostgreSQL service.
 - [x] Define payment sandbox service.
-- [ ] Serve documentation from the sandbox container and process.
-- [ ] Add host port variables for `30001` and `30002` to `.env.example`.
-- [ ] Verify `/health` at `http://localhost:30001/health`.
+- [x] Serve documentation from the sandbox container and process. [Evidence](../../../../../../apps/payment-sandbox/Dockerfile)
+- [x] Add host port variables for `30001` and `30002` to `.env.example`. [Evidence](../../../../../../.env.example)
+- [x] Verify `/health` at `http://localhost:30001/health`.
 
 ## Seeds
 

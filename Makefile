@@ -1,4 +1,4 @@
-.PHONY: test test-unit test-integration test-contract test-system test-load-business test-load-pressure stack/up stack/down stack/seed stack/reset
+.PHONY: test test-unit test-integration test-contract test-system test-load-business test-load-pressure stack/up stack/down stack/seed stack/smoke stack/reset
 
 test: test-unit
 
@@ -21,13 +21,16 @@ test-load-pressure:
 	BASE_URL=$${BASE_URL:-http://localhost:8080} TARGETS_FILE=$${TARGETS_FILE:-apps/payment-sandbox/load-tests/vegeta/reports-transactions.txt} DURATION=$${DURATION:-30s} RATE=$${RATE:-50} apps/payment-sandbox/load-tests/vegeta/pressure.sh
 
 stack/up:
-	docker compose up -d --build
+	docker compose up $(if $(FORCE_BUILD),--build) $(if $(BACKGROUND),-d)
 
 stack/down:
 	docker compose down
 
 stack/seed:
 	docker compose run --rm payment-sandbox seed
+
+stack/smoke:
+	./scripts/smoke-payment-sandbox.sh
 
 stack/reset:
 	docker compose down -v
