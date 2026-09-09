@@ -36,7 +36,7 @@ Make the sandbox and Rails app runnable locally with Docker Compose.
 
 - [x] Docker Compose services ([evidence](../../../../../../docker-compose.yml))
 - [x] Local PostgreSQL ([evidence](../../../../../../docker-compose.yml))
-- [ ] Local scenario seeds
+- [x] Local scenario seeds ([evidence](../../../../../../apps/payment-sandbox/internal/application/operations/seed.go))
 - [ ] Smoke test scripts
 - [x] One-command startup for the full stack ([evidence](../../../../../../Makefile))
 - [x] Local env config for Rails and Go ([evidence](../../../../../../.env.example))
@@ -79,7 +79,7 @@ flowchart LR
 ## Acceptance Criteria
 
 - [x] The full stack runs with one local command. ([evidence](../../../../../../Makefile))
-- [ ] Seeded scenarios are available.
+- [x] Seeded scenarios are available. ([evidence](../../../../../../apps/payment-sandbox/internal/application/operations/seed.go))
 - [ ] Smoke tests validate the happy path.
 - [x] Local config is documented and reproducible. ([evidence](../../../../../../.env.example))
 - [x] The developer can reset the environment without manual cleanup. ([evidence](../../../../../../Makefile))
