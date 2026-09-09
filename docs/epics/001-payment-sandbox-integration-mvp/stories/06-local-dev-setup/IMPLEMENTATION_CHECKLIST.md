@@ -16,7 +16,7 @@
 - [x] Expose PostgreSQL on host port `10202`. [Evidence](../../../../../../docker-compose.yml)
 - [x] Keep API internal container port at `8080`.
 - [x] Keep PostgreSQL internal container port at `5432`.
-- [ ] Remove operational host URL references to ports `8080` and `8081`.
+- [x] Remove operational host URL references to ports `8080` and `8081`.
 - [x] Update load-test and smoke-test defaults to port `10201`.
 
 ## Docker Compose
@@ -48,15 +48,15 @@
 ## Documentation
 
 - [x] Document root-level stack commands.
-- [ ] Document the unified API and documentation origin.
+- [x] Document the unified API and documentation origin. [Evidence](README.md)
 - [x] Document Swagger at `http://localhost:10201/openapi/swagger-ui.html`.
-- [ ] Update OpenAPI examples to use port `30001`.
-- [ ] Link implementation evidence from the story README.
+- [x] Update OpenAPI examples to use port `10201`.
+- [x] Link implementation evidence from the story README. [Evidence](README.md)
 
 ## Acceptance Criteria
 
-- [ ] API and Swagger work from the same port.
-- [ ] Stack starts with explicit arguments, for example `make stack/up ARGS="--build -d"`.
+- [x] API and Swagger work from the same port.
+- [x] Stack starts with semantic arguments, for example `make stack/up FORCE_BUILD=1 BACKGROUND=1`.
 - [x] Seeds work against a clean database.
 - [ ] The complete smoke test passes.
 - [x] The environment can be reset with `make stack/reset`.

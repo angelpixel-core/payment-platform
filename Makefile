@@ -15,10 +15,10 @@ test-system:
 	@echo "system tests are not defined yet"
 
 test-load-business:
-	BASE_URL=$${BASE_URL:-http://localhost:8080/v1} SCENARIO=$${SCENARIO:-approved_immediate} k6 run apps/payment-sandbox/load-tests/k6/business-sequences.js
+	BASE_URL=$${BASE_URL:-http://localhost:10201/v1} SCENARIO=$${SCENARIO:-approved_immediate} k6 run apps/payment-sandbox/load-tests/k6/business-sequences.js
 
 test-load-pressure:
-	BASE_URL=$${BASE_URL:-http://localhost:8080} TARGETS_FILE=$${TARGETS_FILE:-apps/payment-sandbox/load-tests/vegeta/reports-transactions.txt} DURATION=$${DURATION:-30s} RATE=$${RATE:-50} apps/payment-sandbox/load-tests/vegeta/pressure.sh
+	BASE_URL=$${BASE_URL:-http://localhost:10201} TARGETS_FILE=$${TARGETS_FILE:-apps/payment-sandbox/load-tests/vegeta/reports-transactions.txt} DURATION=$${DURATION:-30s} RATE=$${RATE:-50} apps/payment-sandbox/load-tests/vegeta/pressure.sh
 
 stack/up:
 	docker compose up $(if $(FORCE_BUILD),--build) $(if $(BACKGROUND),-d)
