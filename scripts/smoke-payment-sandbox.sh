@@ -1,19 +1,25 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-BASE_URL="${BASE_URL:-http://localhost:30001}"
+BASE_URL="${BASE_URL:-http://localhost:10201}"
 run_id="$(date +%s)-$$"
 tmp_dir="$(mktemp -d)"
 trap 'rm -rf "$tmp_dir"' EXIT
 
-command -v curl >/dev/null || { printf 'curl is required\n' >&2; exit 1; }
-command -v jq >/dev/null || { printf 'jq is required\n' >&2; exit 1; }
+command -v curl >/dev/null || {
+  printf 'curl is required\n' >&2
+  exit 1
+}
+command -v jq >/dev/null || {
+  printf 'jq is required\n' >&2
+  exit 1
+}
 
 for _ in {1..30}; do
-	if curl --silent --fail "$BASE_URL/health" >/dev/null 2>&1; then
-		break
-	fi
-	sleep 1
+  if curl --silent --fail "$BASE_URL/health" >/dev/null 2>&1; then
+    break
+  fi
+  sleep 1
 done
 
 request() {
@@ -28,7 +34,7 @@ request() {
       -X "$method" "$BASE_URL$path" -H 'Accept: application/json' \
       -H "Idempotency-Key: $key")"
   fi
-  printf '%s\n' "$status" > "$tmp_dir/status"
+  printf '%s\n' "$status" >"$tmp_dir/status"
 }
 
 expect_status() {

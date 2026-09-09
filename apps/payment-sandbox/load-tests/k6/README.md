@@ -9,7 +9,7 @@ This directory contains the initial `k6` script for deterministic payment flows 
 ## Usage
 
 ```bash
-BASE_URL=http://localhost:30001/v1 \
+BASE_URL=http://localhost:10201/v1 \
 SCENARIO=approved_immediate \
 CAPTURE_METHOD=manual \
 k6 run apps/payment-sandbox/load-tests/k6/business-sequences.js
@@ -17,7 +17,7 @@ k6 run apps/payment-sandbox/load-tests/k6/business-sequences.js
 
 ## Environment Variables
 
-- `BASE_URL` defaults to `http://localhost:30001/v1`.
+- `BASE_URL` defaults to `http://localhost:10201/v1`.
 - `SCENARIO` defaults to `approved_immediate`.
 - `CAPTURE_METHOD` defaults to `manual`.
 - `AMOUNT`, `CURRENCY`, `MERCHANT_ID`, `CUSTOMER_ID`, `PAYMENT_METHOD_TOKEN` override the request payload.

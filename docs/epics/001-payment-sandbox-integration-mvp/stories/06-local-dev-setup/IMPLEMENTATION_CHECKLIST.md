@@ -12,20 +12,20 @@
 
 ## Ports
 
-- [x] Expose API and documentation on host port `30001`. [Evidence](../../../../../../docker-compose.yml)
-- [x] Expose PostgreSQL on host port `30002`. [Evidence](../../../../../../docker-compose.yml)
+- [x] Expose API and documentation on host port `10201`. [Evidence](../../../../../../docker-compose.yml)
+- [x] Expose PostgreSQL on host port `10202`. [Evidence](../../../../../../docker-compose.yml)
 - [x] Keep API internal container port at `8080`.
 - [x] Keep PostgreSQL internal container port at `5432`.
 - [ ] Remove operational host URL references to ports `8080` and `8081`.
-- [ ] Update load-test and smoke-test defaults to port `30001`.
+- [x] Update load-test and smoke-test defaults to port `10201`.
 
 ## Docker Compose
 
 - [x] Define PostgreSQL service.
 - [x] Define payment sandbox service.
 - [x] Serve documentation from the sandbox container and process. [Evidence](../../../../../../apps/payment-sandbox/Dockerfile)
-- [x] Add host port variables for `30001` and `30002` to `.env.example`. [Evidence](../../../../../../.env.example)
-- [x] Verify `/health` at `http://localhost:30001/health`.
+- [x] Add host port variables for `10201` and `10202` to `.env.example`. [Evidence](../../../../../../.env.example)
+- [x] Verify `/health` at `http://localhost:10201/health`.
 
 ## Seeds
 
@@ -39,7 +39,7 @@
 - [x] Add Bash, `curl`, and `jq` smoke script.
 - [x] Validate required local dependencies.
 - [x] Wait for service readiness before requests.
-- [ ] Validate health successfully on port `30001`.
+- [ ] Validate health successfully on port `10201`.
 - [ ] Validate create, confirm, capture, and refund.
 - [ ] Validate lifecycle, report, and snapshot.
 - [ ] Resolve the PostgreSQL `current transaction is aborted` failure.
@@ -49,7 +49,7 @@
 
 - [x] Document root-level stack commands.
 - [ ] Document the unified API and documentation origin.
-- [ ] Document Swagger at `http://localhost:30001/openapi/swagger-ui.html`.
+- [x] Document Swagger at `http://localhost:10201/openapi/swagger-ui.html`.
 - [ ] Update OpenAPI examples to use port `30001`.
 - [ ] Link implementation evidence from the story README.
 

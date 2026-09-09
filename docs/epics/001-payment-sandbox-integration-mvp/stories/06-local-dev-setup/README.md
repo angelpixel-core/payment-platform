@@ -20,8 +20,8 @@ Make the sandbox and Rails app runnable locally with Docker Compose, with the AP
 - `docker-compose.yml`, `.env.example`, and the project-level development README belong at the repository root.
 - Stack operations use namespaced Make targets: `make stack/up`, `make stack/down`, and `make stack/seed`.
 - The Rails application is documented as an external consumer because it is not part of this repository.
-- The host-facing API and documentation URL is `http://localhost:30001`; Compose services use `http://payment-sandbox:8080`.
-- PostgreSQL is exposed to the host at `localhost:30002` and remains available inside Compose at `postgres:5432`.
+- The host-facing API and documentation URL is `http://localhost:10201`; Compose services use `http://payment-sandbox:8080`.
+- PostgreSQL is exposed to the host at `localhost:10202` and remains available inside Compose at `postgres:5432`.
 - Swagger UI, Redoc, and the OpenAPI documents are HTTP routes of the sandbox process, not a separate service.
 
 ## Implementation Order
@@ -55,10 +55,10 @@ Make the sandbox and Rails app runnable locally with Docker Compose, with the AP
 
 ```mermaid
 flowchart LR
-    Dev[Developer] --> HTTP[Sandbox HTTP :30001]
+    Dev[Developer] --> HTTP[Sandbox HTTP :10201]
     HTTP --> API[JSON API /v1]
     HTTP --> Docs[Swagger Redoc OpenAPI]
-    HTTP --> PG[(PostgreSQL :30002)]
+    HTTP --> PG[(PostgreSQL :10202)]
     Dev --> RT[Seed + Smoke Tests]
     Rails[Rails App] --> API
 ```
