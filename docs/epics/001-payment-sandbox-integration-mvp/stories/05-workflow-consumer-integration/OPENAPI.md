@@ -6,16 +6,16 @@ Describe how to use the versioned OpenAPI contract for `payment-sandbox` v1.
 
 ## Files
 
-- `docs/openapi/payment-sandbox.v1.yaml`
-- `docs/openapi/payment-sandbox.v1.json`
-- `docs/openapi/swagger-ui.html`
-- `docs/openapi/redoc.html`
+- `apps/payment-sandbox/docs/openapi/payment-sandbox.v1.yaml`
+- `apps/payment-sandbox/docs/openapi/payment-sandbox.v1.json`
+- `apps/payment-sandbox/docs/openapi/swagger-ui.html`
+- `apps/payment-sandbox/docs/openapi/redoc.html`
 
 ## Notes
 
 - The YAML spec is the source of truth.
 - The JSON export is generated from the YAML and exists for tooling compatibility.
-- From `apps/payment-sandbox`, run `go run ./cmd/openapi-export -in ./docs/openapi/payment-sandbox.v1.yaml -out ./docs/openapi/payment-sandbox.v1.json` to refresh the JSON mirror.
+- From `apps/payment-sandbox`, run `go run ./cmd/openapi-export` to refresh the JSON mirror.
 - Swagger UI and Redoc can coexist while evaluating the best browsing experience.
 
 ## Local Preview
@@ -28,6 +28,5 @@ go run ./cmd/docs-server
 
 Then open:
 
-- `http://localhost:8081/`
-- `http://localhost:8081/openapi/swagger-ui.html`
-- `http://localhost:8081/openapi/redoc.html`
+- `http://localhost:30001/openapi/swagger-ui.html`
+- `http://localhost:30001/openapi/redoc.html`

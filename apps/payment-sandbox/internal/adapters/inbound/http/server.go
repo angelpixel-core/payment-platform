@@ -4,6 +4,7 @@ import (
 	"net/http"
 	"strings"
 
+	docsadapter "payment-sandbox/internal/adapters/inbound/http/docs"
 	"payment-sandbox/internal/domain"
 	"payment-sandbox/internal/sandbox"
 )
@@ -13,9 +14,14 @@ type Server struct {
 	mux *http.ServeMux
 }
 
-func New(svc *sandbox.Service) http.Handler {
+func New(svc *sandbox.Service, docsRoot ...string) http.Handler {
 	s := &Server{svc: svc, mux: http.NewServeMux()}
 	s.routes()
+	root := ""
+	if len(docsRoot) > 0 {
+		root = docsRoot[0]
+	}
+	s.mux.Handle("GET /openapi/", docsadapter.New(root))
 	return s.mux
 }
 

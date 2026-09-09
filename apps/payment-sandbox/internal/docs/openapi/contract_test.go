@@ -380,5 +380,5 @@ func openapiYAMLPath(t *testing.T) string {
 	if !ok {
 		t.Fatal("runtime caller failed")
 	}
-	return filepath.Clean(filepath.Join(filepath.Dir(file), "..", "..", "..", "..", "..", "docs", "openapi", "payment-sandbox.v1.yaml"))
+	return filepath.Clean(filepath.Join(filepath.Dir(file), "..", "..", "..", "..", "..", "apps", "payment-sandbox", "docs", "openapi", "payment-sandbox.v1.yaml"))
 }

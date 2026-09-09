@@ -13,9 +13,10 @@ import (
 )
 
 type config struct {
-	logger  *slog.Logger
-	nrApp   *nr.Application
-	metrics metrics.MetricsRecorder
+	logger   *slog.Logger
+	nrApp    *nr.Application
+	metrics  metrics.MetricsRecorder
+	docsRoot string
 }
 
 type Option func(*config)
@@ -40,12 +41,16 @@ func WithMetrics(recorder metrics.MetricsRecorder) Option {
 	}
 }
 
+func WithDocsRoot(root string) Option {
+	return func(cfg *config) { cfg.docsRoot = root }
+}
+
 func New(svc *sandbox.Service, opts ...Option) http.Handler {
 	cfg := config{logger: slog.Default()}
 	for _, opt := range opts {
 		opt(&cfg)
 	}
-	h := httpadapter.New(svc)
+	h := httpadapter.New(svc, cfg.docsRoot)
 	h = httpmiddleware.Observability(h, cfg.logger)
 	h = httpmiddleware.Metrics(h, cfg.metrics)
 	if cfg.nrApp != nil {
