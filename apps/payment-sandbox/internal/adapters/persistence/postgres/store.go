@@ -341,7 +341,7 @@ func decodeIdempotencyValue(responseType string, payload []byte) (any, error) {
 }
 
 func insertLedgerEntry(ctx context.Context, e execer, entry domain.LedgerEntry) (sql.Result, error) {
-	return exec(e, `INSERT INTO ledger_entries(id, event_name, entity_type, entity_id, payment_intent_id, payment_attempt_id, charge_id, refund_id, merchant_id, currency, amount, created_at)
+	return exec(e, `INSERT INTO ledger_entries(id, event_name, entity_type, entity_id, payment_intent_id, payment_attempt_id, charge_id, refund_id, merchant_id, currency, balance_bucket, balance_delta, amount, created_at)
 VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14)`,
 		entry.ID, entry.EventName, entry.EntityType, entry.EntityID, nullString(entry.PaymentIntentID), nullString(entry.PaymentAttemptID), nullString(entry.ChargeID), nullString(entry.RefundID), nullString(entry.MerchantID), nullString(entry.Currency.String()), nullString(entry.BalanceBucket), entry.BalanceDelta, int64(entry.Amount), entry.CreatedAt)
 }

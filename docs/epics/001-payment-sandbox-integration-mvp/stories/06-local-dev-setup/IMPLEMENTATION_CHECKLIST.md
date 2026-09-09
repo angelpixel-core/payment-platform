@@ -39,11 +39,11 @@
 - [x] Add Bash, `curl`, and `jq` smoke script.
 - [x] Validate required local dependencies.
 - [x] Wait for service readiness before requests.
-- [ ] Validate health successfully on port `10201`.
-- [ ] Validate create, confirm, capture, and refund.
-- [ ] Validate lifecycle, report, and snapshot.
-- [ ] Resolve the PostgreSQL `current transaction is aborted` failure.
-- [ ] Mark the happy-path acceptance criterion after the full flow passes.
+- [x] Validate health successfully on port `10201`. [Evidence](../../../../../../scripts/smoke-payment-sandbox.sh)
+- [x] Validate create, confirm, capture, and refund. [Evidence](../../../../../../scripts/smoke-payment-sandbox.sh)
+- [x] Validate lifecycle, report, and snapshot. [Evidence](../../../../../../scripts/smoke-payment-sandbox.sh)
+- [x] Resolve the PostgreSQL `current transaction is aborted` failure. [Evidence](../../../../../../apps/payment-sandbox/internal/adapters/persistence/postgres/store.go)
+- [x] Mark the happy-path acceptance criterion after the full flow passes. [Evidence](../../../../../../scripts/smoke-payment-sandbox.sh)
 
 ## Documentation
 
@@ -58,5 +58,5 @@
 - [x] API and Swagger work from the same port.
 - [x] Stack starts with semantic arguments, for example `make stack/up FORCE_BUILD=1 BACKGROUND=1`.
 - [x] Seeds work against a clean database.
-- [ ] The complete smoke test passes.
+- [x] The complete smoke test passes. [Evidence](../../../../../../scripts/smoke-payment-sandbox.sh)
 - [x] The environment can be reset with `make stack/reset`.
