@@ -6,7 +6,7 @@ services:
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-postgres}
       POSTGRES_DB: ${POSTGRES_DB:-payment_sandbox}
     ports:
-      - "${POSTGRES_PORT:-30002}:5432"
+      - "${POSTGRES_PORT:-10202}:5432"
     volumes:
       - payment-platform-postgres:/var/lib/postgresql/data
     healthcheck:
@@ -23,7 +23,7 @@ services:
       DATABASE_URL: ${DATABASE_URL:-postgres://postgres:postgres@postgres:5432/payment_sandbox?sslmode=disable}
       NEW_RELIC_LICENSE_KEY: ${NEW_RELIC_LICENSE_KEY:-}
     ports:
-      - "${PAYMENT_SANDBOX_PORT:-30001}:8080"
+      - "${PAYMENT_SANDBOX_PORT:-10201}:8080"
     depends_on:
       postgres:
         condition: service_healthy

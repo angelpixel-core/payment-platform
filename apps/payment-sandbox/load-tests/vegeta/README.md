@@ -10,7 +10,7 @@ This directory contains reproducible HTTP pressure targets for `payment-sandbox`
 ## Usage
 
 ```bash
-BASE_URL=http://localhost:30001 \
+BASE_URL=http://localhost:10201 \
 TARGETS_FILE=apps/payment-sandbox/load-tests/vegeta/reports-transactions.txt \
 DURATION=30s \
 RATE=50 \
@@ -19,7 +19,7 @@ apps/payment-sandbox/load-tests/vegeta/pressure.sh
 
 ## Environment Variables
 
-- `BASE_URL` defaults to `http://localhost:30001`.
+- `BASE_URL` defaults to `http://localhost:10201`.
 - `TARGETS_FILE` defaults to `reports-transactions.txt`.
 - `DURATION` defaults to `30s`.
 - `RATE` defaults to `50`.

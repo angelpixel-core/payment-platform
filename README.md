@@ -24,6 +24,6 @@ make stack/reset
 
 Use `make stack/down` followed by `make stack/up ARGS="-d"` to restart the stack. Pass Compose options through `ARGS`, for example `make stack/up ARGS="--build -d"` for a force-build and detached startup. `make stack/reset` removes local volumes when a clean database is required.
 
-The sandbox API and its OpenAPI documentation are available from the host at `http://localhost:30001`. Services inside Docker Compose should reach the API using the service hostname `payment-sandbox`.
+The sandbox API and its OpenAPI documentation are available from the host at `http://localhost:10201`. Services inside Docker Compose should reach the API using the service hostname `payment-sandbox`.
 
 Local configuration will be documented in `.env.example`; production secrets must not be committed.

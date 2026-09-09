@@ -28,5 +28,5 @@ go run ./cmd/docs-server
 
 Then open:
 
-- `http://localhost:30001/openapi/swagger-ui.html`
-- `http://localhost:30001/openapi/redoc.html`
+- `http://localhost:10201/openapi/swagger-ui.html`
+- `http://localhost:10201/openapi/redoc.html`
