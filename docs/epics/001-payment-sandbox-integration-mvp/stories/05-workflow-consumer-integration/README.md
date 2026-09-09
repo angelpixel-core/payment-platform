@@ -105,3 +105,4 @@ These files define and exercise the expected consumer behavior but are not integ
 - [Pattern](./PATTERN.md)
 - [OpenAPI Guide](./OPENAPI.md)
 - [SDK Proposal](./SDK_PROPOSAL.md)
+- [SDK Migration Plan](./SDK_MIGRATION_PLAN.md)
