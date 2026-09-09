@@ -34,12 +34,12 @@ Make the sandbox and Rails app runnable locally with Docker Compose.
 
 ### In Scope
 
-- [ ] Docker Compose services
-- [ ] Local PostgreSQL
+- [x] Docker Compose services ([evidence](../../../../../../docker-compose.yml))
+- [x] Local PostgreSQL ([evidence](../../../../../../docker-compose.yml))
 - [ ] Local scenario seeds
 - [ ] Smoke test scripts
-- [ ] One-command startup for the full stack
-- [ ] Local env config for Rails and Go
+- [x] One-command startup for the full stack ([evidence](../../../../../../Makefile))
+- [x] Local env config for Rails and Go ([evidence](../../../../../../.env.example))
 
 ### Out of Scope
 
@@ -78,15 +78,15 @@ flowchart LR
 
 ## Acceptance Criteria
 
-- [ ] The full stack runs with one local command.
+- [x] The full stack runs with one local command. ([evidence](../../../../../../Makefile))
 - [ ] Seeded scenarios are available.
 - [ ] Smoke tests validate the happy path.
-- [ ] Local config is documented and reproducible.
-- [ ] The developer can reset the environment without manual cleanup.
+- [x] Local config is documented and reproducible. ([evidence](../../../../../../.env.example))
+- [x] The developer can reset the environment without manual cleanup. ([evidence](../../../../../../Makefile))
 
 ## Dependencies
 
-- [ ] Sandbox API base
-- [ ] Rails adapter
-- [ ] Scenario engine
-- [ ] Ledger and reporting
+- [x] Sandbox API base
+- [ ] Rails adapter (external to this repository)
+- [x] Scenario engine
+- [x] Ledger and reporting
