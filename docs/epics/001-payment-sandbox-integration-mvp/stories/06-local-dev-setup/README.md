@@ -6,6 +6,7 @@ tags:
   - docker
   - sandbox
 epic: 001-payment-sandbox-integration-mvp
+status: pending
 ---
 
 # Story: Local Dev Setup
@@ -13,6 +14,21 @@ epic: 001-payment-sandbox-integration-mvp
 ## Intent
 
 Make the sandbox and Rails app runnable locally with Docker Compose.
+
+## Setup Decision
+
+- `docker-compose.yml`, `.env.example`, and the project-level development README belong at the repository root.
+- Stack operations use namespaced Make targets: `make stack/up`, `make stack/down`, and `make stack/seed`.
+- The Rails application is documented as an external consumer because it is not part of this repository.
+- The host-facing sandbox URL is `http://localhost:8080`; Compose services use `http://payment-sandbox:8080`.
+
+## Implementation Order
+
+1. Define the Compose services and health dependencies.
+2. Add reproducible local environment variables.
+3. Add deterministic seeds through the existing `payment-sandbox seed` command.
+4. Add smoke tests for health, payment lifecycle, report, and snapshot.
+5. Add Make targets for startup, shutdown, seeding, and reset.
 
 ## Scope
 
