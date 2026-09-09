@@ -86,7 +86,7 @@ flowchart LR
 
 - [x] The full stack runs with one local command. ([evidence](../../../../../../Makefile))
 - [x] Seeded scenarios are available. ([evidence](../../../../../../apps/payment-sandbox/internal/application/operations/seed.go))
-- [ ] Smoke tests validate the happy path.
+- [x] Smoke tests validate the happy path. ([evidence](../../../../../../scripts/smoke-payment-sandbox.sh))
 - [x] Local config is documented and reproducible. ([evidence](../../../../../../.env.example))
 - [x] The developer can reset the environment without manual cleanup. ([evidence](../../../../../../Makefile))
 
