@@ -33,11 +33,17 @@ jobs:
         uses: actions/checkout@v4
       - name: Setup Pages
         uses: actions/configure-pages@v5
+      - name: Prepare docs
+        run: |
+          mkdir -p _site/openapi/v1
+          cp apps/payment-sandbox/docs/swagger/index.html \
+            _site/index.html
+          cp apps/payment-sandbox/docs/openapi/v1/payment-sandbox.v1.yaml \
+            _site/openapi/v1/payment-sandbox.v1.yaml
       - name: Upload artifact
         uses: actions/upload-pages-artifact@v3
         with:
-          # Upload entire repository
-          path: './apps/payment-sandbox/docs/swagger'
+          path: "_site"
       - name: Deploy to GitHub Pages
         id: deployment
         uses: actions/deploy-pages@v5
